@@ -56,12 +56,10 @@ const Header = () => {
   return (
     <header className={`phd-header ${isSearchActive ? "search-mode" : ""}`}>
       <div className="phd-header-container">
-        {/* Logo - Hidden when searching on mobile */}
         <NavLink to="/" className="phd-logo">
           BangingPrices
         </NavLink>
 
-        {/* Search Engine */}
         <form className="phd-search-form" onSubmit={handleSearch}>
           <div className="phd-search-field">
             <span className="phd-search-icon">
@@ -85,8 +83,13 @@ const Header = () => {
           </div>
         </form>
 
-        {/* Desktop/Mobile Actions */}
         <div className="phd-actions">
+          {/* Public link */}
+          <NavLink to="/products" className="phd-store-link">
+            Store
+          </NavLink>
+
+          {/* Mobile search icon only */}
           <button
             className="phd-btn-icon mobile-only"
             onClick={() => setIsSearchActive(true)}
@@ -94,18 +97,25 @@ const Header = () => {
             <HeaderIcon name="search" />
           </button>
 
+          {/* Logged-in only links */}
           <SignedIn>
+            <NavLink to="/dashboard" className="phd-nav-link">
+              Dashboard
+            </NavLink>
+
             <button
               className="phd-btn-icon"
               onClick={() => navigate("/products")}
             >
               <HeaderIcon name="heart" />
             </button>
+
             <div className="phd-clerk-wrapper">
               <UserButton afterSignOutUrl="/" />
             </div>
           </SignedIn>
 
+          {/* Logged-out only */}
           <SignedOut>
             <button
               className="phd-auth-link"

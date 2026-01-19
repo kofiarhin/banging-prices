@@ -48,7 +48,7 @@
   transition: border-color 0.2s ease;
 
   &:focus-within {
-    border-color: rgba(255, 215, 0, 0.5); // Using gold accent
+    border-color: rgba(255, 215, 0, 0.5);
     background: rgba(255, 255, 255, 0.08);
   }
 }
@@ -66,6 +66,7 @@
   color: #fff;
   font-size: 0.95rem;
   outline: none;
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.3);
   }
@@ -85,6 +86,54 @@
   display: none;
 }
 
+/* Public link */
+.phd-store-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    opacity 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  &.active {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.08);
+  }
+}
+
+/* Logged-in nav link (Dashboard) */
+.phd-nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    opacity 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+
+  &.active {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.08);
+  }
+}
+
 /* Actions */
 .phd-actions {
   display: flex;
@@ -101,9 +150,15 @@
   border-radius: 8px;
   display: flex;
   transition: background 0.2s;
+
   &:hover {
     background: rgba(255, 255, 255, 0.05);
   }
+}
+
+/* Search icon button: hidden by default (desktop) */
+.phd-btn-icon.mobile-only {
+  display: none;
 }
 
 .phd-auth-link {
@@ -114,6 +169,7 @@
   font-weight: 500;
   cursor: pointer;
   opacity: 0.8;
+
   &:hover {
     opacity: 1;
   }
@@ -128,26 +184,30 @@
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+
   &:hover {
     background: #e0e0e0;
   }
 }
 
-/* Mobile Overrides (min-width logic applied for cleanliness) */
+/* Mobile Overrides */
 @media (max-width: 850px) {
   .phd-header {
     height: 56px;
 
     &.search-mode {
       background: #000;
+
       .phd-logo,
       .phd-actions {
         display: none;
       }
+
       .phd-search-form {
         max-width: 100%;
         display: block;
       }
+
       .phd-search-exit {
         display: flex;
         background: none;
@@ -155,6 +215,7 @@
         color: #fff;
         padding: 5px;
       }
+
       .phd-kbd {
         display: none;
       }
@@ -164,9 +225,20 @@
   .phd-search-form {
     display: none;
   }
+
   .phd-auth-link {
     display: none;
   }
+
+  .phd-store-link {
+    display: none;
+  }
+
+  .phd-nav-link {
+    display: none;
+  }
+
+  /* show search icon ONLY on mobile */
   .phd-btn-icon.mobile-only {
     display: flex;
   }
