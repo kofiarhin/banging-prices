@@ -56,7 +56,7 @@ const Header = () => {
   return (
     <header className={`phd-header ${isSearchActive ? "search-mode" : ""}`}>
       <div className="phd-header-container">
-        <NavLink to="/" className="phd-logo">
+        <NavLink to="/products" className="phd-logo">
           BangingPrices
         </NavLink>
 
