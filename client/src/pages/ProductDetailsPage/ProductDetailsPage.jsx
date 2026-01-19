@@ -1,5 +1,5 @@
 /* client/src/pages/ProductDetailsPage/ProductDetailsPage.jsx */
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./product-details.styles.scss";
@@ -78,6 +78,15 @@ const ProductDetailsPage = () => {
   const [targetPercent, setTargetPercent] = useState("10");
   const [alertSaved, setAlertSaved] = useState(false);
 
+  useEffect(() => {
+    setActiveIdx(0);
+    setSaved(false);
+    setShareDone(false);
+    setAlertOpen(false);
+    setAlertType("price");
+    setAlertSaved(false);
+  }, [p?._id]);
+
   const gallery = useMemo(() => {
     if (!p) return [];
     return Array.from(new Set([p.image, ...(p.images || [])])).filter(Boolean);
@@ -130,6 +139,7 @@ const ProductDetailsPage = () => {
               className="pd-icon-btn"
               onClick={onShare}
               title="Share deal"
+              aria-label="Share deal"
             >
               <span className="material-symbols-outlined">share</span>
             </button>
@@ -138,6 +148,7 @@ const ProductDetailsPage = () => {
               className={`pd-icon-btn ${saved ? "is-active" : ""}`}
               onClick={() => setSaved(!saved)}
               title="Save"
+              aria-label="Save"
             >
               <span className="material-symbols-outlined">
                 {saved ? "favorite" : "favorite_border"}
@@ -151,34 +162,52 @@ const ProductDetailsPage = () => {
 
       <div className="pd-container">
         <div className="pd-layout">
-          <section className="pd-media">
-            <div className="pd-thumbs">
-              {gallery.map((url, idx) => (
-                <button
-                  key={idx}
-                  className={`pd-thumb ${idx === activeIdx ? "is-active" : ""}`}
-                  onClick={() => setActiveIdx(idx)}
-                >
-                  <img src={url} alt="" loading="lazy" />
-                </button>
-              ))}
-            </div>
+          <section className="pd-media" aria-label="Product media">
+            <div className="pd-media-grid">
+              <div className="pd-main">
+                <img src={activeImageUrl} alt={p.title} loading="eager" />
+                {discount > 0 ? (
+                  <div className="pd-media-discount">-{discount}%</div>
+                ) : null}
+              </div>
 
-            <div className="pd-main">
-              <img src={activeImageUrl} alt={p.title} />
-            </div>
-
-            <div className="pd-lookbook-helper">
-              {gallery.slice(1).map((url, i) => (
-                <div key={i} className="pd-main">
-                  <img src={url} alt="" />
+              {gallery.length > 1 ? (
+                <div className="pd-thumbs" aria-label="Gallery thumbnails">
+                  {gallery.map((url, idx) => (
+                    <button
+                      key={url + idx}
+                      className={`pd-thumb ${idx === activeIdx ? "is-active" : ""}`}
+                      onClick={() => setActiveIdx(idx)}
+                      aria-label={`View image ${idx + 1}`}
+                      title={`Image ${idx + 1}`}
+                      type="button"
+                    >
+                      <img src={url} alt="" loading="lazy" />
+                    </button>
+                  ))}
                 </div>
-              ))}
+              ) : null}
             </div>
           </section>
 
-          <aside className="pd-panel">
-            <h1 className="pd-title">{p.title}</h1>
+          <aside className="pd-panel" aria-label="Product details">
+            <div className="pd-head">
+              <h1 className="pd-title">{p.title}</h1>
+
+              <div className="pd-chips">
+                <span className="pd-chip pd-chip-strong">
+                  {p.storeName || p.store || "Retailer"}
+                </span>
+
+                <span className={`pd-chip ${p.inStock ? "is-good" : "is-bad"}`}>
+                  {p.inStock ? "In Stock" : "Out of Stock"}
+                </span>
+
+                <span className="pd-chip pd-chip-muted">
+                  Updated {formatTimeAgo(p.lastSeenAt)}
+                </span>
+              </div>
+            </div>
 
             <div className="pd-price-card">
               <div className="pd-price-row">
@@ -186,49 +215,44 @@ const ProductDetailsPage = () => {
                   <span className="pd-price-now">
                     {formatMoney(p.currency, p.price)}
                   </span>
-                  {p.originalPrice && (
+
+                  {p.originalPrice ? (
                     <span className="pd-price-was">
                       {formatMoney(p.currency, p.originalPrice)}
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 {discount > 0 ? (
-                  <span className="pd-discount-tag">-{discount}%</span>
-                ) : null}
+                  <span className="pd-discount-tag">Save {discount}%</span>
+                ) : (
+                  <span className="pd-discount-tag is-neutral">
+                    No discount
+                  </span>
+                )}
               </div>
 
-              <div className="pd-badges">
-                <span
-                  className={`pd-badge ${p.inStock ? "is-good" : "is-bad"}`}
-                >
-                  {p.inStock ? "In Stock" : "Out of Stock"}
-                </span>
-                <span className="pd-badge pd-badge-muted">
-                  Updated {formatTimeAgo(p.lastSeenAt)}
-                </span>
-              </div>
-            </div>
+              <div className="pd-meta-inline">
+                <div className="pd-meta-pill">
+                  <span className="pd-meta-pill-label">Category</span>
+                  <span className="pd-meta-pill-value">
+                    {p.category || "General"}
+                  </span>
+                </div>
 
-            <div className="pd-meta-grid">
-              <div className="pd-meta-item">
-                <span className="pd-meta-label">Retailer</span>
-                <span className="pd-meta-value">{p.storeName || p.store}</span>
-              </div>
+                <div className="pd-meta-pill">
+                  <span className="pd-meta-pill-label">Gender</span>
+                  <span className="pd-meta-pill-value">
+                    {p.gender || "Unisex"}
+                  </span>
+                </div>
 
-              <div className="pd-meta-item">
-                <span className="pd-meta-label">Category</span>
-                <span className="pd-meta-value">{p.category || "General"}</span>
-              </div>
-
-              <div className="pd-meta-item">
-                <span className="pd-meta-label">Gender</span>
-                <span className="pd-meta-value">{p.gender || "Unisex"}</span>
-              </div>
-
-              <div className="pd-meta-item">
-                <span className="pd-meta-label">ID</span>
-                <span className="pd-meta-value">#{p._id.slice(-6)}</span>
+                <div className="pd-meta-pill">
+                  <span className="pd-meta-pill-label">ID</span>
+                  <span className="pd-meta-pill-value">
+                    #{(p._id || "").slice(-6)}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -248,17 +272,23 @@ const ProductDetailsPage = () => {
                   setAlertOpen(true);
                   setTargetPrice(p.price);
                 }}
+                type="button"
               >
                 Monitor Price
               </button>
 
               <button
                 className="pd-btn pd-btn-ghost"
-                onClick={() => qc.invalidateQueries(["product", id])}
+                onClick={() =>
+                  qc.invalidateQueries({ queryKey: ["product", id] })
+                }
+                type="button"
               >
                 Refresh Deal
               </button>
             </div>
+
+            <div className="pd-divider" />
           </aside>
         </div>
       </div>
@@ -267,7 +297,7 @@ const ProductDetailsPage = () => {
         <div className="pd-container">
           <h2 className="pd-section-title">Similar Drops</h2>
           <p className="pd-section-sub">
-            Deals you might have missed in {p.category}
+            Deals you might have missed in {p.category || "this category"}
           </p>
 
           <div className="pd-similar-grid">
@@ -284,9 +314,12 @@ const ProductDetailsPage = () => {
                       </span>
                     ) : null}
                   </div>
-                  <div className="pd-card-title">{x.title}</div>
-                  <div className="pd-card-now">
-                    {formatMoney(x.currency, x.price)}
+
+                  <div className="pd-card-body">
+                    <div className="pd-card-title">{x.title}</div>
+                    <div className="pd-card-now">
+                      {formatMoney(x.currency, x.price)}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -299,12 +332,14 @@ const ProductDetailsPage = () => {
           className="pd-modal-backdrop"
           onClick={(e) => e.target === e.currentTarget && setAlertOpen(false)}
         >
-          <div className="pd-modal">
+          <div className="pd-modal" role="dialog" aria-modal="true">
             <div className="pd-modal-head">
               <h3 className="pd-modal-title">Track Pricing</h3>
               <button
                 className="pd-icon-btn"
                 onClick={() => setAlertOpen(false)}
+                aria-label="Close"
+                type="button"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -316,6 +351,7 @@ const ProductDetailsPage = () => {
                   key={t}
                   className={`pd-tab ${alertType === t ? "is-active" : ""}`}
                   onClick={() => setAlertType(t)}
+                  type="button"
                 >
                   {t.toUpperCase()}
                 </button>
@@ -333,6 +369,7 @@ const ProductDetailsPage = () => {
                       value={targetPrice}
                       onChange={(e) => setTargetPrice(e.target.value)}
                       type="number"
+                      inputMode="decimal"
                     />
                   </div>
                 </div>
@@ -347,6 +384,7 @@ const ProductDetailsPage = () => {
                       value={targetPercent}
                       onChange={(e) => setTargetPercent(e.target.value)}
                       type="number"
+                      inputMode="numeric"
                     />
                     <span className="pd-suffix">%</span>
                   </div>
@@ -355,12 +393,16 @@ const ProductDetailsPage = () => {
 
               {alertType === "stock" && (
                 <p className="pd-hint">
-                  We'll ping you as soon as inventory is detected.
+                  We&apos;ll ping you as soon as inventory is detected.
                 </p>
               )}
             </div>
 
-            <button className="pd-btn pd-btn-primary" onClick={saveAlert}>
+            <button
+              className="pd-btn pd-btn-primary"
+              onClick={saveAlert}
+              type="button"
+            >
               Activate Tracker
             </button>
 
