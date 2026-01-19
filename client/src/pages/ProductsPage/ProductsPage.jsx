@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+// ProductsPage.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./products.styles.scss";
@@ -23,6 +24,40 @@ const fetchCategories = async (gender) => {
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [toolbarHidden, setToolbarHidden] = useState(false);
+  const lastYRef = useRef(0);
+  const tickingRef = useRef(false);
+
+  useEffect(() => {
+    lastYRef.current = window.scrollY || 0;
+
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+
+      if (y <= 8) {
+        setToolbarHidden(false);
+        lastYRef.current = y;
+        return;
+      }
+
+      if (tickingRef.current) return;
+
+      tickingRef.current = true;
+      window.requestAnimationFrame(() => {
+        const delta = y - lastYRef.current;
+
+        if (delta > 6) setToolbarHidden(true); // scrolling down
+        if (delta < -6) setToolbarHidden(false); // scrolling up
+
+        lastYRef.current = y;
+        tickingRef.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
@@ -73,7 +108,7 @@ const ProductsPage = () => {
 
   return (
     <main className="pp-products">
-      <section className="pp-toolbar">
+      <section className={`pp-toolbar ${toolbarHidden ? "is-hidden" : ""}`}>
         <div className="pp-container">
           <div className="pp-toolbar-inner">
             {/* Segmented Control */}
