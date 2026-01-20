@@ -1,7 +1,6 @@
 const express = require("express");
 const requireClerkAuth = require("../middleware/requireClerkAuth");
 const Save = require("../models/save.product.model");
-const User = require("../models/user.model");
 
 const {
   getStores,
@@ -20,31 +19,37 @@ router.get("/categories", getCategories);
 
 router.get("/", getProducts);
 router.post("/", createProduct);
-router.post("/save", requireClerkAuth, async (req, res, next) => {
+
+router.post("/save", requireClerkAuth, async (req, res) => {
   try {
     const { id: productId } = req.body;
-    if (!productId) {
-      throw new Error("product id is required");
-    }
-    const clerkId = req.auth.userId;
-    const user = await User.findOne({ clerkId });
-    //save product
-    const savedProduct = await Save.create({ userId: user?._id, productId });
-    return res.json({ message: "save product" });
+    if (!productId)
+      return res.status(400).json({ message: "product id is required" });
+
+    const clerkId = req.auth?.userId;
+    if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
+
+    const savedProduct = await Save.create({ clerkId, productId });
+
+    return res.json({ message: "saved", savedProduct });
   } catch (error) {
-    console.log(error.message);
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Already saved" });
+    }
     return res.status(500).json({ message: error.message });
   }
 });
 
-router.get("/saved", requireClerkAuth, async (req, res, next) => {
-  const clerkId = req.auth.userId;
+router.get("/saved", requireClerkAuth, async (req, res) => {
+  try {
+    const clerkId = req.auth?.userId;
+    if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
-  const { _id: userId } = await User.findOne({ clerkId });
-
-  //find all saved products where user id is _id;
-  const products = await Save.find({ userId }).populate("productId");
-  return res.json(products);
+    const products = await Save.find({ clerkId }).populate("productId");
+    return res.json(products);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 });
 
 router.get("/:id", getProductById);
