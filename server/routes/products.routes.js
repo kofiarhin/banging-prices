@@ -54,8 +54,7 @@ router.get("/saved", requireClerkAuth, async (req, res) => {
 
 router.delete("/saved-item/:id", requireClerkAuth, async (req, res) => {
   try {
-    const clerkId = req.userId;
-
+    const clerkId = req.auth?.userId;
     if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
 
     const productId = req.params.id;

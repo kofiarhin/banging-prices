@@ -1,4 +1,3 @@
-/* client/src/pages/ProductDetailsPage/ProductDetailsPage.jsx */
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -153,6 +152,13 @@ const ProductDetailsPage = () => {
     if (isAlreadySaved) return;
 
     const t = token || (await getToken());
+    if (!t) {
+      console.error(
+        "Clerk token is empty. Configure a JWT template in Clerk OR pass a template to getToken({ template: 'YOUR_TEMPLATE' }).",
+      );
+      return;
+    }
+
     mutate(
       { id, token: t },
       {
