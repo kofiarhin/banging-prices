@@ -1,12 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const { getAuth, clerkMiddleware } = require("@clerk/express");
 
 const productsRoutes = require("./routes/products.routes");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
+// setup middlewares
+app.use(clerkMiddleware());
 app.use(cors());
 app.use(express.json());
 

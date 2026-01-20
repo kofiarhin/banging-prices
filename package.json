@@ -15,6 +15,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "dependencies": {
+    "@clerk/express": "^1.7.63",
     "cors": "^2.8.5",
     "crawlee": "^3.15.3",
     "dotenv": "^17.2.3",

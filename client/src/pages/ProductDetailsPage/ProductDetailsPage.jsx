@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./product-details.styles.scss";
+import useSaveMutation from "../../hooks/useSaveMutation";
+// import { getAuth } from "@clerk/express";
+import { useAuth } from "@clerk/clerk-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -50,7 +53,9 @@ const fetchSimilar = async (p) => {
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const qc = useQueryClient();
+  const { mutate, isPending } = useSaveMutation();
 
   const {
     data: p,
@@ -125,6 +130,18 @@ const ProductDetailsPage = () => {
         )
       : p.discountPercent;
 
+  const handleSave = async () => {
+    //get auth token
+    const token = await getToken();
+    const dataToSubmit = { id, token };
+    setSaved(!saved);
+    mutate(dataToSubmit, {
+      onSuccess: (data) => {
+        console.log("success:", data);
+      },
+    });
+  };
+
   return (
     <div className="pd-page">
       <nav className="pd-top">
@@ -146,7 +163,7 @@ const ProductDetailsPage = () => {
 
             <button
               className={`pd-icon-btn ${saved ? "is-active" : ""}`}
-              onClick={() => setSaved(!saved)}
+              onClick={handleSave}
               title="Save"
               aria-label="Save"
             >
