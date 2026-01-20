@@ -13,6 +13,8 @@ app.use(clerkMiddleware());
 app.use(cors());
 app.use(express.json());
 
+console.log("we on it");
+
 // health (liveness)
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "api", time: new Date().toISOString() });
