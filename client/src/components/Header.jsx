@@ -75,10 +75,10 @@ const Header = () => {
 
   const [search, setSearch] = useState(params.get("search") || "");
 
+  // Sync internal search state with URL but DO NOT close the search UI here
   useEffect(() => {
     setSearch(params.get("search") || "");
-    setIsSearchActive(false);
-  }, [location.search, params]);
+  }, [location.search]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -87,15 +87,12 @@ const Header = () => {
 
       if (isCmdK) {
         e.preventDefault();
-        setIsSearchActive(true);
-        setIsMobileMenuOpen(false);
-        requestAnimationFrame(() => searchInputRef.current?.focus());
+        openSearch();
       }
 
       if (isEsc) {
-        setIsSearchActive(false);
+        closeSearch();
         setIsMobileMenuOpen(false);
-        searchInputRef.current?.blur();
       }
     };
 
@@ -103,9 +100,10 @@ const Header = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // Close only the mobile menu on navigation, not the search
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   useEffect(() => {
     document.body.style.overflow =
@@ -266,7 +264,11 @@ const Header = () => {
         role="presentation"
       />
 
-      <div className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(" ")}>
+      <div
+        className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
+          " ",
+        )}
+      >
         <div className="phd-mobile-drawer-inner">
           <NavLink to="/products" className="phd-drawer-link">
             Store
@@ -285,7 +287,10 @@ const Header = () => {
           </SignedIn>
 
           <SignedOut>
-            <button className="phd-drawer-btn" onClick={() => navigate("/login")}>
+            <button
+              className="phd-drawer-btn"
+              onClick={() => navigate("/login")}
+            >
               Log in
             </button>
             <button

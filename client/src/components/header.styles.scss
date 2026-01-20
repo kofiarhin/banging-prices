@@ -44,7 +44,9 @@
   border-radius: 12px;
   padding: 0 12px;
   height: 40px;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 
   &:focus-within {
     border-color: rgba(255, 215, 0, 0.45);
@@ -64,6 +66,7 @@
   color: #fff;
   font-size: 0.95rem;
   outline: none;
+  width: 100%;
 
   &::placeholder {
     color: rgba(255, 255, 255, 0.35);
@@ -112,7 +115,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -131,7 +136,9 @@
   font-weight: 800;
   padding: 8px 10px;
   border-radius: 10px;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -241,10 +248,31 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Mobile */
+/* Mobile Breakpoint: 850px (Mobile-first min-width is preferred, but here we override for header logic) */
 @media (max-width: 850px) {
   .phd-header {
     height: 56px;
+
+    &.search-mode {
+      .phd-logo,
+      .phd-actions {
+        display: none;
+      }
+
+      .phd-search-form {
+        display: block;
+        max-width: 100%;
+        flex: 1;
+      }
+
+      .phd-search-exit {
+        display: inline-flex;
+      }
+
+      .phd-kbd {
+        display: none;
+      }
+    }
   }
 
   .phd-header-container {
@@ -262,25 +290,6 @@
 
   .mobile-only {
     display: inline-flex;
-  }
-
-  .phd-header.search-mode .phd-logo,
-  .phd-header.search-mode .phd-actions {
-    display: none;
-  }
-
-  .phd-header.search-mode .phd-search-form {
-    display: block;
-    max-width: 100%;
-    flex: 1;
-  }
-
-  .phd-header.search-mode .phd-search-exit {
-    display: inline-flex;
-  }
-
-  .phd-header.search-mode .phd-kbd {
-    display: none;
   }
 
   .phd-mobile-drawer {
