@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import "./header.styles.scss";
@@ -32,6 +32,13 @@ const HeaderIcon = ({ name }) => {
         <path d="M23 11h-6" />
       </>
     ),
+    menu: (
+      <>
+        <path d="M4 6h16" />
+        <path d="M4 12h16" />
+        <path d="M4 18h16" />
+      </>
+    ),
   };
 
   return (
@@ -55,12 +62,17 @@ const HeaderIcon = ({ name }) => {
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const searchInputRef = useRef(null);
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
   );
+
   const [search, setSearch] = useState(params.get("search") || "");
 
   useEffect(() => {
@@ -68,39 +80,100 @@ const Header = () => {
     setIsSearchActive(false);
   }, [location.search, params]);
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const isCmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      const isEsc = e.key === "Escape";
+
+      if (isCmdK) {
+        e.preventDefault();
+        setIsSearchActive(true);
+        setIsMobileMenuOpen(false);
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+
+      if (isEsc) {
+        setIsSearchActive(false);
+        setIsMobileMenuOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    document.body.style.overflow =
+      isMobileMenuOpen || isSearchActive ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen, isSearchActive]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const nextParams = new URLSearchParams(location.search);
     const q = search.trim();
     q ? nextParams.set("search", q) : nextParams.delete("search");
     nextParams.set("page", "1");
+    setIsSearchActive(false);
+    setIsMobileMenuOpen(false);
     navigate(`/products?${nextParams.toString()}`);
   };
 
+  const openSearch = () => {
+    setIsSearchActive(true);
+    setIsMobileMenuOpen(false);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
+
+  const closeSearch = () => {
+    setIsSearchActive(false);
+    searchInputRef.current?.blur();
+  };
+
   return (
-    <header className={`phd-header ${isSearchActive ? "search-mode" : ""}`}>
+    <header
+      className={[
+        "phd-header",
+        isSearchActive ? "search-mode" : "",
+        isMobileMenuOpen ? "menu-open" : "",
+      ].join(" ")}
+    >
       <div className="phd-header-container">
-        <NavLink to="/" className="phd-logo">
+        <NavLink to="/" className="phd-logo" aria-label="Home">
           BangingPrices
         </NavLink>
 
         <form className="phd-search-form" onSubmit={handleSearch}>
           <div className="phd-search-field">
-            <span className="phd-search-icon">
+            <span className="phd-search-icon" aria-hidden="true">
               <HeaderIcon name="search" />
             </span>
+
             <input
+              ref={searchInputRef}
               className="phd-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search fashion intelligence..."
+              placeholder="Search products..."
               onFocus={() => setIsSearchActive(true)}
+              aria-label="Search products"
             />
-            <div className="phd-kbd">⌘K</div>
+
+            <div className="phd-kbd" aria-hidden="true">
+              ⌘K
+            </div>
+
             <button
               type="button"
               className="phd-search-exit"
-              onClick={() => setIsSearchActive(false)}
+              onClick={closeSearch}
               aria-label="Close search"
               title="Close search"
             >
@@ -110,7 +183,6 @@ const Header = () => {
         </form>
 
         <div className="phd-actions">
-          {/* Store (icon only) */}
           <NavLink
             to="/products"
             className="phd-btn-icon phd-icon-link"
@@ -120,39 +192,28 @@ const Header = () => {
             <HeaderIcon name="store" />
           </NavLink>
 
-          {/* Mobile search icon only */}
-          <button
-            className="phd-btn-icon mobile-only"
-            onClick={() => setIsSearchActive(true)}
-            aria-label="Search"
-            title="Search"
-          >
-            <HeaderIcon name="search" />
-          </button>
-
-          {/* Logged-in only */}
           <SignedIn>
             <button
-              className="phd-btn-icon"
+              className="phd-btn-icon desktop-only"
               onClick={() => navigate("/saved-products")}
-              aria-label="Wishlist"
-              title="Wishlist"
+              aria-label="Saved products"
+              title="Saved products"
             >
               <HeaderIcon name="heart" />
             </button>
-            <NavLink to="/dashboard" className="phd-nav-link">
+
+            <NavLink to="/dashboard" className="phd-nav-link desktop-only">
               Dashboard
             </NavLink>
 
-            <div className="phd-clerk-wrapper">
+            <div className="phd-clerk-wrapper desktop-only">
               <UserButton afterSignOutUrl="/" />
             </div>
           </SignedIn>
 
-          {/* Logged-out only (icons) */}
           <SignedOut>
             <button
-              className="phd-btn-icon phd-icon-link"
+              className="phd-btn-icon desktop-only"
               onClick={() => navigate("/login")}
               aria-label="Log in"
               title="Log in"
@@ -161,12 +222,77 @@ const Header = () => {
             </button>
 
             <button
-              className="phd-btn-icon phd-icon-link"
+              className="phd-btn-icon desktop-only"
               onClick={() => navigate("/register")}
               aria-label="Register"
               title="Register"
             >
               <HeaderIcon name="register" />
+            </button>
+          </SignedOut>
+
+          <button
+            className="phd-btn-icon mobile-only"
+            onClick={openSearch}
+            aria-label="Search"
+            title="Search"
+          >
+            <HeaderIcon name="search" />
+          </button>
+
+          <button
+            className="phd-btn-icon mobile-only"
+            onClick={() => {
+              setIsMobileMenuOpen((v) => !v);
+              setIsSearchActive(false);
+            }}
+            aria-label="Menu"
+            title="Menu"
+          >
+            <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
+          </button>
+        </div>
+      </div>
+
+      <div
+        className={[
+          "phd-overlay",
+          isSearchActive || isMobileMenuOpen ? "show" : "",
+        ].join(" ")}
+        onClick={() => {
+          setIsMobileMenuOpen(false);
+          closeSearch();
+        }}
+        role="presentation"
+      />
+
+      <div className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(" ")}>
+        <div className="phd-mobile-drawer-inner">
+          <NavLink to="/products" className="phd-drawer-link">
+            Store
+          </NavLink>
+
+          <SignedIn>
+            <NavLink to="/saved-products" className="phd-drawer-link">
+              Saved products
+            </NavLink>
+            <NavLink to="/dashboard" className="phd-drawer-link">
+              Dashboard
+            </NavLink>
+            <div className="phd-drawer-user">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <button className="phd-drawer-btn" onClick={() => navigate("/login")}>
+              Log in
+            </button>
+            <button
+              className="phd-drawer-btn phd-drawer-btn-primary"
+              onClick={() => navigate("/register")}
+            >
+              Register
             </button>
           </SignedOut>
         </div>
