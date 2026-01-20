@@ -86,28 +86,33 @@
   display: none;
 }
 
-/* Public link */
-.phd-store-link {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 700;
-  padding: 8px 10px;
-  border-radius: 8px;
-  transition:
-    background 0.2s,
-    color 0.2s,
-    opacity 0.2s;
+/* Actions */
+.phd-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.phd-btn-icon {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #fff;
   }
+}
 
-  &.active {
-    color: #ffd700;
-    background: rgba(255, 215, 0, 0.08);
-  }
+/* icon link reset */
+.phd-icon-link {
+  text-decoration: none;
 }
 
 /* Logged-in nav link (Dashboard) */
@@ -134,60 +139,9 @@
   }
 }
 
-/* Actions */
-.phd-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.phd-btn-icon {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  display: flex;
-  transition: background 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-}
-
 /* Search icon button: hidden by default (desktop) */
 .phd-btn-icon.mobile-only {
   display: none;
-}
-
-.phd-auth-link {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  opacity: 0.8;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-.phd-auth-btn {
-  background: #fff;
-  color: #000;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover {
-    background: #e0e0e0;
-  }
 }
 
 /* Mobile Overrides */
@@ -226,20 +180,13 @@
     display: none;
   }
 
-  .phd-auth-link {
-    display: none;
-  }
-
-  .phd-store-link {
-    display: none;
-  }
-
-  .phd-nav-link {
-    display: none;
-  }
-
   /* show search icon ONLY on mobile */
   .phd-btn-icon.mobile-only {
     display: flex;
+  }
+
+  /* tighten spacing on mobile */
+  .phd-actions {
+    gap: 10px;
   }
 }

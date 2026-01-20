@@ -10,6 +10,28 @@ const HeaderIcon = ({ name }) => {
       <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l8.84-8.84 1.06-1.06a5.5 5.5 0 000-7.78z" />
     ),
     close: <path d="M18 6L6 18M6 6l12 12" />,
+    store: (
+      <>
+        <path d="M3 9l1-5h16l1 5" />
+        <path d="M5 9v11h14V9" />
+        <path d="M9 20v-7h6v7" />
+      </>
+    ),
+    login: (
+      <>
+        <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+        <path d="M10 17l5-5-5-5" />
+        <path d="M15 12H3" />
+      </>
+    ),
+    register: (
+      <>
+        <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+        <path d="M9 11a4 4 0 100-8 4 4 0 000 8z" />
+        <path d="M20 8v6" />
+        <path d="M23 11h-6" />
+      </>
+    ),
   };
 
   return (
@@ -22,6 +44,8 @@ const HeaderIcon = ({ name }) => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
     >
       {icons[name]}
     </svg>
@@ -56,7 +80,7 @@ const Header = () => {
   return (
     <header className={`phd-header ${isSearchActive ? "search-mode" : ""}`}>
       <div className="phd-header-container">
-        <NavLink to="/products" className="phd-logo">
+        <NavLink to="/" className="phd-logo">
           BangingPrices
         </NavLink>
 
@@ -77,6 +101,8 @@ const Header = () => {
               type="button"
               className="phd-search-exit"
               onClick={() => setIsSearchActive(false)}
+              aria-label="Close search"
+              title="Close search"
             >
               <HeaderIcon name="close" />
             </button>
@@ -84,50 +110,63 @@ const Header = () => {
         </form>
 
         <div className="phd-actions">
-          {/* Public link */}
-          <NavLink to="/products" className="phd-store-link">
-            Store
+          {/* Store (icon only) */}
+          <NavLink
+            to="/products"
+            className="phd-btn-icon phd-icon-link"
+            aria-label="Store"
+            title="Store"
+          >
+            <HeaderIcon name="store" />
           </NavLink>
 
           {/* Mobile search icon only */}
           <button
             className="phd-btn-icon mobile-only"
             onClick={() => setIsSearchActive(true)}
+            aria-label="Search"
+            title="Search"
           >
             <HeaderIcon name="search" />
           </button>
 
-          {/* Logged-in only links */}
+          {/* Logged-in only */}
           <SignedIn>
-            <NavLink to="/dashboard" className="phd-nav-link">
-              Dashboard
-            </NavLink>
-
             <button
               className="phd-btn-icon"
-              onClick={() => navigate("/products")}
+              onClick={() => navigate("/saved-products")}
+              aria-label="Wishlist"
+              title="Wishlist"
             >
               <HeaderIcon name="heart" />
             </button>
+            <NavLink to="/dashboard" className="phd-nav-link">
+              Dashboard
+            </NavLink>
 
             <div className="phd-clerk-wrapper">
               <UserButton afterSignOutUrl="/" />
             </div>
           </SignedIn>
 
-          {/* Logged-out only */}
+          {/* Logged-out only (icons) */}
           <SignedOut>
             <button
-              className="phd-auth-link"
+              className="phd-btn-icon phd-icon-link"
               onClick={() => navigate("/login")}
+              aria-label="Log in"
+              title="Log in"
             >
-              Log in
+              <HeaderIcon name="login" />
             </button>
+
             <button
-              className="phd-auth-btn"
+              className="phd-btn-icon phd-icon-link"
               onClick={() => navigate("/register")}
+              aria-label="Register"
+              title="Register"
             >
-              Register
+              <HeaderIcon name="register" />
             </button>
           </SignedOut>
         </div>

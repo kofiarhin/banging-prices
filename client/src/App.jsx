@@ -10,6 +10,7 @@ import ProductDetailsPage from "./pages/ProductDetailsPage/ProductDetailsPage.js
 import LoginPage from "./pages/Auth/LoginPage.jsx";
 import RegisterPage from "./pages/Auth/RegisterPage.jsx";
 import DashboardPage from "./pages/DashboardPage/DashboardPage.jsx";
+import SavedProductsPage from "./pages/SavedProductsPage/SavedProductsPage.jsx";
 
 const Protected = ({ children }) => {
   return (
@@ -41,6 +42,14 @@ const App = () => {
                 <LoginPage />
               </SignedOut>
             </>
+          }
+        />
+        <Route
+          path="/saved-products"
+          element={
+            <Protected>
+              <SavedProductsPage />
+            </Protected>
           }
         />
 

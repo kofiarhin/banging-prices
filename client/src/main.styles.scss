@@ -3,8 +3,9 @@
 /* ---------- Fonts (pick 1) ---------- */
 /* Option A: System-first clean UI font (no external download) */
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
   --font-display: var(--font-sans);
 }
 
@@ -157,4 +158,11 @@ textarea {
 .pp-search-category-text {
   font-family: var(--font-sans);
   font-weight: 600;
+}
+
+.heading {
+  margin: 1rem;
+  &.center {
+    text-align: center;
+  }
 }
