@@ -4,8 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./product-details.styles.scss";
 import useSaveMutation from "../../hooks/useSaveMutation";
-// import { getAuth } from "@clerk/express";
 import { useAuth } from "@clerk/clerk-react";
+import useSavedProductsQuery from "../../hooks/useSavedProductsQuery";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -75,7 +75,6 @@ const ProductDetailsPage = () => {
   });
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const [saved, setSaved] = useState(false);
   const [shareDone, setShareDone] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertType, setAlertType] = useState("price");
@@ -83,9 +82,28 @@ const ProductDetailsPage = () => {
   const [targetPercent, setTargetPercent] = useState("10");
   const [alertSaved, setAlertSaved] = useState(false);
 
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      setToken("");
+      return;
+    }
+    (async () => {
+      const t = await getToken();
+      setToken(t || "");
+    })();
+  }, [isLoaded, isSignedIn, getToken]);
+
+  const { data: savedList = [] } = useSavedProductsQuery(token);
+
+  const isAlreadySaved = useMemo(() => {
+    if (!id) return false;
+    return (savedList || []).some((d) => d?.productId?._id === id);
+  }, [savedList, id]);
+
   useEffect(() => {
     setActiveIdx(0);
-    setSaved(false);
     setShareDone(false);
     setAlertOpen(false);
     setAlertType("price");
@@ -131,15 +149,18 @@ const ProductDetailsPage = () => {
       : p.discountPercent;
 
   const handleSave = async () => {
-    //get auth token
-    const token = await getToken();
-    const dataToSubmit = { id, token };
-    setSaved(!saved);
-    mutate(dataToSubmit, {
-      onSuccess: (data) => {
-        console.log("success:", data);
+    if (!isLoaded || !isSignedIn) return;
+    if (isAlreadySaved) return;
+
+    const t = token || (await getToken());
+    mutate(
+      { id, token: t },
+      {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ["saved-products"] });
+        },
       },
-    });
+    );
   };
 
   return (
@@ -161,16 +182,19 @@ const ProductDetailsPage = () => {
               <span className="material-symbols-outlined">share</span>
             </button>
 
-            <button
-              className={`pd-icon-btn ${saved ? "is-active" : ""}`}
-              onClick={handleSave}
-              title="Save"
-              aria-label="Save"
-            >
-              <span className="material-symbols-outlined">
-                {saved ? "favorite" : "favorite_border"}
-              </span>
-            </button>
+            {!isAlreadySaved && (
+              <button
+                className="pd-icon-btn"
+                onClick={handleSave}
+                title="Save"
+                aria-label="Save"
+                disabled={!isLoaded || !isSignedIn || isPending}
+              >
+                <span className="material-symbols-outlined">
+                  favorite_border
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </nav>
