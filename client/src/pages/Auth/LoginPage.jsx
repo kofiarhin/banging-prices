@@ -14,7 +14,7 @@ const LoginPage = () => {
               routing="path"
               path="/login"
               signUpUrl="/register"
-              forceRedirectUrl="/dashboard"
+              forceRedirectUrl="/post-login"
               fallbackRedirectUrl="/dashboard"
             />
           </div>

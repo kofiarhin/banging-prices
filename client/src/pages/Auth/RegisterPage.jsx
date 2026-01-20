@@ -10,7 +10,13 @@ const RegisterPage = () => {
           <p className="pp-auth-subtitle">Get started in seconds.</p>
 
           <div className="pp-auth-box">
-            <SignUp routing="path" path="/register" signInUrl="/login" />
+            <SignUp
+              routing="path"
+              path="/register"
+              signInUrl="/login"
+              redirectUrl="/post-register"
+              afterSignUpUrl="/post-register"
+            />
           </div>
         </div>
       </div>

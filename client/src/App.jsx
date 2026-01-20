@@ -9,8 +9,10 @@ import ProductDetailsPage from "./pages/ProductDetailsPage/ProductDetailsPage.js
 
 import LoginPage from "./pages/Auth/LoginPage.jsx";
 import RegisterPage from "./pages/Auth/RegisterPage.jsx";
+import PostRegisterPage from "./pages/Auth/PostRegisterPage.jsx";
 import DashboardPage from "./pages/DashboardPage/DashboardPage.jsx";
 import SavedProductsPage from "./pages/SavedProductsPage/SavedProductsPage.jsx";
+import PostLogin from "./pages/PostLogin/PostLogin.jsx";
 
 const Protected = ({ children }) => {
   return (
@@ -32,7 +34,7 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
 
         <Route
-          path="/login"
+          path="/login/*"
           element={
             <>
               <SignedIn>
@@ -44,26 +46,45 @@ const App = () => {
             </>
           }
         />
+
+        <Route
+          path="/register/*"
+          element={
+            <>
+              <SignedIn>
+                <Navigate to="/post-register" replace />
+              </SignedIn>
+              <SignedOut>
+                <RegisterPage />
+              </SignedOut>
+            </>
+          }
+        />
+
+        <Route
+          path="/post-register"
+          element={
+            <Protected>
+              <PostRegisterPage />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/post-login"
+          element={
+            <Protected>
+              <PostLogin />
+            </Protected>
+          }
+        />
+
         <Route
           path="/saved-products"
           element={
             <Protected>
               <SavedProductsPage />
             </Protected>
-          }
-        />
-
-        <Route
-          path="/register"
-          element={
-            <>
-              <SignedIn>
-                <Navigate to="/dashboard" replace />
-              </SignedIn>
-              <SignedOut>
-                <RegisterPage />
-              </SignedOut>
-            </>
           }
         />
 
@@ -77,7 +98,6 @@ const App = () => {
         />
 
         <Route path="/products" element={<ProductsPage />} />
-
         <Route path="/products/:id" element={<ProductDetailsPage />} />
       </Routes>
     </>
