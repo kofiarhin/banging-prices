@@ -52,6 +52,27 @@ router.get("/saved", requireClerkAuth, async (req, res) => {
   }
 });
 
+router.delete("/saved-item/:id", requireClerkAuth, async (req, res) => {
+  try {
+    const clerkId = req.userId;
+
+    if (!clerkId) return res.status(401).json({ message: "Unauthorized" });
+
+    const productId = req.params.id;
+    if (!productId)
+      return res.status(400).json({ message: "product id is required" });
+
+    const deleted = await Save.findOneAndDelete({ clerkId, productId });
+
+    if (!deleted)
+      return res.status(404).json({ message: "Saved item not found" });
+
+    return res.json({ message: "deleted", deletedId: deleted._id, productId });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/:id", getProductById);
 router.put("/:id", updateProduct);
 router.delete("/:id", deleteProduct);

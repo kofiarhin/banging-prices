@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import "./saved-products.styles.scss";
+import useDeleteProduct from "../../hooks/useDeleteProduct";
 
 const formatMoney = (currency, value) => {
   const n = Number(value);
@@ -10,8 +11,26 @@ const formatMoney = (currency, value) => {
 };
 
 const SavedProductsPage = () => {
+  const { mutate, isPending } = useDeleteProduct();
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [data, setData] = useState([]);
+
+  const handleDelete = async (productId) => {
+    if (!productId) return;
+
+    const token = await getToken();
+
+    mutate(
+      { productId, token },
+      {
+        onSuccess: () => {
+          setData((prev) =>
+            prev.filter((d) => d?.productId?._id !== productId),
+          );
+        },
+      },
+    );
+  };
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -57,12 +76,38 @@ const SavedProductsPage = () => {
               to={`/products/${p._id}`}
               className="saved-card"
             >
+              <button
+                type="button"
+                className="saved-delete"
+                aria-label="Remove from saved"
+                title="Remove"
+                disabled={isPending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDelete(p._id);
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 7h2v9h-2v-9zm4 0h2v9h-2v-9zM6 8h12l-1 13H7L6 8z"
+                  />
+                </svg>
+              </button>
+
               <div className="saved-card-img">
                 <img src={p.image} alt={p.title} loading="lazy" />
                 {!p.inStock && (
                   <span className="sold-out-badge">Out of Stock</span>
                 )}
               </div>
+
               <div className="saved-card-body">
                 <span className="saved-card-price">
                   {formatMoney(p.currency || "£", p.price)}
