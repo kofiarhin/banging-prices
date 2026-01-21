@@ -148,6 +148,7 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
+  margin-left: auto; /* ✅ pushes icons to the right edge on small screens */
 }
 
 .phd-btn-icon {
