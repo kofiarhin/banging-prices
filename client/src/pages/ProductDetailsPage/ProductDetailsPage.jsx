@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./product-details.styles.scss";
@@ -71,6 +71,23 @@ const ProductDetailsPage = () => {
   const qc = useQueryClient();
   const { mutate, isPending } = useSaveMutation();
 
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [shareDone, setShareDone] = useState(false);
+
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertType, setAlertType] = useState("price");
+  const [targetPrice, setTargetPrice] = useState("");
+  const [targetPercent, setTargetPercent] = useState("10");
+  const [alertSaved, setAlertSaved] = useState(false);
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertError, setAlertError] = useState("");
+
+  const [token, setToken] = useState("");
+
+  // ✅ hooks that must NEVER be below conditional returns
+  const startXRef = useRef(null);
+  const isDraggingRef = useRef(false);
+
   const {
     data: p,
     isLoading,
@@ -87,19 +104,6 @@ const ProductDetailsPage = () => {
     queryFn: () => fetchSimilar(p),
     enabled: !!p?._id,
   });
-
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [shareDone, setShareDone] = useState(false);
-
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertType, setAlertType] = useState("price");
-  const [targetPrice, setTargetPrice] = useState("");
-  const [targetPercent, setTargetPercent] = useState("10");
-  const [alertSaved, setAlertSaved] = useState(false);
-  const [alertSaving, setAlertSaving] = useState(false);
-  const [alertError, setAlertError] = useState("");
-
-  const [token, setToken] = useState("");
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
@@ -136,6 +140,53 @@ const ProductDetailsPage = () => {
   }, [p]);
 
   const activeImageUrl = gallery[activeIdx] || p?.image;
+  const canCarousel = (gallery || []).length > 1;
+
+  const goPrev = () => {
+    if (!canCarousel) return;
+    setActiveIdx((i) => (i - 1 + gallery.length) % gallery.length);
+  };
+
+  const goNext = () => {
+    if (!canCarousel) return;
+    setActiveIdx((i) => (i + 1) % gallery.length);
+  };
+
+  const onPointerDown = (e) => {
+    if (!canCarousel) return;
+    isDraggingRef.current = true;
+    startXRef.current = e.clientX;
+  };
+
+  const onPointerMove = () => {
+    if (!canCarousel) return;
+    if (!isDraggingRef.current) return;
+  };
+
+  const onPointerUp = (e) => {
+    if (!canCarousel) return;
+    if (!isDraggingRef.current) return;
+
+    const startX = startXRef.current;
+    const endX = e.clientX;
+
+    isDraggingRef.current = false;
+    startXRef.current = null;
+
+    if (typeof startX !== "number" || typeof endX !== "number") return;
+
+    const dx = endX - startX;
+    const threshold = 40;
+
+    if (dx > threshold) goPrev();
+    if (dx < -threshold) goNext();
+  };
+
+  const onKeyDown = (e) => {
+    if (!canCarousel) return;
+    if (e.key === "ArrowLeft") goPrev();
+    if (e.key === "ArrowRight") goNext();
+  };
 
   const onShare = async () => {
     try {
@@ -172,8 +223,6 @@ const ProductDetailsPage = () => {
         payload.targetPercent = n;
       }
 
-      // stock: no extra fields
-
       await createAlert({ token: t, payload });
 
       setAlertSaved(true);
@@ -187,19 +236,6 @@ const ProductDetailsPage = () => {
       setAlertSaving(false);
     }
   };
-
-  if (isLoading) return <div className="pd-state">Syncing PricePulse...</div>;
-  if (isError) return <div className="pd-state">{error.message}</div>;
-  if (!p) return <div className="pd-state">Listing unavailable.</div>;
-
-  const discount =
-    p.originalPrice && p.price
-      ? Math.round(
-          ((Number(p.originalPrice) - Number(p.price)) /
-            Number(p.originalPrice)) *
-            100,
-        )
-      : p.discountPercent;
 
   const handleSave = async () => {
     if (!isLoaded || !isSignedIn) return;
@@ -222,6 +258,20 @@ const ProductDetailsPage = () => {
       },
     );
   };
+
+  // ✅ now safe to conditionally return UI states
+  if (isLoading) return <div className="pd-state">Syncing PricePulse...</div>;
+  if (isError) return <div className="pd-state">{error.message}</div>;
+  if (!p) return <div className="pd-state">Listing unavailable.</div>;
+
+  const discount =
+    p.originalPrice && p.price
+      ? Math.round(
+          ((Number(p.originalPrice) - Number(p.price)) /
+            Number(p.originalPrice)) *
+            100,
+        )
+      : p.discountPercent;
 
   return (
     <div className="pd-page">
@@ -267,31 +317,74 @@ const ProductDetailsPage = () => {
         <div className="pd-layout">
           <section className="pd-media" aria-label="Product media">
             <div className="pd-media-grid">
-              <div className="pd-main">
-                <img src={activeImageUrl} alt={p.title} loading="eager" />
+              <div
+                className="pd-main pd-main-carousel"
+                tabIndex={0}
+                role="region"
+                aria-label="Product image carousel"
+                onKeyDown={onKeyDown}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+              >
+                <div
+                  className="pd-main-bg"
+                  aria-hidden="true"
+                  style={{ backgroundImage: `url(${activeImageUrl})` }}
+                />
+                <div className="pd-main-overlay" aria-hidden="true" />
+
+                <img
+                  className="pd-main-img"
+                  src={activeImageUrl}
+                  alt={p.title}
+                  loading="eager"
+                  draggable={false}
+                />
+
                 {discount > 0 ? (
                   <div className="pd-media-discount">-{discount}%</div>
                 ) : null}
-              </div>
 
-              {gallery.length > 1 ? (
-                <div className="pd-thumbs" aria-label="Gallery thumbnails">
-                  {gallery.map((url, idx) => (
+                {canCarousel ? (
+                  <>
                     <button
-                      key={url + idx}
-                      className={`pd-thumb ${
-                        idx === activeIdx ? "is-active" : ""
-                      }`}
-                      onClick={() => setActiveIdx(idx)}
-                      aria-label={`View image ${idx + 1}`}
-                      title={`Image ${idx + 1}`}
+                      className="pd-carousel-btn is-prev"
+                      onClick={goPrev}
+                      aria-label="Previous image"
                       type="button"
                     >
-                      <img src={url} alt="" loading="lazy" />
+                      <span className="material-symbols-outlined">
+                        chevron_left
+                      </span>
                     </button>
-                  ))}
-                </div>
-              ) : null}
+
+                    <button
+                      className="pd-carousel-btn is-next"
+                      onClick={goNext}
+                      aria-label="Next image"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined">
+                        chevron_right
+                      </span>
+                    </button>
+
+                    <div className="pd-dots" aria-label="Carousel navigation">
+                      {gallery.map((_, idx) => (
+                        <button
+                          key={`dot-${idx}`}
+                          className={`pd-dot ${idx === activeIdx ? "is-active" : ""}`}
+                          onClick={() => setActiveIdx(idx)}
+                          aria-label={`Go to image ${idx + 1}`}
+                          type="button"
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </div>
             </div>
           </section>
 
