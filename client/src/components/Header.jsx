@@ -272,7 +272,8 @@ const Header = () => {
           "phd-overlay",
           isSearchActive || isMobileMenuOpen ? "show" : "",
         ].join(" ")}
-        onClick={() => {
+        onPointerDown={(e) => {
+          if (e.target !== e.currentTarget) return;
           setIsMobileMenuOpen(false);
           closeSearch();
         }}
