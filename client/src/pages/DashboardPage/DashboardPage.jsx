@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser, UserButton } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import "./dashboard-page.styles.scss";
 
 const safeJson = (val, fallback) => {
@@ -16,13 +16,8 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { isLoaded, user } = useUser();
 
-  const email = user?.primaryEmailAddress?.emailAddress || "";
   const fullName =
     user?.fullName || user?.firstName || user?.username || "User";
-
-  const memberSince = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString()
-    : "";
 
   const favoritesCount = useMemo(() => {
     const raw = localStorage.getItem("bp:favorites");
@@ -43,55 +38,14 @@ const DashboardPage = () => {
   return (
     <main className="bp-dashboard">
       <div className="bp-dashboard-container">
-        <div className="bp-dash-top">
-          <div className="bp-dash-titleblock">
-            <p className="bp-dash-kicker">Account</p>
-            <h1 className="bp-dash-title">Dashboard</h1>
-            <p className="bp-dash-subtitle">
-              Welcome back, <span className="bp-accent">{fullName}</span>
-            </p>
-          </div>
-
-          <div className="bp-dash-actions">
-            <button
-              className="bp-btn"
-              onClick={() => navigate("/products")}
-              type="button"
-            >
-              Browse products
-            </button>
-
-            <div className="bp-userbutton">
-              <UserButton />
-            </div>
-          </div>
-        </div>
+        <header className="bp-dash-header">
+          <p className="bp-dash-welcome">
+            Welcome back, <span className="bp-accent">{fullName}</span>
+          </p>
+          <p className="bp-dash-subtext">Here’s your snapshot.</p>
+        </header>
 
         <section className="bp-grid">
-          <article className="bp-card">
-            <h2 className="bp-card-title">Profile</h2>
-
-            <div className="bp-row">
-              <span className="bp-label">Email</span>
-              <span className="bp-value">{email || "—"}</span>
-            </div>
-
-            <div className="bp-row">
-              <span className="bp-label">Member since</span>
-              <span className="bp-value">{memberSince || "—"}</span>
-            </div>
-
-            <div className="bp-card-footer">
-              <button
-                className="bp-btn bp-btn-ghost"
-                onClick={() => navigate("/products")}
-                type="button"
-              >
-                Continue browsing
-              </button>
-            </div>
-          </article>
-
           <article className="bp-card">
             <h2 className="bp-card-title">Saved</h2>
 
@@ -100,13 +54,42 @@ const DashboardPage = () => {
               <div className="bp-metric-label">Favorites</div>
             </div>
 
+            {favoritesCount === 0 ? (
+              <p className="bp-muted bp-small">
+                Save products to see them here.
+              </p>
+            ) : null}
+
             <div className="bp-card-footer">
               <button
                 className="bp-btn bp-btn-ghost"
                 onClick={() => navigate("/products")}
                 type="button"
               >
-                View products
+                View saved
+              </button>
+            </div>
+          </article>
+
+          <article className="bp-card">
+            <h2 className="bp-card-title">Tracked</h2>
+
+            <div className="bp-metric">
+              <div className="bp-metric-num">0</div>
+              <div className="bp-metric-label">Tracked products</div>
+            </div>
+
+            <p className="bp-muted bp-small">
+              Track products to get notified when prices drop.
+            </p>
+
+            <div className="bp-card-footer">
+              <button
+                className="bp-btn bp-btn-ghost"
+                onClick={() => navigate("/products")}
+                type="button"
+              >
+                Browse products
               </button>
             </div>
           </article>
@@ -120,12 +103,12 @@ const DashboardPage = () => {
             </div>
 
             <p className="bp-muted bp-small">
-              Next: wire alerts to your backend (email / price drop triggers).
+              Create alerts to get email notifications for price drops.
             </p>
 
             <div className="bp-card-footer">
-              <button className="bp-btn bp-btn-ghost" type="button">
-                Create alert
+              <button className="bp-btn bp-btn-ghost" type="button" disabled>
+                Manage alerts
               </button>
             </div>
           </article>

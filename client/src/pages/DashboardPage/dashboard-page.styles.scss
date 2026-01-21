@@ -26,87 +26,38 @@ $glass-border: rgba(255, 255, 255, 0.08);
   margin: 0 auto;
 }
 
-.bp-dash-top {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.bp-dash-header {
   margin-bottom: 18px;
 }
 
 @media (min-width: 768px) {
-  .bp-dash-top {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 18px;
+  .bp-dash-header {
     margin-bottom: 22px;
   }
 }
 
-.bp-dash-kicker {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin: 0 0 6px;
-}
-
-.bp-dash-title {
+.bp-dash-welcome {
   margin: 0;
-  color: #fff;
-  font-size: 26px;
-  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 18px;
+  letter-spacing: -0.01em;
 }
 
 @media (min-width: 768px) {
-  .bp-dash-title {
-    font-size: 34px;
+  .bp-dash-welcome {
+    font-size: 20px;
   }
 }
 
-.bp-dash-subtitle {
+.bp-dash-subtext {
   margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 14px;
-  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .bp-accent {
   color: $accent-yellow;
-}
-
-.bp-dash-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.bp-userbutton {
-  display: grid;
-  place-items: center;
-}
-
-.bp-btn {
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid $glass-border;
-  background: rgba(255, 255, 255, 0.03);
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  transition:
-    transform 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.bp-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(243, 213, 91, 0.35);
-}
-
-.bp-btn-ghost {
-  background: transparent;
 }
 
 .bp-grid {
@@ -150,36 +101,10 @@ $glass-border: rgba(255, 255, 255, 0.08);
   letter-spacing: -0.01em;
 }
 
-.bp-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.bp-row:first-of-type {
-  border-top: none;
-  padding-top: 0;
-}
-
-.bp-label {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 13px;
-}
-
-.bp-value {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
-  text-align: right;
-  word-break: break-word;
-}
-
 .bp-metric {
   display: grid;
   gap: 4px;
-  padding: 12px 0 6px;
+  padding: 10px 0 6px;
 }
 
 .bp-metric-num {
@@ -201,6 +126,36 @@ $glass-border: rgba(255, 255, 255, 0.08);
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.bp-btn {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid $glass-border;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.bp-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(243, 213, 91, 0.35);
+}
+
+.bp-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bp-btn-ghost {
+  background: transparent;
 }
 
 .bp-muted {
