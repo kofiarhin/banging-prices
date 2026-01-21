@@ -1,10 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const { getAuth, clerkMiddleware } = require("@clerk/express");
+const { clerkMiddleware } = require("@clerk/express");
 
 const productsRoutes = require("./routes/products.routes");
 const authRoutes = require("./routes/authRoutes");
+
+// ✅ add
+const alertsRoutes = require("./routes/alerts.routes");
 
 const app = express();
 
@@ -39,32 +42,12 @@ app.get("/health", (req, res) => {
 app.use("/api/products", productsRoutes);
 app.use("/api/auth", authRoutes);
 
+// ✅ Track Pricing (Price / Percent / Stock)
+app.use("/api/alerts", alertsRoutes);
+
 // 404
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
-
-// // global error handler (must be last)
-// app.use((err, req, res, next) => {
-//   console.error("API ERROR:", err);
-
-//   // handle common mongoose errors nicely
-//   if (err.name === "ValidationError") {
-//     return res.status(400).json({ success: false, message: err.message });
-//   }
-
-//   if (err.code === 11000) {
-//     const field = Object.keys(err.keyValue || {})[0] || "field";
-//     return res.status(409).json({
-//       success: false,
-//       message: `${field} already exists`,
-//     });
-//   }
-
-//   return res.status(err.statusCode || err.status || 500).json({
-//     success: false,
-//     message: err.message || "Internal Server Error",
-//   });
-// });
 
 module.exports = app;

@@ -14,6 +14,9 @@ import DashboardPage from "./pages/DashboardPage/DashboardPage.jsx";
 import SavedProductsPage from "./pages/SavedProductsPage/SavedProductsPage.jsx";
 import PostLogin from "./pages/PostLogin/PostLogin.jsx";
 
+// ✅ add
+import TrackedAlertsPage from "./pages/tracked-alerts/TrackedAlertsPage.jsx";
+
 const Protected = ({ children }) => {
   return (
     <>
@@ -84,6 +87,16 @@ const App = () => {
           element={
             <Protected>
               <SavedProductsPage />
+            </Protected>
+          }
+        />
+
+        {/* ✅ tracked items page */}
+        <Route
+          path="/tracked"
+          element={
+            <Protected>
+              <TrackedAlertsPage />
             </Protected>
           }
         />

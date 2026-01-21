@@ -75,7 +75,6 @@ const Header = () => {
 
   const [search, setSearch] = useState(params.get("search") || "");
 
-  // Sync internal search state with URL but DO NOT close the search UI here
   useEffect(() => {
     setSearch(params.get("search") || "");
   }, [location.search]);
@@ -100,7 +99,6 @@ const Header = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Close only the mobile menu on navigation, not the search
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
@@ -196,9 +194,15 @@ const Header = () => {
               onClick={() => navigate("/saved-products")}
               aria-label="Saved products"
               title="Saved products"
+              type="button"
             >
               <HeaderIcon name="heart" />
             </button>
+
+            {/* ✅ tracked items link (desktop) */}
+            <NavLink to="/tracked" className="phd-nav-link desktop-only">
+              Tracked
+            </NavLink>
 
             <NavLink to="/dashboard" className="phd-nav-link desktop-only">
               Dashboard
@@ -215,6 +219,7 @@ const Header = () => {
               onClick={() => navigate("/login")}
               aria-label="Log in"
               title="Log in"
+              type="button"
             >
               <HeaderIcon name="login" />
             </button>
@@ -224,6 +229,7 @@ const Header = () => {
               onClick={() => navigate("/register")}
               aria-label="Register"
               title="Register"
+              type="button"
             >
               <HeaderIcon name="register" />
             </button>
@@ -234,6 +240,7 @@ const Header = () => {
             onClick={openSearch}
             aria-label="Search"
             title="Search"
+            type="button"
           >
             <HeaderIcon name="search" />
           </button>
@@ -246,6 +253,7 @@ const Header = () => {
             }}
             aria-label="Menu"
             title="Menu"
+            type="button"
           >
             <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
           </button>
@@ -278,9 +286,16 @@ const Header = () => {
             <NavLink to="/saved-products" className="phd-drawer-link">
               Saved products
             </NavLink>
+
+            {/* ✅ tracked items link (mobile drawer) */}
+            <NavLink to="/tracked" className="phd-drawer-link">
+              Tracked items
+            </NavLink>
+
             <NavLink to="/dashboard" className="phd-drawer-link">
               Dashboard
             </NavLink>
+
             <div className="phd-drawer-user">
               <UserButton afterSignOutUrl="/" />
             </div>
@@ -290,12 +305,14 @@ const Header = () => {
             <button
               className="phd-drawer-btn"
               onClick={() => navigate("/login")}
+              type="button"
             >
               Log in
             </button>
             <button
               className="phd-drawer-btn phd-drawer-btn-primary"
               onClick={() => navigate("/register")}
+              type="button"
             >
               Register
             </button>

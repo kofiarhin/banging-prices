@@ -50,6 +50,21 @@ const fetchSimilar = async (p) => {
   return data?.items || [];
 };
 
+const createAlert = async ({ token, payload }) => {
+  const res = await fetch(`${API_URL}/api/alerts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "Failed to activate tracker");
+  return data;
+};
+
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -75,11 +90,14 @@ const ProductDetailsPage = () => {
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [shareDone, setShareDone] = useState(false);
+
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertType, setAlertType] = useState("price");
   const [targetPrice, setTargetPrice] = useState("");
   const [targetPercent, setTargetPercent] = useState("10");
   const [alertSaved, setAlertSaved] = useState(false);
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertError, setAlertError] = useState("");
 
   const [token, setToken] = useState("");
 
@@ -104,9 +122,12 @@ const ProductDetailsPage = () => {
   useEffect(() => {
     setActiveIdx(0);
     setShareDone(false);
+
     setAlertOpen(false);
     setAlertType("price");
     setAlertSaved(false);
+    setAlertSaving(false);
+    setAlertError("");
   }, [p?._id]);
 
   const gallery = useMemo(() => {
@@ -126,12 +147,45 @@ const ProductDetailsPage = () => {
     }
   };
 
-  const saveAlert = () => {
-    setAlertSaved(true);
-    setTimeout(() => {
-      setAlertSaved(false);
-      setAlertOpen(false);
-    }, 1500);
+  const saveAlert = async () => {
+    if (!isLoaded || !isSignedIn) return;
+
+    try {
+      setAlertError("");
+      setAlertSaving(true);
+
+      const t = token || (await getToken());
+      if (!t) throw new Error("Missing auth token");
+
+      const payload = { productId: p._id, type: alertType };
+
+      if (alertType === "price") {
+        const n = Number(targetPrice);
+        if (!Number.isFinite(n)) throw new Error("Enter a valid price");
+        payload.targetPrice = n;
+      }
+
+      if (alertType === "percent") {
+        const n = Number(targetPercent);
+        if (!Number.isFinite(n) || n <= 0)
+          throw new Error("Enter a valid percent");
+        payload.targetPercent = n;
+      }
+
+      // stock: no extra fields
+
+      await createAlert({ token: t, payload });
+
+      setAlertSaved(true);
+      setTimeout(() => {
+        setAlertSaved(false);
+        setAlertOpen(false);
+      }, 1200);
+    } catch (e) {
+      setAlertError(e?.message || "Failed to activate tracker");
+    } finally {
+      setAlertSaving(false);
+    }
   };
 
   if (isLoading) return <div className="pd-state">Syncing PricePulse...</div>;
@@ -184,6 +238,7 @@ const ProductDetailsPage = () => {
               onClick={onShare}
               title="Share deal"
               aria-label="Share deal"
+              type="button"
             >
               <span className="material-symbols-outlined">share</span>
             </button>
@@ -195,6 +250,7 @@ const ProductDetailsPage = () => {
                 title="Save"
                 aria-label="Save"
                 disabled={!isLoaded || !isSignedIn || isPending}
+                type="button"
               >
                 <span className="material-symbols-outlined">
                   favorite_border
@@ -223,7 +279,9 @@ const ProductDetailsPage = () => {
                   {gallery.map((url, idx) => (
                     <button
                       key={url + idx}
-                      className={`pd-thumb ${idx === activeIdx ? "is-active" : ""}`}
+                      className={`pd-thumb ${
+                        idx === activeIdx ? "is-active" : ""
+                      }`}
                       onClick={() => setActiveIdx(idx)}
                       aria-label={`View image ${idx + 1}`}
                       title={`Image ${idx + 1}`}
@@ -316,7 +374,10 @@ const ProductDetailsPage = () => {
               <button
                 className="pd-btn pd-btn-secondary"
                 onClick={() => {
+                  setAlertError("");
+                  setAlertSaved(false);
                   setAlertOpen(true);
+                  setAlertType("price");
                   setTargetPrice(p.price);
                 }}
                 type="button"
@@ -397,7 +458,12 @@ const ProductDetailsPage = () => {
                 <button
                   key={t}
                   className={`pd-tab ${alertType === t ? "is-active" : ""}`}
-                  onClick={() => setAlertType(t)}
+                  onClick={() => {
+                    setAlertType(t);
+                    setAlertError("");
+                    setAlertSaved(false);
+                    if (t === "price") setTargetPrice(p.price);
+                  }}
                   type="button"
                 >
                   {t.toUpperCase()}
@@ -432,6 +498,7 @@ const ProductDetailsPage = () => {
                       onChange={(e) => setTargetPercent(e.target.value)}
                       type="number"
                       inputMode="numeric"
+                      min="1"
                     />
                     <span className="pd-suffix">%</span>
                   </div>
@@ -449,13 +516,15 @@ const ProductDetailsPage = () => {
               className="pd-btn pd-btn-primary"
               onClick={saveAlert}
               type="button"
+              disabled={alertSaving}
             >
-              Activate Tracker
+              {alertSaving ? "Activating..." : "Activate Tracker"}
             </button>
 
             {alertSaved && (
               <div className="pd-toast-inline">Tracker Active</div>
             )}
+            {alertError && <div className="pd-toast-inline">{alertError}</div>}
           </div>
         </div>
       )}

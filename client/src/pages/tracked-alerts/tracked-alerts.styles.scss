@@ -1,0 +1,220 @@
+.ta-page {
+  padding: 24px 0;
+}
+
+.ta-container {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.ta-state {
+  width: min(900px, calc(100% - 32px));
+  margin: 48px auto;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.ta-state-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ta-state-sub {
+  opacity: 0.8;
+  margin-top: 6px;
+}
+
+.ta-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.ta-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.ta-sub {
+  margin: 6px 0 0;
+  opacity: 0.85;
+}
+
+.ta-strong {
+  font-weight: 800;
+}
+
+.ta-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.ta-btn-primary {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ta-btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ta-btn-ghost {
+  background: transparent;
+}
+
+.ta-btn-danger {
+  border-color: rgba(255, 80, 80, 0.28);
+  background: rgba(255, 80, 80, 0.12);
+}
+
+.ta-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ta-empty {
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ta-empty-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ta-empty-sub {
+  margin-top: 6px;
+  opacity: 0.85;
+  margin-bottom: 14px;
+}
+
+.ta-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
+}
+
+.ta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.ta-card {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ta-card-media {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ta-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ta-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.ta-badge.is-live {
+  border-color: rgba(120, 255, 180, 0.25);
+}
+
+.ta-badge.is-off {
+  opacity: 0.8;
+}
+
+.ta-card-body {
+  padding: 14px 14px 14px 0;
+}
+
+.ta-card-title {
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.ta-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ta-meta-item {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ta-meta-label {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.ta-meta-value {
+  margin-top: 4px;
+  font-weight: 900;
+}
+
+.ta-card-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.ta-footnote {
+  margin-top: 10px;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+@media (min-width: 768px) {
+  .ta-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

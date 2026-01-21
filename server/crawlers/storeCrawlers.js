@@ -5,6 +5,9 @@ const crypto = require("crypto");
 const Product = require("../models/product.model");
 const PriceHistory = require("../models/pricehistory.model");
 
+// ✅ add
+const { processAlerts } = require("../jobs/processAlerts");
+
 // Scraper Imports
 const { runAsosCrawl } = require("../scrappers/asos.scraper");
 const { runBoohooCrawl } = require("../scrappers/boohoo.scraper");
@@ -239,6 +242,13 @@ const run = async () => {
     console.log(
       `${s.store.toUpperCase()}: Total ${s.total} | New ${s.inserted} | Updated ${s.updated} | Drops ${s.drops}`,
     ),
+  );
+
+  // ✅ process tracked alerts after products are updated
+  const alertSummary = await processAlerts();
+  console.log("\n=== ALERTS ✅ ===");
+  console.log(
+    `Checked: ${alertSummary.checked} | Triggered: ${alertSummary.triggered}`,
   );
 
   await mongoose.connection.close();
