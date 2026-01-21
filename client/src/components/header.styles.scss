@@ -1,86 +1,130 @@
+/* ====== Dark, clean ecommerce header (simple + premium) ====== */
+
 .phd-header {
   position: sticky;
   top: 0;
   z-index: 1000;
-  height: 64px;
-  background: rgba(10, 10, 10, 0.82);
-  backdrop-filter: blur(12px);
+  height: 72px;
+  background: rgba(8, 10, 14, 0.88);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .phd-header-container {
-  max-width: 1400px;
+  max-width: 1240px;
   height: 100%;
   margin: 0 auto;
-  padding: 0 18px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
 }
 
+/* Brand */
 .phd-logo {
   font-weight: 900;
-  font-size: 1.15rem;
-  letter-spacing: -0.04em;
-  color: #fff;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
   white-space: nowrap;
   flex: 0 0 auto;
-  opacity: 0.95;
+
+  &:hover {
+    color: #ffffff;
+  }
 }
 
+/* Desktop nav */
+.phd-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.phd-nav-link {
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  border: 1px solid transparent;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  &.active {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* Search */
 .phd-search-form {
   flex: 1;
   max-width: 560px;
-  min-width: 260px;
+  min-width: 240px;
 }
 
 .phd-search-field {
   display: flex;
   align-items: center;
   gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 0 12px;
-  height: 40px;
   transition:
-    border-color 0.2s ease,
-    background 0.2s ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 
   &:focus-within {
-    border-color: rgba(255, 215, 0, 0.45);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
   }
 }
 
 .phd-search-icon {
   display: flex;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .phd-input {
   flex: 1;
+  width: 100%;
   background: none;
   border: none;
-  color: #fff;
-  font-size: 0.95rem;
   outline: none;
-  width: 100%;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.45);
   }
 }
 
 .phd-kbd {
   font-size: 11px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.35);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.04);
-  padding: 2px 7px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 8px;
   flex: 0 0 auto;
 }
 
@@ -88,7 +132,7 @@
   display: none;
   background: none;
   border: none;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.92);
   padding: 6px;
   border-radius: 10px;
   cursor: pointer;
@@ -98,57 +142,41 @@
   }
 }
 
+/* Right actions */
 .phd-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
 }
 
 .phd-btn-icon {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0);
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition:
-    background 0.2s,
-    color 0.2s;
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.06s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 }
 
 .phd-icon-link {
   text-decoration: none;
-}
-
-.phd-nav-link {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 800;
-  padding: 8px 10px;
-  border-radius: 10px;
-  transition:
-    background 0.2s,
-    color 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-  }
-
-  &.active {
-    color: #ffd700;
-    background: rgba(255, 215, 0, 0.08);
-  }
 }
 
 .phd-clerk-wrapper {
@@ -157,6 +185,7 @@
   margin-left: 2px;
 }
 
+/* Visibility helpers */
 .desktop-only {
   display: inline-flex;
 }
@@ -165,13 +194,14 @@
   display: none;
 }
 
+/* Overlay */
 .phd-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
   z-index: 999;
 }
 
@@ -180,18 +210,19 @@
   pointer-events: auto;
 }
 
+/* Mobile drawer */
 .phd-mobile-drawer {
   position: fixed;
-  top: 64px;
+  top: 72px;
   right: 0;
-  width: min(320px, 86vw);
-  height: calc(100vh - 64px);
-  background: rgba(10, 10, 10, 0.96);
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  width: min(340px, 88vw);
+  height: calc(100vh - 72px);
+  background: rgba(10, 12, 16, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   transform: translateX(110%);
-  transition: transform 0.22s ease;
+  transition: transform 0.2s ease;
   z-index: 1000;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
 }
 
 .phd-mobile-drawer.open {
@@ -208,15 +239,24 @@
 .phd-drawer-link {
   display: block;
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 900;
   padding: 12px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
   }
 }
 
@@ -225,33 +265,43 @@
   text-align: left;
   padding: 12px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 255, 255, 0.92);
   font-weight: 900;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.16);
   }
 }
 
 .phd-drawer-btn-primary {
-  border-color: rgba(255, 215, 0, 0.35);
-  background: rgba(255, 215, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.92);
+  color: #0b0f16;
+
+  &:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
 }
 
 .phd-drawer-user {
   padding: 10px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Mobile Breakpoint: 850px (Mobile-first min-width is preferred, but here we override for header logic) */
+/* ====== Mobile breakpoint: keep your existing behavior ====== */
 @media (max-width: 850px) {
   .phd-header {
-    height: 56px;
+    height: 60px;
 
     &.search-mode {
       .phd-logo,
@@ -276,7 +326,7 @@
   }
 
   .phd-header-container {
-    padding: 0 14px;
+    padding: 0 12px;
     gap: 10px;
   }
 
@@ -293,7 +343,7 @@
   }
 
   .phd-mobile-drawer {
-    top: 56px;
-    height: calc(100vh - 56px);
+    top: 60px;
+    height: calc(100vh - 60px);
   }
 }

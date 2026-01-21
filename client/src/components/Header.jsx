@@ -146,6 +146,22 @@ const Header = () => {
           BangingPrices
         </NavLink>
 
+        <nav className="phd-nav desktop-only" aria-label="Primary">
+          <NavLink to="/products" className="phd-nav-link">
+            Shop
+          </NavLink>
+
+          <SignedIn>
+            <NavLink to="/tracked" className="phd-nav-link">
+              Tracked
+            </NavLink>
+
+            <NavLink to="/dashboard" className="phd-nav-link">
+              Dashboard
+            </NavLink>
+          </SignedIn>
+        </nav>
+
         <form className="phd-search-form" onSubmit={handleSearch}>
           <div className="phd-search-field">
             <span className="phd-search-icon" aria-hidden="true">
@@ -157,7 +173,7 @@ const Header = () => {
               className="phd-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
+              placeholder="Search products"
               onFocus={() => setIsSearchActive(true)}
               aria-label="Search products"
             />
@@ -181,9 +197,9 @@ const Header = () => {
         <div className="phd-actions">
           <NavLink
             to="/products"
-            className="phd-btn-icon phd-icon-link"
-            aria-label="Store"
-            title="Store"
+            className="phd-btn-icon phd-icon-link desktop-only"
+            aria-label="Shop"
+            title="Shop"
           >
             <HeaderIcon name="store" />
           </NavLink>
@@ -198,15 +214,6 @@ const Header = () => {
             >
               <HeaderIcon name="heart" />
             </button>
-
-            {/* ✅ tracked items link (desktop) */}
-            <NavLink to="/tracked" className="phd-nav-link desktop-only">
-              Tracked
-            </NavLink>
-
-            <NavLink to="/dashboard" className="phd-nav-link desktop-only">
-              Dashboard
-            </NavLink>
 
             <div className="phd-clerk-wrapper desktop-only">
               <UserButton afterSignOutUrl="/" />
@@ -279,7 +286,7 @@ const Header = () => {
       >
         <div className="phd-mobile-drawer-inner">
           <NavLink to="/products" className="phd-drawer-link">
-            Store
+            Shop
           </NavLink>
 
           <SignedIn>
@@ -287,7 +294,6 @@ const Header = () => {
               Saved products
             </NavLink>
 
-            {/* ✅ tracked items link (mobile drawer) */}
             <NavLink to="/tracked" className="phd-drawer-link">
               Tracked items
             </NavLink>
