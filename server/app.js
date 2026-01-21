@@ -5,9 +5,10 @@ const { clerkMiddleware } = require("@clerk/express");
 
 const productsRoutes = require("./routes/products.routes");
 const authRoutes = require("./routes/authRoutes");
-
-// ✅ add
 const alertsRoutes = require("./routes/alerts.routes");
+
+// ✅ ADD THIS
+const homeRoutes = require("./routes/home.routes");
 
 const app = express();
 
@@ -41,9 +42,10 @@ app.get("/health", (req, res) => {
 // routes
 app.use("/api/products", productsRoutes);
 app.use("/api/auth", authRoutes);
-
-// ✅ Track Pricing (Price / Percent / Stock)
 app.use("/api/alerts", alertsRoutes);
+
+// ✅ ADD THIS (public, no auth)
+app.use("/api/home", homeRoutes);
 
 // 404
 app.use((req, res) => {
