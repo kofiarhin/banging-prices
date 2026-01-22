@@ -1,10 +1,7 @@
-//useful git commands
-git pull --rebase heroku main
-
-git fetch origin
 git pull --rebase origin main
 git pull --rebase heroku main
-
+git push origin main
+git push heroku main
 
 {
   "_id": "ObjectId",
