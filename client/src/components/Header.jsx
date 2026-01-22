@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/clerk-react";
+import {
+  SignedIn,
+  SignedOut,
+  UserButton,
+  SignOutButton,
+} from "@clerk/clerk-react";
 import "./header.styles.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -42,14 +47,6 @@ const HeaderIcon = ({ name }) => {
       </>
     ),
     chevronDown: <path d="M6 9l6 6 6-6" />,
-    logout: (
-      <>
-        <path d="M10 17l5-5-5-5" />
-        <path d="M15 12H3" />
-        <path d="M21 3h-6a2 2 0 00-2 2v3" />
-        <path d="M13 16v3a2 2 0 002 2h6" />
-      </>
-    ),
   };
 
   return (
@@ -75,7 +72,6 @@ const safeArr = (v) => (Array.isArray(v) ? v : []);
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useClerk();
 
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -93,9 +89,9 @@ const Header = () => {
     () => new URLSearchParams(location.search),
     [location.search],
   );
-
   const [search, setSearch] = useState(params.get("search") || "");
 
+  const isProductsRoute = location.pathname.startsWith("/products");
   const isDashboardRoute =
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/tracked") ||
@@ -112,7 +108,7 @@ const Header = () => {
 
       if (isCmdK) {
         e.preventDefault();
-        openSearch({ keepMenu: true });
+        openSearch();
       }
 
       if (isEsc) {
@@ -147,11 +143,13 @@ const Header = () => {
         if (!res.ok) throw new Error("nav fetch failed");
         const json = await res.json();
         if (!alive) return;
+
         setNavData(json);
 
         const genders = safeArr(json?.genders);
-        if (genders.length && !activeGender)
+        if (genders.length && !activeGender) {
           setActiveGender(genders[0]?.value || "");
+        }
       } catch {
         if (!alive) return;
         setNavData(null);
@@ -182,10 +180,12 @@ const Header = () => {
     navigate(`/products?${nextParams.toString()}`);
   };
 
-  // ✅ FIX: don't auto-close the mobile drawer when user focuses the search input
-  const openSearch = ({ keepMenu = false } = {}) => {
+  const openSearch = () => {
+    // ✅ On mobile products page we want the ProductsPage filters to be primary
+    if (isProductsRoute) return;
+
     setIsSearchActive(true);
-    if (!keepMenu) setIsMobileMenuOpen(false);
+    setIsMobileMenuOpen(false);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -197,10 +197,6 @@ const Header = () => {
   const closeAllOverlays = () => {
     setIsMobileMenuOpen(false);
     closeSearch();
-  };
-
-  const doLogout = async () => {
-    await signOut({ redirectUrl: "/" });
   };
 
   const quickLinks = safeArr(navData?.quickLinks);
@@ -216,6 +212,7 @@ const Header = () => {
         isSearchActive ? "search-mode" : "",
         isMobileMenuOpen ? "menu-open" : "",
         isDashboardRoute ? "dashboard-mode" : "",
+        isProductsRoute ? "products-mode" : "",
       ].join(" ")}
     >
       <div className="phd-header-container">
@@ -329,8 +326,11 @@ const Header = () => {
               placeholder={
                 isDashboardRoute ? "Search tracked products" : "Search products"
               }
-              // ✅ FIX: keep drawer open; just activate search state + focus
-              onFocus={() => openSearch({ keepMenu: true })}
+              // ✅ don't collapse/flip overlays when drawer is open
+              onFocus={() => {
+                if (isMobileMenuOpen) return;
+                setIsSearchActive(true);
+              }}
               aria-label="Search products"
             />
 
@@ -353,8 +353,8 @@ const Header = () => {
         {/* actions */}
         <div className="phd-actions">
           <button
-            className="phd-btn-icon mobile-only"
-            onClick={() => openSearch({ keepMenu: false })}
+            className="phd-btn-icon mobile-only phd-mobile-search-btn"
+            onClick={openSearch}
             aria-label="Search"
             title="Search"
             type="button"
@@ -380,16 +380,6 @@ const Header = () => {
               type="button"
             >
               <HeaderIcon name="heart" />
-            </button>
-
-            <button
-              className="phd-btn-icon desktop-only"
-              onClick={doLogout}
-              aria-label="Log out"
-              title="Log out"
-              type="button"
-            >
-              <HeaderIcon name="logout" />
             </button>
 
             <div className="phd-clerk-wrapper desktop-only">
@@ -610,21 +600,20 @@ const Header = () => {
               Dashboard
             </NavLink>
 
-            {/* ✅ explicit logout */}
-            <button
-              type="button"
-              className="phd-drawer-btn phd-drawer-btn-logout"
-              onClick={async () => {
-                closeAllOverlays();
-                await doLogout();
-              }}
-            >
-              Log out
-            </button>
-
             <div className="phd-drawer-user">
               <UserButton afterSignOutUrl="/" />
             </div>
+
+            {/* ✅ explicit logout for mobile */}
+            <SignOutButton signOutCallback={() => navigate("/")}>
+              <button
+                type="button"
+                className="phd-drawer-btn phd-drawer-btn-logout"
+                onClick={closeAllOverlays}
+              >
+                Log out
+              </button>
+            </SignOutButton>
           </SignedIn>
 
           <SignedOut>
