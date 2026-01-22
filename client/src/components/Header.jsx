@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/clerk-react";
 import "./header.styles.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -42,6 +42,14 @@ const HeaderIcon = ({ name }) => {
       </>
     ),
     chevronDown: <path d="M6 9l6 6 6-6" />,
+    logout: (
+      <>
+        <path d="M10 17l5-5-5-5" />
+        <path d="M15 12H3" />
+        <path d="M21 3h-6a2 2 0 00-2 2v3" />
+        <path d="M13 16v3a2 2 0 002 2h6" />
+      </>
+    ),
   };
 
   return (
@@ -67,6 +75,7 @@ const safeArr = (v) => (Array.isArray(v) ? v : []);
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signOut } = useClerk();
 
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -87,7 +96,6 @@ const Header = () => {
 
   const [search, setSearch] = useState(params.get("search") || "");
 
-  const isProductsRoute = location.pathname.startsWith("/products");
   const isDashboardRoute =
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/tracked") ||
@@ -104,7 +112,7 @@ const Header = () => {
 
       if (isCmdK) {
         e.preventDefault();
-        openSearch();
+        openSearch({ keepMenu: true });
       }
 
       if (isEsc) {
@@ -157,6 +165,7 @@ const Header = () => {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e) => {
@@ -173,9 +182,10 @@ const Header = () => {
     navigate(`/products?${nextParams.toString()}`);
   };
 
-  const openSearch = () => {
+  // ✅ FIX: don't auto-close the mobile drawer when user focuses the search input
+  const openSearch = ({ keepMenu = false } = {}) => {
     setIsSearchActive(true);
-    setIsMobileMenuOpen(false);
+    if (!keepMenu) setIsMobileMenuOpen(false);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -187,6 +197,10 @@ const Header = () => {
   const closeAllOverlays = () => {
     setIsMobileMenuOpen(false);
     closeSearch();
+  };
+
+  const doLogout = async () => {
+    await signOut({ redirectUrl: "/" });
   };
 
   const quickLinks = safeArr(navData?.quickLinks);
@@ -224,7 +238,7 @@ const Header = () => {
           BangingPrices
         </NavLink>
 
-        {/* desktop nav (dynamic quick links + genders) */}
+        {/* desktop nav */}
         <nav className="phd-nav desktop-only" aria-label="Primary">
           <NavLink to="/products" className="phd-nav-link">
             Shop
@@ -315,7 +329,8 @@ const Header = () => {
               placeholder={
                 isDashboardRoute ? "Search tracked products" : "Search products"
               }
-              onFocus={() => setIsSearchActive(true)}
+              // ✅ FIX: keep drawer open; just activate search state + focus
+              onFocus={() => openSearch({ keepMenu: true })}
               aria-label="Search products"
             />
 
@@ -339,7 +354,7 @@ const Header = () => {
         <div className="phd-actions">
           <button
             className="phd-btn-icon mobile-only"
-            onClick={openSearch}
+            onClick={() => openSearch({ keepMenu: false })}
             aria-label="Search"
             title="Search"
             type="button"
@@ -365,6 +380,16 @@ const Header = () => {
               type="button"
             >
               <HeaderIcon name="heart" />
+            </button>
+
+            <button
+              className="phd-btn-icon desktop-only"
+              onClick={doLogout}
+              aria-label="Log out"
+              title="Log out"
+              type="button"
+            >
+              <HeaderIcon name="logout" />
             </button>
 
             <div className="phd-clerk-wrapper desktop-only">
@@ -393,8 +418,6 @@ const Header = () => {
               <HeaderIcon name="register" />
             </button>
           </SignedOut>
-
-          {/* keep user avatar visible on desktop only (already handled above) */}
         </div>
       </div>
 
@@ -410,14 +433,13 @@ const Header = () => {
         role="presentation"
       />
 
-      {/* mobile drawer (dynamic) */}
+      {/* mobile drawer */}
       <div
         className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
           " ",
         )}
       >
         <div className="phd-mobile-drawer-inner">
-          {/* quick links */}
           {quickLinks.length > 0 && (
             <div className="phd-drawer-section">
               <div className="phd-drawer-title">Quick links</div>
@@ -439,7 +461,6 @@ const Header = () => {
             </div>
           )}
 
-          {/* genders */}
           {genders.length > 0 && (
             <div className="phd-drawer-section">
               <div className="phd-drawer-title">Shop by</div>
@@ -465,7 +486,6 @@ const Header = () => {
             </div>
           )}
 
-          {/* top categories for selected gender */}
           {genders.length > 0 && (
             <div className="phd-drawer-section">
               <button
@@ -525,7 +545,6 @@ const Header = () => {
             </div>
           )}
 
-          {/* top stores */}
           {topStores.length > 0 && (
             <div className="phd-drawer-section">
               <button
@@ -566,7 +585,6 @@ const Header = () => {
 
           <div className="phd-drawer-divider" />
 
-          {/* account */}
           <SignedIn>
             <NavLink
               to="/saved-products"
@@ -591,6 +609,18 @@ const Header = () => {
             >
               Dashboard
             </NavLink>
+
+            {/* ✅ explicit logout */}
+            <button
+              type="button"
+              className="phd-drawer-btn phd-drawer-btn-logout"
+              onClick={async () => {
+                closeAllOverlays();
+                await doLogout();
+              }}
+            >
+              Log out
+            </button>
 
             <div className="phd-drawer-user">
               <UserButton afterSignOutUrl="/" />
