@@ -30,6 +30,131 @@ const uniqNonEmpty = (arr = []) => [
   ...new Set((arr || []).map((x) => String(x || "").trim()).filter(Boolean)),
 ];
 
+const parsePathQuery = (to = "") => {
+  const str = String(to || "");
+  const [path, qs = ""] = str.split("?");
+  const params = new URLSearchParams(qs);
+  return { path, params };
+};
+
+const buildTo = (path, params) => {
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+};
+
+const withGender = (to, gender) => {
+  if (!to || !gender) return to;
+  const { path, params } = parsePathQuery(to);
+
+  // only scope /products routes
+  if (!String(path).startsWith("/products")) return to;
+
+  if (!params.get("gender")) params.set("gender", gender);
+  if (!params.get("page")) params.set("page", "1");
+
+  return buildTo(path, params);
+};
+
+const classifyCategoryBucket = (name = "") => {
+  const s = String(name || "").toLowerCase();
+
+  const shoes = [
+    "shoe",
+    "shoes",
+    "trainer",
+    "trainers",
+    "sneaker",
+    "sneakers",
+    "boot",
+    "boots",
+    "sandal",
+    "sandals",
+    "flip",
+    "slipper",
+  ];
+
+  const clothing = [
+    "hoodie",
+    "hoodies",
+    "sweatshirt",
+    "sweatshirts",
+    "t-shirt",
+    "tshirts",
+    "tee",
+    "tees",
+    "top",
+    "tops",
+    "trouser",
+    "trousers",
+    "pants",
+    "jean",
+    "jeans",
+    "short",
+    "shorts",
+    "jacket",
+    "jackets",
+    "coat",
+    "coats",
+    "legging",
+    "leggings",
+    "bra",
+    "bras",
+    "tracksuit",
+    "track",
+    "dress",
+    "skirt",
+    "sock",
+    "socks",
+  ];
+
+  const sport = [
+    "running",
+    "run",
+    "gym",
+    "training",
+    "football",
+    "soccer",
+    "basketball",
+    "tennis",
+    "yoga",
+    "golf",
+    "trail",
+    "hike",
+    "hiking",
+    "swim",
+    "cycling",
+  ];
+
+  const accessories = [
+    "bag",
+    "bags",
+    "cap",
+    "caps",
+    "hat",
+    "hats",
+    "glove",
+    "gloves",
+    "watch",
+    "belt",
+    "backpack",
+    "water bottle",
+    "bottle",
+    "accessor",
+  ];
+
+  if (shoes.some((k) => s.includes(k))) return "shoes";
+  if (clothing.some((k) => s.includes(k))) return "clothing";
+  if (sport.some((k) => s.includes(k))) return "sport";
+  if (accessories.some((k) => s.includes(k))) return "accessories";
+  return "more";
+};
+
+const makeColumn = (key, title, links) => ({
+  key,
+  title,
+  links: (links || []).filter(Boolean),
+});
+
 const getHomeIntelligence = async (req, res) => {
   try {
     const sixHoursAgo = new Date(Date.now() - SIX_HOURS_MS);
@@ -190,7 +315,7 @@ const getHomeIntelligence = async (req, res) => {
   }
 };
 
-// ✅ NEW: header/home nav config for dynamic routes
+// ✅ header/home nav config for dynamic routes (now includes Nike-style megaMenu)
 const getNav = async (req, res) => {
   try {
     const quickLinks = [
@@ -305,11 +430,174 @@ const getNav = async (req, res) => {
       to: `/products?store=${encodeURIComponent(s._id)}&page=1`,
     }));
 
+    // ----------------------------
+    // Nike-style mega menu data
+    // ----------------------------
+    const megaMenu = {
+      tabs: [
+        {
+          key: "new",
+          label: "New",
+          value: "new",
+          to: "/products?sort=newest&page=1",
+        },
+        ...genders.map((g) => ({
+          key: g.key,
+          label: g.label,
+          value: g.value,
+          to: g.to,
+        })),
+        {
+          key: "sport",
+          label: "Sport",
+          value: "sport",
+          to: "/products?page=1",
+        },
+      ],
+      panels: {},
+    };
+
+    // New panel (global)
+    megaMenu.panels.new = {
+      key: "new",
+      label: "New",
+      to: "/products?sort=newest&page=1",
+      columns: [
+        makeColumn(
+          "highlights",
+          "Highlights",
+          quickLinks.map((l) => ({
+            key: l.key,
+            label: l.label,
+            to: l.to,
+          })),
+        ),
+        makeColumn(
+          "brands",
+          "Brands",
+          topStores.slice(0, 6).map((s) => ({
+            key: s.key,
+            label: s.label,
+            to: s.to,
+          })),
+        ),
+      ].filter((c) => (c.links || []).length > 0),
+    };
+
+    // Gender panels
+    const genderValues = genders.map((g) => g.value);
+    genderValues.forEach((g) => {
+      const cats = topCategoriesByGender[g] || [];
+
+      const shoesLinks = [];
+      const clothingLinks = [];
+      const sportLinks = [];
+      const accessoriesLinks = [];
+      const moreLinks = [];
+
+      cats.forEach((c) => {
+        const bucket = classifyCategoryBucket(c.value);
+        const entry = {
+          key: c.key,
+          label: c.label,
+          to: c.to,
+        };
+
+        if (bucket === "shoes") shoesLinks.push(entry);
+        else if (bucket === "clothing") clothingLinks.push(entry);
+        else if (bucket === "sport") sportLinks.push(entry);
+        else if (bucket === "accessories") accessoriesLinks.push(entry);
+        else moreLinks.push(entry);
+      });
+
+      const featured = [
+        ...quickLinks.map((l) => ({
+          key: l.key,
+          label: l.label,
+          to: withGender(l.to, g),
+        })),
+        {
+          key: "view-all",
+          label: "View all",
+          to: `/products?gender=${encodeURIComponent(g)}&page=1`,
+        },
+      ];
+
+      megaMenu.panels[g] = {
+        key: toSlug(g),
+        label: cap(g),
+        to: `/products?gender=${encodeURIComponent(g)}&page=1`,
+        columns: [
+          makeColumn("highlights", "Highlights", featured),
+          makeColumn("shoes", "Shoes", shoesLinks),
+          makeColumn("clothing", "Clothing", clothingLinks),
+          makeColumn("sport", "Sport", sportLinks),
+          makeColumn(
+            "brands",
+            "Brands",
+            topStores.slice(0, 6).map((s) => ({
+              key: s.key,
+              label: s.label,
+              to: s.to,
+            })),
+          ),
+          makeColumn("accessories", "Accessories", accessoriesLinks),
+          makeColumn("more", "More", moreLinks),
+        ].filter((c) => (c.links || []).length > 0),
+      };
+    });
+
+    // Sport panel (global + best-effort from all categories)
+    const allCats = Object.values(topCategoriesByGender || {})
+      .flat()
+      .map((c) => ({ key: c.key, label: c.label, value: c.value, to: c.to }));
+
+    const sportOnly = allCats
+      .filter((c) => classifyCategoryBucket(c.value) === "sport")
+      .slice(0, 10)
+      .map((c) => ({ key: c.key, label: c.label, to: c.to }));
+
+    megaMenu.panels.sport = {
+      key: "sport",
+      label: "Sport",
+      to: "/products?page=1",
+      columns: [
+        makeColumn(
+          "highlights",
+          "Highlights",
+          [
+            { key: "trending", label: "Trending", to: "/products?page=1" },
+            {
+              key: "biggest-drops",
+              label: "Biggest Drops",
+              to: "/products?sort=discount-desc&page=1",
+            },
+            {
+              key: "new",
+              label: "Newly detected",
+              to: "/products?sort=newest&page=1",
+            },
+          ].filter(Boolean),
+        ),
+        makeColumn("sport", "Sport", sportOnly),
+        makeColumn(
+          "brands",
+          "Brands",
+          topStores.slice(0, 8).map((s) => ({
+            key: s.key,
+            label: s.label,
+            to: s.to,
+          })),
+        ),
+      ].filter((c) => (c.links || []).length > 0),
+    };
+
     res.json({
       quickLinks,
       genders,
       topCategoriesByGender,
       topStores,
+      megaMenu,
     });
   } catch (err) {
     console.error("Home nav error:", err);
