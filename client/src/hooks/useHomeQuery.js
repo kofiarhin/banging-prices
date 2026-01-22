@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const fetchHome = async () => {
-  if (!API_URL) {
-    throw new Error("VITE_API_URL is not defined");
-  }
-
-  const res = await fetch(`${API_URL}/api/home`);
+  const res = await fetch(`${API_URL}/api/home`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch home intelligence");
+    const text = await res.text().catch(() => "");
+    throw new Error(text || "Failed to load home intelligence");
   }
 
   return res.json();
@@ -18,9 +18,10 @@ const fetchHome = async () => {
 
 export const useHomeQuery = () => {
   return useQuery({
-    queryKey: ["home-intelligence"],
+    queryKey: ["home"],
     queryFn: fetchHome,
-    staleTime: 60_000, // 60 seconds
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
+    retry: 1,
   });
 };
