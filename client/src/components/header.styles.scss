@@ -92,7 +92,7 @@
   gap: 8px;
 }
 
-/* ✅ FIX: remove white pill/background from Quick links / Shop by triggers */
+/* remove white pill/background from Quick links / Shop by triggers */
 .phd-nav-trigger.phd-nav-link {
   background: transparent !important;
   border-color: transparent !important;
@@ -457,11 +457,6 @@
   }
 }
 
-/* ✅ logout button variant */
-.phd-drawer-btn-logout {
-  text-align: center;
-}
-
 .phd-drawer-btn-primary {
   background: rgba(255, 255, 255, 0.92);
   border-color: rgba(255, 255, 255, 0.92);
@@ -473,6 +468,12 @@
   }
 }
 
+/* ✅ logout button matches system */
+.phd-drawer-btn-logout {
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .phd-drawer-user {
   padding: 10px 10px;
   border-radius: 12px;
@@ -480,7 +481,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* ====== Mobile breakpoint: keep your existing behavior ====== */
+/* ====== Mobile breakpoint ====== */
 @media (max-width: 850px) {
   .phd-header {
     height: 60px;
@@ -503,6 +504,13 @@
 
       .phd-kbd {
         display: none;
+      }
+    }
+
+    /* ✅ on mobile Products page: use ProductsPage filters, not header search */
+    &.products-mode {
+      .phd-mobile-search-btn {
+        display: none !important;
       }
     }
   }
