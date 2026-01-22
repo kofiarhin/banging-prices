@@ -12,7 +12,8 @@
     "price-alert": "node boohooAlert.js",
     "scrappers": "node server/crawlers/storeCrawlers.js",
     "client": "npm run dev --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "deploy": "git pull --rebase origin main && git pull --rebase heroku main && git push origin main && git push heroku main"
   },
   "dependencies": {
     "@clerk/express": "^1.7.63",
