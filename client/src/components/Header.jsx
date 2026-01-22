@@ -41,6 +41,7 @@ const HeaderIcon = ({ name }) => {
         <path d="M4 18h16" />
       </>
     ),
+    chevronDown: <path d="M6 9l6 6 6-6" />,
   };
 
   return (
@@ -77,10 +78,7 @@ const Header = () => {
   const [drawerCatsOpen, setDrawerCatsOpen] = useState(true);
   const [drawerStoresOpen, setDrawerStoresOpen] = useState(false);
 
-  const [megaKey, setMegaKey] = useState(""); // desktop mega menu open key
-
   const searchInputRef = useRef(null);
-  const megaWrapRef = useRef(null);
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
@@ -94,11 +92,9 @@ const Header = () => {
     location.pathname.startsWith("/tracked") ||
     location.pathname.startsWith("/saved-products");
 
-  const isMegaOpen = !!megaKey;
-
   useEffect(() => {
     setSearch(params.get("search") || "");
-  }, [location.search, params]);
+  }, [location.search]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -113,18 +109,15 @@ const Header = () => {
       if (isEsc) {
         closeSearch();
         setIsMobileMenuOpen(false);
-        setMegaKey("");
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setMegaKey("");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -148,9 +141,8 @@ const Header = () => {
         setNavData(json);
 
         const genders = safeArr(json?.genders);
-        if (genders.length && !activeGender) {
+        if (genders.length && !activeGender)
           setActiveGender(genders[0]?.value || "");
-        }
       } catch {
         if (!alive) return;
         setNavData(null);
@@ -167,19 +159,6 @@ const Header = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const onDocPointerDown = (e) => {
-      if (!isMegaOpen) return;
-      const wrap = megaWrapRef.current;
-      if (!wrap) return;
-      if (wrap.contains(e.target)) return;
-      setMegaKey("");
-    };
-
-    document.addEventListener("pointerdown", onDocPointerDown);
-    return () => document.removeEventListener("pointerdown", onDocPointerDown);
-  }, [isMegaOpen]);
-
   const handleSearch = (e) => {
     e.preventDefault();
     const q = search.trim();
@@ -190,14 +169,13 @@ const Header = () => {
 
     setIsSearchActive(false);
     setIsMobileMenuOpen(false);
-    setMegaKey("");
 
     navigate(`/products?${nextParams.toString()}`);
   };
 
+  // ✅ don’t auto-close the drawer when opening search (prevents “drawer closes when I tap search”)
   const openSearch = () => {
     setIsSearchActive(true);
-    setMegaKey("");
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -209,409 +187,249 @@ const Header = () => {
   const closeAllOverlays = () => {
     setIsMobileMenuOpen(false);
     closeSearch();
-    setMegaKey("");
   };
 
   const quickLinks = safeArr(navData?.quickLinks);
   const genders = safeArr(navData?.genders);
   const topStores = safeArr(navData?.topStores);
   const catsByGender = navData?.topCategoriesByGender || {};
-
-  // ----- Nike-like top nav items (centered) -----
-  const topNavItems = useMemo(() => {
-    const list = [];
-
-    // "New" uses quickLinks as its highlights
-    list.push({
-      key: "new",
-      label: "New",
-      kind: "new",
-    });
-
-    // take up to 4 genders (Men/Women/Kids/etc) - you can control order from API later
-    safeArr(genders)
-      .slice(0, 4)
-      .forEach((g) => {
-        list.push({
-          key: g.value || g.key,
-          label: g.label,
-          kind: "gender",
-          gender: g.value,
-          to: g.to,
-        });
-      });
-
-    // If you want Sport as a fixed item but don’t have gender=sport in DB,
-    // keep it here and you can wire it to a filter later.
-    if (!list.find((x) => String(x.label).toLowerCase() === "sport")) {
-      list.push({ key: "sport", label: "Sport", kind: "sport" });
-    }
-
-    return list;
-  }, [genders]);
-
-  const getMegaColumns = () => {
-    const key = megaKey;
-
-    if (!key) return [];
-
-    if (key === "new") {
-      const col1 = {
-        title: "Highlights",
-        items: quickLinks.map((l) => ({
-          key: l.key,
-          label: l.label,
-          to: l.to,
-        })),
-      };
-
-      const col2 = {
-        title: "Brands",
-        items: topStores.map((s) => ({ key: s.key, label: s.label, to: s.to })),
-      };
-
-      return [col1, col2].filter((c) => (c.items || []).length > 0);
-    }
-
-    // sport (placeholder grouping)
-    if (key === "sport") {
-      const col1 = {
-        title: "Sport",
-        items: [
-          {
-            key: "running",
-            label: "Running",
-            to: "/products?category=running&page=1",
-          },
-          {
-            key: "football",
-            label: "Football",
-            to: "/products?category=football&page=1",
-          },
-          {
-            key: "basketball",
-            label: "Basketball",
-            to: "/products?category=basketball&page=1",
-          },
-          {
-            key: "training",
-            label: "Training",
-            to: "/products?category=training&page=1",
-          },
-        ],
-      };
-
-      const col2 = {
-        title: "Brands",
-        items: topStores.map((s) => ({ key: s.key, label: s.label, to: s.to })),
-      };
-
-      return [col1, col2].filter((c) => (c.items || []).length > 0);
-    }
-
-    // gender mega
-    const gender = key;
-    const cats = safeArr(catsByGender?.[gender]);
-    const colHighlights = {
-      title: "Highlights",
-      items: [
-        ...quickLinks.map((l) => ({ key: l.key, label: l.label, to: l.to })),
-        {
-          key: `view-all-${gender}`,
-          label: "View all",
-          to: `/products?gender=${encodeURIComponent(gender)}&page=1`,
-        },
-      ],
-    };
-
-    const colClothing = {
-      title: "Clothing",
-      items: cats
-        .slice(0, 8)
-        .map((c) => ({ key: c.key, label: c.label, to: c.to })),
-    };
-
-    const colBrands = {
-      title: "Brands",
-      items: topStores
-        .slice(0, 8)
-        .map((s) => ({ key: s.key, label: s.label, to: s.to })),
-    };
-
-    // optional "More" column from remaining categories
-    const remaining = cats.slice(8, 16);
-    const colMore =
-      remaining.length > 0
-        ? {
-            title: "More",
-            items: remaining.map((c) => ({
-              key: c.key,
-              label: c.label,
-              to: c.to,
-            })),
-          }
-        : null;
-
-    return [colHighlights, colClothing, colBrands, colMore].filter(Boolean);
-  };
-
-  const megaColumns = getMegaColumns();
+  const activeCats = safeArr(catsByGender?.[activeGender]);
 
   return (
-    <>
-      <header
-        className={[
-          "phd-header",
-          isSearchActive ? "search-mode" : "",
-          isMobileMenuOpen ? "menu-open" : "",
-          isDashboardRoute ? "dashboard-mode" : "",
-        ].join(" ")}
-      >
-        <div className="phd-header-container" ref={megaWrapRef}>
-          {/* left */}
-          <button
-            className="phd-btn-icon mobile-only"
-            onClick={() => {
-              setIsMobileMenuOpen((v) => !v);
-              setIsSearchActive(false);
-              setMegaKey("");
-            }}
-            aria-label="Menu"
-            title="Menu"
-            type="button"
-          >
-            <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
-          </button>
+    <header
+      className={[
+        "phd-header",
+        isSearchActive ? "search-mode" : "",
+        isMobileMenuOpen ? "menu-open" : "",
+        isDashboardRoute ? "dashboard-mode" : "",
+      ].join(" ")}
+    >
+      <div className="phd-header-container">
+        {/* left */}
+        <button
+          className="phd-btn-icon mobile-only"
+          onClick={() => {
+            setIsMobileMenuOpen((v) => !v);
+            setIsSearchActive(false);
+          }}
+          aria-label="Menu"
+          title="Menu"
+          type="button"
+        >
+          <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
+        </button>
 
-          {/* logo */}
-          <NavLink to="/" className="phd-logo" aria-label="Home">
-            BangingPrices
+        {/* logo */}
+        <NavLink to="/" className="phd-logo" aria-label="Home">
+          BangingPrices
+        </NavLink>
+
+        {/* desktop nav */}
+        <nav className="phd-nav desktop-only" aria-label="Primary">
+          <NavLink to="/products" className="phd-nav-link">
+            Shop
           </NavLink>
 
-          {/* centered desktop nav */}
-          <nav className="phd-nav desktop-only" aria-label="Primary">
-            {!navLoading &&
-              topNavItems.map((item) => {
-                const isActive =
-                  item.kind === "gender"
-                    ? location.search.includes(
-                        `gender=${encodeURIComponent(item.gender || "")}`,
-                      )
-                    : false;
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={["phd-top-link", isActive ? "active" : ""].join(
-                      " ",
-                    )}
-                    onMouseEnter={() => {
-                      if (item.kind === "gender")
-                        setActiveGender(item.gender || "");
-                      setMegaKey(
-                        item.kind === "gender" ? item.gender : item.key,
-                      );
-                    }}
-                    onFocus={() => {
-                      if (item.kind === "gender")
-                        setActiveGender(item.gender || "");
-                      setMegaKey(
-                        item.kind === "gender" ? item.gender : item.key,
-                      );
-                    }}
-                    onClick={() => {
-                      // click navigates like Nike (and still keeps mega hover behavior)
-                      if (item.kind === "gender" && item.to) navigate(item.to);
-                      if (item.kind === "new") navigate("/products?page=1");
-                      if (item.kind === "sport") navigate("/products?page=1");
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-          </nav>
-
-          {/* search (kept) */}
-          <form className="phd-search-form" onSubmit={handleSearch}>
-            <div className="phd-search-field">
-              <span className="phd-search-icon" aria-hidden="true">
-                <HeaderIcon name="search" />
-              </span>
-
-              <input
-                ref={searchInputRef}
-                className="phd-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={
-                  isDashboardRoute
-                    ? "Search tracked products"
-                    : "Search products"
+          {!navLoading && quickLinks.length > 0 && (
+            <div className="phd-nav-group">
+              <button
+                type="button"
+                className="phd-nav-link phd-nav-trigger"
+                onClick={() =>
+                  navigate(quickLinks[0]?.to || "/products?page=1")
                 }
-                onFocus={() => {
-                  setIsSearchActive(true);
-                  setMegaKey("");
-                }}
-                aria-label="Search products"
-              />
-
-              <div className="phd-kbd" aria-hidden="true">
-                ⌘K
-              </div>
-
-              <button
-                type="button"
-                className="phd-search-exit"
-                onClick={closeSearch}
-                aria-label="Close search"
-                title="Close search"
+                title="Quick links"
               >
-                <HeaderIcon name="close" />
-              </button>
-            </div>
-          </form>
-
-          {/* actions */}
-          <div className="phd-actions">
-            <button
-              className="phd-btn-icon mobile-only"
-              onClick={openSearch}
-              aria-label="Search"
-              title="Search"
-              type="button"
-            >
-              <HeaderIcon name="search" />
-            </button>
-
-            <SignedIn>
-              <button
-                className="phd-btn-icon mobile-only"
-                onClick={() => navigate("/saved-products")}
-                aria-label="Saved products"
-                title="Saved products"
-                type="button"
-              >
-                <HeaderIcon name="heart" />
+                Quick links{" "}
+                <span className="phd-nav-chevron">
+                  <HeaderIcon name="chevronDown" />
+                </span>
               </button>
 
-              <div className="phd-clerk-wrapper mobile-only">
-                <UserButton afterSignOutUrl="/" />
-              </div>
-            </SignedIn>
-
-            <SignedOut>
-              <button
-                className="phd-btn-icon mobile-only"
-                onClick={() => navigate("/login")}
-                aria-label="Log in"
-                title="Log in"
-                type="button"
-              >
-                <HeaderIcon name="login" />
-              </button>
-            </SignedOut>
-
-            {/* desktop actions */}
-            <NavLink
-              to="/products"
-              className="phd-btn-icon phd-icon-link desktop-only"
-              aria-label="Shop"
-              title="Shop"
-              onMouseEnter={() => setMegaKey("")}
-              onFocus={() => setMegaKey("")}
-            >
-              <HeaderIcon name="store" />
-            </NavLink>
-
-            <SignedIn>
-              <button
-                className="phd-btn-icon desktop-only"
-                onClick={() => navigate("/saved-products")}
-                aria-label="Saved products"
-                title="Saved products"
-                type="button"
-                onMouseEnter={() => setMegaKey("")}
-                onFocus={() => setMegaKey("")}
-              >
-                <HeaderIcon name="heart" />
-              </button>
-
-              <div className="phd-clerk-wrapper desktop-only">
-                <UserButton afterSignOutUrl="/" />
-              </div>
-            </SignedIn>
-
-            <SignedOut>
-              <button
-                className="phd-btn-icon desktop-only"
-                onClick={() => navigate("/login")}
-                aria-label="Log in"
-                title="Log in"
-                type="button"
-                onMouseEnter={() => setMegaKey("")}
-                onFocus={() => setMegaKey("")}
-              >
-                <HeaderIcon name="login" />
-              </button>
-
-              <button
-                className="phd-btn-icon desktop-only"
-                onClick={() => navigate("/register")}
-                aria-label="Register"
-                title="Register"
-                type="button"
-                onMouseEnter={() => setMegaKey("")}
-                onFocus={() => setMegaKey("")}
-              >
-                <HeaderIcon name="register" />
-              </button>
-            </SignedOut>
-          </div>
-
-          {/* desktop mega dropdown (Nike-style centered columns) */}
-          {!navLoading && isMegaOpen && megaColumns.length > 0 && (
-            <div
-              className="phd-mega"
-              onMouseLeave={() => setMegaKey("")}
-              role="presentation"
-            >
-              <div className="phd-mega-inner">
-                <div className="phd-mega-grid">
-                  {megaColumns.map((col) => (
-                    <div key={col.title} className="phd-mega-col">
-                      <div className="phd-mega-title">{col.title}</div>
-                      <div className="phd-mega-links">
-                        {safeArr(col.items).map((it) => (
-                          <button
-                            key={it.key}
-                            type="button"
-                            className="phd-mega-link"
-                            onClick={() => {
-                              navigate(it.to);
-                              setMegaKey("");
-                            }}
-                          >
-                            {it.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="phd-nav-pop">
+                {quickLinks.map((l) => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    className="phd-nav-pop-item"
+                    onClick={() => navigate(l.to)}
+                  >
+                    {l.label}
+                  </button>
+                ))}
               </div>
             </div>
           )}
-        </div>
-      </header>
 
-      {/* overlay (also used to click-close mega on desktop) */}
+          {!navLoading && genders.length > 0 && (
+            <div className="phd-nav-group">
+              <button
+                type="button"
+                className="phd-nav-link phd-nav-trigger"
+                onClick={() => navigate(genders[0]?.to || "/products?page=1")}
+                title="Shop by gender"
+              >
+                Shop by{" "}
+                <span className="phd-nav-chevron">
+                  <HeaderIcon name="chevronDown" />
+                </span>
+              </button>
+
+              <div className="phd-nav-pop">
+                {genders.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className="phd-nav-pop-item"
+                    onClick={() => navigate(g.to)}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <SignedIn>
+            <NavLink to="/tracked" className="phd-nav-link">
+              Tracked
+            </NavLink>
+            <NavLink to="/dashboard" className="phd-nav-link">
+              Dashboard
+            </NavLink>
+          </SignedIn>
+        </nav>
+
+        {/* search */}
+        <form className="phd-search-form" onSubmit={handleSearch}>
+          <div className="phd-search-field">
+            <span className="phd-search-icon" aria-hidden="true">
+              <HeaderIcon name="search" />
+            </span>
+
+            <input
+              ref={searchInputRef}
+              className="phd-input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={
+                isDashboardRoute ? "Search tracked products" : "Search products"
+              }
+              onFocus={() => setIsSearchActive(true)}
+              aria-label="Search products"
+            />
+
+            <div className="phd-kbd" aria-hidden="true">
+              ⌘K
+            </div>
+
+            <button
+              type="button"
+              className="phd-search-exit"
+              onClick={closeSearch}
+              aria-label="Close search"
+              title="Close search"
+            >
+              <HeaderIcon name="close" />
+            </button>
+          </div>
+        </form>
+
+        {/* actions */}
+        <div className="phd-actions">
+          <button
+            className="phd-btn-icon mobile-only"
+            onClick={openSearch}
+            aria-label="Search"
+            title="Search"
+            type="button"
+          >
+            <HeaderIcon name="search" />
+          </button>
+
+          {/* ✅ MOBILE AUTH (so users can logout on mobile) */}
+          <SignedIn>
+            <button
+              className="phd-btn-icon mobile-only"
+              onClick={() => navigate("/saved-products")}
+              aria-label="Saved products"
+              title="Saved products"
+              type="button"
+            >
+              <HeaderIcon name="heart" />
+            </button>
+
+            <div className="phd-clerk-wrapper mobile-only">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <button
+              className="phd-btn-icon mobile-only"
+              onClick={() => navigate("/login")}
+              aria-label="Log in"
+              title="Log in"
+              type="button"
+            >
+              <HeaderIcon name="login" />
+            </button>
+          </SignedOut>
+
+          {/* desktop actions */}
+          <NavLink
+            to="/products"
+            className="phd-btn-icon phd-icon-link desktop-only"
+            aria-label="Shop"
+            title="Shop"
+          >
+            <HeaderIcon name="store" />
+          </NavLink>
+
+          <SignedIn>
+            <button
+              className="phd-btn-icon desktop-only"
+              onClick={() => navigate("/saved-products")}
+              aria-label="Saved products"
+              title="Saved products"
+              type="button"
+            >
+              <HeaderIcon name="heart" />
+            </button>
+
+            <div className="phd-clerk-wrapper desktop-only">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <button
+              className="phd-btn-icon desktop-only"
+              onClick={() => navigate("/login")}
+              aria-label="Log in"
+              title="Log in"
+              type="button"
+            >
+              <HeaderIcon name="login" />
+            </button>
+
+            <button
+              className="phd-btn-icon desktop-only"
+              onClick={() => navigate("/register")}
+              aria-label="Register"
+              title="Register"
+              type="button"
+            >
+              <HeaderIcon name="register" />
+            </button>
+          </SignedOut>
+        </div>
+      </div>
+
       <div
         className={[
           "phd-overlay",
-          isSearchActive || isMobileMenuOpen || isMegaOpen ? "show" : "",
-          isMegaOpen && !isSearchActive && !isMobileMenuOpen ? "mega" : "",
+          isSearchActive || isMobileMenuOpen ? "show" : "",
         ].join(" ")}
         onPointerDown={(e) => {
           if (e.target !== e.currentTarget) return;
@@ -620,7 +438,7 @@ const Header = () => {
         role="presentation"
       />
 
-      {/* mobile drawer (unchanged behavior) */}
+      {/* mobile drawer */}
       <div
         className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
           " ",
@@ -687,20 +505,7 @@ const Header = () => {
                     drawerCatsOpen ? "open" : "",
                   ].join(" ")}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  <HeaderIcon name="chevronDown" />
                 </span>
               </button>
 
@@ -711,7 +516,7 @@ const Header = () => {
                   </div>
 
                   <div className="phd-drawer-grid">
-                    {safeArr(catsByGender?.[activeGender]).map((c) => (
+                    {activeCats.map((c) => (
                       <button
                         key={c.key}
                         type="button"
@@ -759,20 +564,7 @@ const Header = () => {
                     drawerStoresOpen ? "open" : "",
                   ].join(" ")}
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  <HeaderIcon name="chevronDown" />
                 </span>
               </button>
 
@@ -852,7 +644,7 @@ const Header = () => {
           </SignedOut>
         </div>
       </div>
-    </>
+    </header>
   );
 };
 
