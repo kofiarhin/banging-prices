@@ -293,7 +293,7 @@
   display: none;
 }
 
-/* Overlay */
+/* Overlay (IMPORTANT: must be under the sticky header) */
 .phd-overlay {
   position: fixed;
   inset: 0;
@@ -301,7 +301,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
-  z-index: 999;
+  z-index: 900; /* was 999 (was sitting above header content on mobile) */
 }
 
 .phd-overlay.show {
@@ -309,7 +309,7 @@
   pointer-events: auto;
 }
 
-/* Mobile drawer */
+/* Mobile drawer (above overlay, below header) */
 .phd-mobile-drawer {
   position: fixed;
   top: 72px;
@@ -320,7 +320,7 @@
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   transform: translateX(110%);
   transition: transform 0.2s ease;
-  z-index: 1000;
+  z-index: 950; /* keep under header (1000), above overlay (900) */
   backdrop-filter: blur(14px);
   overflow: auto;
 }
