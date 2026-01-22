@@ -3,6 +3,8 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import "./header.styles.scss";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const HeaderIcon = ({ name }) => {
   const icons = {
     search: <path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" />,
@@ -39,6 +41,7 @@ const HeaderIcon = ({ name }) => {
         <path d="M4 18h16" />
       </>
     ),
+    chevronDown: <path d="M6 9l6 6 6-6" />,
   };
 
   return (
@@ -59,12 +62,21 @@ const HeaderIcon = ({ name }) => {
   );
 };
 
+const safeArr = (v) => (Array.isArray(v) ? v : []);
+
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [navData, setNavData] = useState(null);
+  const [navLoading, setNavLoading] = useState(false);
+
+  const [activeGender, setActiveGender] = useState("");
+  const [drawerCatsOpen, setDrawerCatsOpen] = useState(true);
+  const [drawerStoresOpen, setDrawerStoresOpen] = useState(false);
 
   const searchInputRef = useRef(null);
 
@@ -74,6 +86,12 @@ const Header = () => {
   );
 
   const [search, setSearch] = useState(params.get("search") || "");
+
+  const isProductsRoute = location.pathname.startsWith("/products");
+  const isDashboardRoute =
+    location.pathname.startsWith("/dashboard") ||
+    location.pathname.startsWith("/tracked") ||
+    location.pathname.startsWith("/saved-products");
 
   useEffect(() => {
     setSearch(params.get("search") || "");
@@ -111,14 +129,47 @@ const Header = () => {
     };
   }, [isMobileMenuOpen, isSearchActive]);
 
+  useEffect(() => {
+    let alive = true;
+
+    const loadNav = async () => {
+      try {
+        setNavLoading(true);
+        const res = await fetch(`${API_URL}/api/home/nav`);
+        if (!res.ok) throw new Error("nav fetch failed");
+        const json = await res.json();
+        if (!alive) return;
+        setNavData(json);
+
+        const genders = safeArr(json?.genders);
+        if (genders.length && !activeGender)
+          setActiveGender(genders[0]?.value || "");
+      } catch {
+        if (!alive) return;
+        setNavData(null);
+      } finally {
+        if (!alive) return;
+        setNavLoading(false);
+      }
+    };
+
+    loadNav();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const handleSearch = (e) => {
     e.preventDefault();
-    const nextParams = new URLSearchParams(location.search);
     const q = search.trim();
+    const nextParams = new URLSearchParams(location.search);
+
     q ? nextParams.set("search", q) : nextParams.delete("search");
     nextParams.set("page", "1");
+
     setIsSearchActive(false);
     setIsMobileMenuOpen(false);
+
     navigate(`/products?${nextParams.toString()}`);
   };
 
@@ -133,35 +184,123 @@ const Header = () => {
     searchInputRef.current?.blur();
   };
 
+  const closeAllOverlays = () => {
+    setIsMobileMenuOpen(false);
+    closeSearch();
+  };
+
+  const quickLinks = safeArr(navData?.quickLinks);
+  const genders = safeArr(navData?.genders);
+  const topStores = safeArr(navData?.topStores);
+  const catsByGender = navData?.topCategoriesByGender || {};
+  const activeCats = safeArr(catsByGender?.[activeGender]);
+
   return (
     <header
       className={[
         "phd-header",
         isSearchActive ? "search-mode" : "",
         isMobileMenuOpen ? "menu-open" : "",
+        isDashboardRoute ? "dashboard-mode" : "",
       ].join(" ")}
     >
       <div className="phd-header-container">
+        {/* left */}
+        <button
+          className="phd-btn-icon mobile-only"
+          onClick={() => {
+            setIsMobileMenuOpen((v) => !v);
+            setIsSearchActive(false);
+          }}
+          aria-label="Menu"
+          title="Menu"
+          type="button"
+        >
+          <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
+        </button>
+
+        {/* logo */}
         <NavLink to="/" className="phd-logo" aria-label="Home">
           BangingPrices
         </NavLink>
 
+        {/* desktop nav (dynamic quick links + genders) */}
         <nav className="phd-nav desktop-only" aria-label="Primary">
           <NavLink to="/products" className="phd-nav-link">
             Shop
           </NavLink>
 
+          {!navLoading && quickLinks.length > 0 && (
+            <div className="phd-nav-group">
+              <button
+                type="button"
+                className="phd-nav-link phd-nav-trigger"
+                onClick={() =>
+                  navigate(quickLinks[0]?.to || "/products?page=1")
+                }
+                title="Quick links"
+              >
+                Quick links{" "}
+                <span className="phd-nav-chevron">
+                  <HeaderIcon name="chevronDown" />
+                </span>
+              </button>
+
+              <div className="phd-nav-pop">
+                {quickLinks.map((l) => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    className="phd-nav-pop-item"
+                    onClick={() => navigate(l.to)}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!navLoading && genders.length > 0 && (
+            <div className="phd-nav-group">
+              <button
+                type="button"
+                className="phd-nav-link phd-nav-trigger"
+                onClick={() => navigate(genders[0]?.to || "/products?page=1")}
+                title="Shop by gender"
+              >
+                Shop by{" "}
+                <span className="phd-nav-chevron">
+                  <HeaderIcon name="chevronDown" />
+                </span>
+              </button>
+
+              <div className="phd-nav-pop">
+                {genders.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className="phd-nav-pop-item"
+                    onClick={() => navigate(g.to)}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <SignedIn>
             <NavLink to="/tracked" className="phd-nav-link">
               Tracked
             </NavLink>
-
             <NavLink to="/dashboard" className="phd-nav-link">
               Dashboard
             </NavLink>
           </SignedIn>
         </nav>
 
+        {/* search */}
         <form className="phd-search-form" onSubmit={handleSearch}>
           <div className="phd-search-field">
             <span className="phd-search-icon" aria-hidden="true">
@@ -173,7 +312,9 @@ const Header = () => {
               className="phd-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products"
+              placeholder={
+                isDashboardRoute ? "Search tracked products" : "Search products"
+              }
               onFocus={() => setIsSearchActive(true)}
               aria-label="Search products"
             />
@@ -194,7 +335,18 @@ const Header = () => {
           </div>
         </form>
 
+        {/* actions */}
         <div className="phd-actions">
+          <button
+            className="phd-btn-icon mobile-only"
+            onClick={openSearch}
+            aria-label="Search"
+            title="Search"
+            type="button"
+          >
+            <HeaderIcon name="search" />
+          </button>
+
           <NavLink
             to="/products"
             className="phd-btn-icon phd-icon-link desktop-only"
@@ -242,28 +394,7 @@ const Header = () => {
             </button>
           </SignedOut>
 
-          <button
-            className="phd-btn-icon mobile-only"
-            onClick={openSearch}
-            aria-label="Search"
-            title="Search"
-            type="button"
-          >
-            <HeaderIcon name="search" />
-          </button>
-
-          <button
-            className="phd-btn-icon mobile-only"
-            onClick={() => {
-              setIsMobileMenuOpen((v) => !v);
-              setIsSearchActive(false);
-            }}
-            aria-label="Menu"
-            title="Menu"
-            type="button"
-          >
-            <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
-          </button>
+          {/* keep user avatar visible on desktop only (already handled above) */}
         </div>
       </div>
 
@@ -274,32 +405,190 @@ const Header = () => {
         ].join(" ")}
         onPointerDown={(e) => {
           if (e.target !== e.currentTarget) return;
-          setIsMobileMenuOpen(false);
-          closeSearch();
+          closeAllOverlays();
         }}
         role="presentation"
       />
 
+      {/* mobile drawer (dynamic) */}
       <div
         className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
           " ",
         )}
       >
         <div className="phd-mobile-drawer-inner">
-          <NavLink to="/products" className="phd-drawer-link">
-            Shop
-          </NavLink>
+          {/* quick links */}
+          {quickLinks.length > 0 && (
+            <div className="phd-drawer-section">
+              <div className="phd-drawer-title">Quick links</div>
+              <div className="phd-drawer-grid">
+                {quickLinks.map((l) => (
+                  <button
+                    key={l.key}
+                    type="button"
+                    className="phd-drawer-link"
+                    onClick={() => {
+                      navigate(l.to);
+                      closeAllOverlays();
+                    }}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
+          {/* genders */}
+          {genders.length > 0 && (
+            <div className="phd-drawer-section">
+              <div className="phd-drawer-title">Shop by</div>
+              <div className="phd-drawer-grid">
+                {genders.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className={[
+                      "phd-drawer-link",
+                      activeGender === g.value ? "active" : "",
+                    ].join(" ")}
+                    onClick={() => {
+                      setActiveGender(g.value);
+                      navigate(g.to);
+                      closeAllOverlays();
+                    }}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* top categories for selected gender */}
+          {genders.length > 0 && (
+            <div className="phd-drawer-section">
+              <button
+                type="button"
+                className="phd-drawer-accordion"
+                onClick={() => setDrawerCatsOpen((v) => !v)}
+              >
+                <span>Top categories</span>
+                <span
+                  className={[
+                    "phd-drawer-accordion-icon",
+                    drawerCatsOpen ? "open" : "",
+                  ].join(" ")}
+                >
+                  <HeaderIcon name="chevronDown" />
+                </span>
+              </button>
+
+              {drawerCatsOpen && (
+                <>
+                  <div className="phd-drawer-subtitle">
+                    {activeGender ? `For ${activeGender}` : "Browse"}
+                  </div>
+
+                  <div className="phd-drawer-grid">
+                    {activeCats.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className="phd-drawer-link"
+                        onClick={() => {
+                          navigate(c.to);
+                          closeAllOverlays();
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+
+                    {activeGender && (
+                      <button
+                        type="button"
+                        className="phd-drawer-link phd-drawer-link-muted"
+                        onClick={() => {
+                          navigate(
+                            `/products?gender=${encodeURIComponent(activeGender)}&page=1`,
+                          );
+                          closeAllOverlays();
+                        }}
+                      >
+                        View all
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* top stores */}
+          {topStores.length > 0 && (
+            <div className="phd-drawer-section">
+              <button
+                type="button"
+                className="phd-drawer-accordion"
+                onClick={() => setDrawerStoresOpen((v) => !v)}
+              >
+                <span>Top stores</span>
+                <span
+                  className={[
+                    "phd-drawer-accordion-icon",
+                    drawerStoresOpen ? "open" : "",
+                  ].join(" ")}
+                >
+                  <HeaderIcon name="chevronDown" />
+                </span>
+              </button>
+
+              {drawerStoresOpen && (
+                <div className="phd-drawer-grid">
+                  {topStores.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className="phd-drawer-link"
+                      onClick={() => {
+                        navigate(s.to);
+                        closeAllOverlays();
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="phd-drawer-divider" />
+
+          {/* account */}
           <SignedIn>
-            <NavLink to="/saved-products" className="phd-drawer-link">
+            <NavLink
+              to="/saved-products"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
               Saved products
             </NavLink>
 
-            <NavLink to="/tracked" className="phd-drawer-link">
+            <NavLink
+              to="/tracked"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
               Tracked items
             </NavLink>
 
-            <NavLink to="/dashboard" className="phd-drawer-link">
+            <NavLink
+              to="/dashboard"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
               Dashboard
             </NavLink>
 
@@ -311,14 +600,20 @@ const Header = () => {
           <SignedOut>
             <button
               className="phd-drawer-btn"
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                navigate("/login");
+                closeAllOverlays();
+              }}
               type="button"
             >
               Log in
             </button>
             <button
               className="phd-drawer-btn phd-drawer-btn-primary"
-              onClick={() => navigate("/register")}
+              onClick={() => {
+                navigate("/register");
+                closeAllOverlays();
+              }}
               type="button"
             >
               Register

@@ -3,6 +3,7 @@ git pull --rebase heroku main
 
 git fetch origin
 git pull --rebase origin main
+git pull --rebase heroku main
 
 
 {

@@ -10,6 +10,10 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.phd-header.dashboard-mode {
+  background: rgba(6, 8, 12, 0.92);
+}
+
 .phd-header-container {
   max-width: 1240px;
   height: 100%;
@@ -67,6 +71,99 @@
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.12);
   }
+}
+
+/* Desktop dropdown groups */
+.phd-nav-group {
+  position: relative;
+  display: inline-flex;
+
+  &:hover .phd-nav-pop,
+  &:focus-within .phd-nav-pop {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+}
+
+.phd-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ✅ FIX: remove white pill/background from Quick links / Shop by triggers */
+.phd-nav-trigger.phd-nav-link {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  &.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+  }
+}
+
+.phd-nav-chevron {
+  display: inline-flex;
+  opacity: 0.75;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.phd-nav-pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 210px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(10, 12, 16, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+  z-index: 1200;
+}
+
+.phd-nav-pop-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 10px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 900;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.phd-nav-pop-item + .phd-nav-pop-item {
+  margin-top: 8px;
 }
 
 /* Search */
@@ -148,7 +245,7 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
-  margin-left: auto; /* ✅ pushes icons to the right edge on small screens */
+  margin-left: auto;
 }
 
 .phd-btn-icon {
@@ -216,7 +313,7 @@
   position: fixed;
   top: 72px;
   right: 0;
-  width: min(340px, 88vw);
+  width: min(380px, 92vw);
   height: calc(100vh - 72px);
   background: rgba(10, 12, 16, 0.98);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -224,6 +321,7 @@
   transition: transform 0.2s ease;
   z-index: 1000;
   backdrop-filter: blur(14px);
+  overflow: auto;
 }
 
 .phd-mobile-drawer.open {
@@ -234,11 +332,77 @@
   padding: 14px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.phd-drawer-section {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
+.phd-drawer-title {
+  color: rgba(255, 255, 255, 0.68);
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.phd-drawer-subtitle {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-top: -4px;
+}
+
+.phd-drawer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.phd-drawer-accordion {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.phd-drawer-accordion-icon {
+  display: inline-flex;
+  opacity: 0.8;
+  transition: transform 0.12s ease;
+
+  &.open {
+    transform: rotate(180deg);
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .phd-drawer-link {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.92);
   font-weight: 900;
@@ -249,6 +413,7 @@
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
+  cursor: pointer;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -259,6 +424,17 @@
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.18);
   }
+}
+
+.phd-drawer-link-muted {
+  opacity: 0.82;
+}
+
+.phd-drawer-divider {
+  height: 1px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
 }
 
 .phd-drawer-btn {

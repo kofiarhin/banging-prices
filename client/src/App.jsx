@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 
 import Header from "./components/Header.jsx";
@@ -14,7 +14,6 @@ import DashboardPage from "./pages/DashboardPage/DashboardPage.jsx";
 import SavedProductsPage from "./pages/SavedProductsPage/SavedProductsPage.jsx";
 import PostLogin from "./pages/PostLogin/PostLogin.jsx";
 
-// ✅ add
 import TrackedAlertsPage from "./pages/tracked-alerts/TrackedAlertsPage.jsx";
 
 const Protected = ({ children }) => {
@@ -29,9 +28,15 @@ const Protected = ({ children }) => {
 };
 
 const App = () => {
+  const location = useLocation();
+
+  const hideHeader =
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/register");
+
   return (
     <>
-      <Header />
+      {!hideHeader && <Header />}
 
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -91,7 +96,6 @@ const App = () => {
           }
         />
 
-        {/* ✅ tracked items page */}
         <Route
           path="/tracked"
           element={
