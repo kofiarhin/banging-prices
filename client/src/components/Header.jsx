@@ -41,9 +41,6 @@ const HeaderIcon = ({ name }) => {
         <path d="M4 18h16" />
       </>
     ),
-    chevronDown: <path d="M6 9l6 6 6-6" />,
-    chevronRight: <path d="M9 18l6-6-6-6" />,
-    chevronLeft: <path d="M15 18l-6-6 6-6" />,
   };
 
   return (
@@ -77,16 +74,13 @@ const Header = () => {
   const [navLoading, setNavLoading] = useState(false);
 
   const [activeGender, setActiveGender] = useState("");
+  const [drawerCatsOpen, setDrawerCatsOpen] = useState(true);
+  const [drawerStoresOpen, setDrawerStoresOpen] = useState(false);
 
-  // desktop mega
-  const [megaOpen, setMegaOpen] = useState(false);
-  const [activeMegaTab, setActiveMegaTab] = useState("");
-
-  // mobile drawer views (Nike-style)
-  const [drawerView, setDrawerView] = useState("root"); // root | panel
-  const [drawerTab, setDrawerTab] = useState(""); // tab.value
+  const [megaKey, setMegaKey] = useState(""); // desktop mega menu open key
 
   const searchInputRef = useRef(null);
+  const megaWrapRef = useRef(null);
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
@@ -99,6 +93,8 @@ const Header = () => {
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/tracked") ||
     location.pathname.startsWith("/saved-products");
+
+  const isMegaOpen = !!megaKey;
 
   useEffect(() => {
     setSearch(params.get("search") || "");
@@ -115,8 +111,9 @@ const Header = () => {
       }
 
       if (isEsc) {
-        closeAllOverlays();
-        setMegaOpen(false);
+        closeSearch();
+        setIsMobileMenuOpen(false);
+        setMegaKey("");
       }
     };
 
@@ -127,7 +124,7 @@ const Header = () => {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setMegaOpen(false);
+    setMegaKey("");
   }, [location.pathname]);
 
   useEffect(() => {
@@ -154,11 +151,6 @@ const Header = () => {
         if (genders.length && !activeGender) {
           setActiveGender(genders[0]?.value || "");
         }
-
-        const tabs = safeArr(json?.megaMenu?.tabs);
-        if (tabs.length && !activeMegaTab) {
-          setActiveMegaTab(tabs[0]?.value || "");
-        }
       } catch {
         if (!alive) return;
         setNavData(null);
@@ -175,6 +167,19 @@ const Header = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const onDocPointerDown = (e) => {
+      if (!isMegaOpen) return;
+      const wrap = megaWrapRef.current;
+      if (!wrap) return;
+      if (wrap.contains(e.target)) return;
+      setMegaKey("");
+    };
+
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
+  }, [isMegaOpen]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     const q = search.trim();
@@ -183,14 +188,16 @@ const Header = () => {
     q ? nextParams.set("search", q) : nextParams.delete("search");
     nextParams.set("page", "1");
 
-    closeAllOverlays();
-    setMegaOpen(false);
+    setIsSearchActive(false);
+    setIsMobileMenuOpen(false);
+    setMegaKey("");
 
     navigate(`/products?${nextParams.toString()}`);
   };
 
   const openSearch = () => {
     setIsSearchActive(true);
+    setMegaKey("");
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -202,57 +209,173 @@ const Header = () => {
   const closeAllOverlays = () => {
     setIsMobileMenuOpen(false);
     closeSearch();
-    setDrawerView("root");
-    setDrawerTab("");
+    setMegaKey("");
   };
-
-  const megaTabs = safeArr(navData?.megaMenu?.tabs);
-  const megaPanels = navData?.megaMenu?.panels || {};
-
-  const activePanel =
-    megaOpen && activeMegaTab ? megaPanels?.[activeMegaTab] : null;
 
   const quickLinks = safeArr(navData?.quickLinks);
-  const popularTerms = quickLinks.slice(0, 7).map((l) => l.label);
+  const genders = safeArr(navData?.genders);
+  const topStores = safeArr(navData?.topStores);
+  const catsByGender = navData?.topCategoriesByGender || {};
 
-  const toggleDrawer = () => {
-    setIsMobileMenuOpen((v) => {
-      const next = !v;
-      if (next) {
-        setIsSearchActive(false);
-        setMegaOpen(false);
-        setDrawerView("root");
-        setDrawerTab("");
-      }
-      return next;
+  // ----- Nike-like top nav items (centered) -----
+  const topNavItems = useMemo(() => {
+    const list = [];
+
+    // "New" uses quickLinks as its highlights
+    list.push({
+      key: "new",
+      label: "New",
+      kind: "new",
     });
+
+    // take up to 4 genders (Men/Women/Kids/etc) - you can control order from API later
+    safeArr(genders)
+      .slice(0, 4)
+      .forEach((g) => {
+        list.push({
+          key: g.value || g.key,
+          label: g.label,
+          kind: "gender",
+          gender: g.value,
+          to: g.to,
+        });
+      });
+
+    // If you want Sport as a fixed item but don’t have gender=sport in DB,
+    // keep it here and you can wire it to a filter later.
+    if (!list.find((x) => String(x.label).toLowerCase() === "sport")) {
+      list.push({ key: "sport", label: "Sport", kind: "sport" });
+    }
+
+    return list;
+  }, [genders]);
+
+  const getMegaColumns = () => {
+    const key = megaKey;
+
+    if (!key) return [];
+
+    if (key === "new") {
+      const col1 = {
+        title: "Highlights",
+        items: quickLinks.map((l) => ({
+          key: l.key,
+          label: l.label,
+          to: l.to,
+        })),
+      };
+
+      const col2 = {
+        title: "Brands",
+        items: topStores.map((s) => ({ key: s.key, label: s.label, to: s.to })),
+      };
+
+      return [col1, col2].filter((c) => (c.items || []).length > 0);
+    }
+
+    // sport (placeholder grouping)
+    if (key === "sport") {
+      const col1 = {
+        title: "Sport",
+        items: [
+          {
+            key: "running",
+            label: "Running",
+            to: "/products?category=running&page=1",
+          },
+          {
+            key: "football",
+            label: "Football",
+            to: "/products?category=football&page=1",
+          },
+          {
+            key: "basketball",
+            label: "Basketball",
+            to: "/products?category=basketball&page=1",
+          },
+          {
+            key: "training",
+            label: "Training",
+            to: "/products?category=training&page=1",
+          },
+        ],
+      };
+
+      const col2 = {
+        title: "Brands",
+        items: topStores.map((s) => ({ key: s.key, label: s.label, to: s.to })),
+      };
+
+      return [col1, col2].filter((c) => (c.items || []).length > 0);
+    }
+
+    // gender mega
+    const gender = key;
+    const cats = safeArr(catsByGender?.[gender]);
+    const colHighlights = {
+      title: "Highlights",
+      items: [
+        ...quickLinks.map((l) => ({ key: l.key, label: l.label, to: l.to })),
+        {
+          key: `view-all-${gender}`,
+          label: "View all",
+          to: `/products?gender=${encodeURIComponent(gender)}&page=1`,
+        },
+      ],
+    };
+
+    const colClothing = {
+      title: "Clothing",
+      items: cats
+        .slice(0, 8)
+        .map((c) => ({ key: c.key, label: c.label, to: c.to })),
+    };
+
+    const colBrands = {
+      title: "Brands",
+      items: topStores
+        .slice(0, 8)
+        .map((s) => ({ key: s.key, label: s.label, to: s.to })),
+    };
+
+    // optional "More" column from remaining categories
+    const remaining = cats.slice(8, 16);
+    const colMore =
+      remaining.length > 0
+        ? {
+            title: "More",
+            items: remaining.map((c) => ({
+              key: c.key,
+              label: c.label,
+              to: c.to,
+            })),
+          }
+        : null;
+
+    return [colHighlights, colClothing, colBrands, colMore].filter(Boolean);
   };
 
-  const openDrawerPanel = (tabValue) => {
-    setDrawerTab(tabValue);
-    setDrawerView("panel");
-  };
-
-  const drawerPanel = drawerTab ? megaPanels?.[drawerTab] : null;
-
-  const showDim =
-    isMobileMenuOpen || isSearchActive || (megaOpen && !!activePanel);
+  const megaColumns = getMegaColumns();
 
   return (
     <>
       <header
         className={[
           "phd-header",
+          isSearchActive ? "search-mode" : "",
           isMobileMenuOpen ? "menu-open" : "",
           isDashboardRoute ? "dashboard-mode" : "",
         ].join(" ")}
-        onMouseLeave={() => setMegaOpen(false)}
       >
-        <div className="phd-header-container">
-          {/* mobile hamburger */}
+        <div className="phd-header-container" ref={megaWrapRef}>
+          {/* left */}
           <button
             className="phd-btn-icon mobile-only"
-            onClick={toggleDrawer}
+            onClick={() => {
+              setIsMobileMenuOpen((v) => !v);
+              setIsSearchActive(false);
+              setMegaKey("");
+            }}
             aria-label="Menu"
             title="Menu"
             type="button"
@@ -261,47 +384,99 @@ const Header = () => {
           </button>
 
           {/* logo */}
-          <NavLink
-            to="/"
-            className="phd-logo"
-            aria-label="Home"
-            onMouseEnter={() => setMegaOpen(false)}
-          >
+          <NavLink to="/" className="phd-logo" aria-label="Home">
             BangingPrices
           </NavLink>
 
-          {/* desktop center nav (centered) */}
-          <nav className="phd-topnav desktop-only" aria-label="Primary">
+          {/* centered desktop nav */}
+          <nav className="phd-nav desktop-only" aria-label="Primary">
             {!navLoading &&
-              megaTabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={[
-                    "phd-topnav-link",
-                    activeMegaTab === t.value ? "active" : "",
-                  ].join(" ")}
-                  onMouseEnter={() => {
-                    setActiveMegaTab(t.value);
-                    setMegaOpen(true);
-                  }}
-                  onFocus={() => {
-                    setActiveMegaTab(t.value);
-                    setMegaOpen(true);
-                  }}
-                  onClick={() => navigate(t.to)}
-                  aria-haspopup="true"
-                  aria-expanded={megaOpen && activeMegaTab === t.value}
-                >
-                  {t.label}
-                </button>
-              ))}
+              topNavItems.map((item) => {
+                const isActive =
+                  item.kind === "gender"
+                    ? location.search.includes(
+                        `gender=${encodeURIComponent(item.gender || "")}`,
+                      )
+                    : false;
+
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={["phd-top-link", isActive ? "active" : ""].join(
+                      " ",
+                    )}
+                    onMouseEnter={() => {
+                      if (item.kind === "gender")
+                        setActiveGender(item.gender || "");
+                      setMegaKey(
+                        item.kind === "gender" ? item.gender : item.key,
+                      );
+                    }}
+                    onFocus={() => {
+                      if (item.kind === "gender")
+                        setActiveGender(item.gender || "");
+                      setMegaKey(
+                        item.kind === "gender" ? item.gender : item.key,
+                      );
+                    }}
+                    onClick={() => {
+                      // click navigates like Nike (and still keeps mega hover behavior)
+                      if (item.kind === "gender" && item.to) navigate(item.to);
+                      if (item.kind === "new") navigate("/products?page=1");
+                      if (item.kind === "sport") navigate("/products?page=1");
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
           </nav>
 
-          {/* right actions (kept right without affecting center) */}
-          <div className="phd-actions phd-actions-right">
+          {/* search (kept) */}
+          <form className="phd-search-form" onSubmit={handleSearch}>
+            <div className="phd-search-field">
+              <span className="phd-search-icon" aria-hidden="true">
+                <HeaderIcon name="search" />
+              </span>
+
+              <input
+                ref={searchInputRef}
+                className="phd-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={
+                  isDashboardRoute
+                    ? "Search tracked products"
+                    : "Search products"
+                }
+                onFocus={() => {
+                  setIsSearchActive(true);
+                  setMegaKey("");
+                }}
+                aria-label="Search products"
+              />
+
+              <div className="phd-kbd" aria-hidden="true">
+                ⌘K
+              </div>
+
+              <button
+                type="button"
+                className="phd-search-exit"
+                onClick={closeSearch}
+                aria-label="Close search"
+                title="Close search"
+              >
+                <HeaderIcon name="close" />
+              </button>
+            </div>
+          </form>
+
+          {/* actions */}
+          <div className="phd-actions">
             <button
-              className="phd-btn-icon"
+              className="phd-btn-icon mobile-only"
               onClick={openSearch}
               aria-label="Search"
               title="Search"
@@ -312,7 +487,7 @@ const Header = () => {
 
             <SignedIn>
               <button
-                className="phd-btn-icon"
+                className="phd-btn-icon mobile-only"
                 onClick={() => navigate("/saved-products")}
                 aria-label="Saved products"
                 title="Saved products"
@@ -321,18 +496,62 @@ const Header = () => {
                 <HeaderIcon name="heart" />
               </button>
 
-              <div className="phd-clerk-wrapper">
+              <div className="phd-clerk-wrapper mobile-only">
                 <UserButton afterSignOutUrl="/" />
               </div>
             </SignedIn>
 
             <SignedOut>
               <button
-                className="phd-btn-icon"
+                className="phd-btn-icon mobile-only"
                 onClick={() => navigate("/login")}
                 aria-label="Log in"
                 title="Log in"
                 type="button"
+              >
+                <HeaderIcon name="login" />
+              </button>
+            </SignedOut>
+
+            {/* desktop actions */}
+            <NavLink
+              to="/products"
+              className="phd-btn-icon phd-icon-link desktop-only"
+              aria-label="Shop"
+              title="Shop"
+              onMouseEnter={() => setMegaKey("")}
+              onFocus={() => setMegaKey("")}
+            >
+              <HeaderIcon name="store" />
+            </NavLink>
+
+            <SignedIn>
+              <button
+                className="phd-btn-icon desktop-only"
+                onClick={() => navigate("/saved-products")}
+                aria-label="Saved products"
+                title="Saved products"
+                type="button"
+                onMouseEnter={() => setMegaKey("")}
+                onFocus={() => setMegaKey("")}
+              >
+                <HeaderIcon name="heart" />
+              </button>
+
+              <div className="phd-clerk-wrapper desktop-only">
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </SignedIn>
+
+            <SignedOut>
+              <button
+                className="phd-btn-icon desktop-only"
+                onClick={() => navigate("/login")}
+                aria-label="Log in"
+                title="Log in"
+                type="button"
+                onMouseEnter={() => setMegaKey("")}
+                onFocus={() => setMegaKey("")}
               >
                 <HeaderIcon name="login" />
               </button>
@@ -343,282 +562,294 @@ const Header = () => {
                 aria-label="Register"
                 title="Register"
                 type="button"
+                onMouseEnter={() => setMegaKey("")}
+                onFocus={() => setMegaKey("")}
               >
                 <HeaderIcon name="register" />
               </button>
             </SignedOut>
           </div>
-        </div>
 
-        {/* desktop mega panel */}
-        {activePanel && (
-          <div
-            className={["phd-mega", megaOpen ? "open" : ""].join(" ")}
-            onMouseEnter={() => setMegaOpen(true)}
-          >
-            <div className="phd-mega-inner">
-              <div className="phd-mega-grid">
-                {safeArr(activePanel.columns).map((col) => (
-                  <div key={col.key} className="phd-mega-col">
-                    <div className="phd-mega-title">{col.title}</div>
-                    <div className="phd-mega-links">
-                      {safeArr(col.links).map((l) => (
-                        <button
-                          key={l.key}
-                          type="button"
-                          className="phd-mega-link"
-                          onClick={() => {
-                            navigate(l.to);
-                            setMegaOpen(false);
-                          }}
-                        >
-                          {l.label}
-                        </button>
-                      ))}
+          {/* desktop mega dropdown (Nike-style centered columns) */}
+          {!navLoading && isMegaOpen && megaColumns.length > 0 && (
+            <div
+              className="phd-mega"
+              onMouseLeave={() => setMegaKey("")}
+              role="presentation"
+            >
+              <div className="phd-mega-inner">
+                <div className="phd-mega-grid">
+                  {megaColumns.map((col) => (
+                    <div key={col.title} className="phd-mega-col">
+                      <div className="phd-mega-title">{col.title}</div>
+                      <div className="phd-mega-links">
+                        {safeArr(col.items).map((it) => (
+                          <button
+                            key={it.key}
+                            type="button"
+                            className="phd-mega-link"
+                            onClick={() => {
+                              navigate(it.to);
+                              setMegaKey("");
+                            }}
+                          >
+                            {it.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
-      {/* dim overlay */}
+      {/* overlay (also used to click-close mega on desktop) */}
       <div
-        className={["phd-overlay", showDim ? "show" : ""].join(" ")}
+        className={[
+          "phd-overlay",
+          isSearchActive || isMobileMenuOpen || isMegaOpen ? "show" : "",
+          isMegaOpen && !isSearchActive && !isMobileMenuOpen ? "mega" : "",
+        ].join(" ")}
         onPointerDown={(e) => {
           if (e.target !== e.currentTarget) return;
           closeAllOverlays();
-          setMegaOpen(false);
         }}
         role="presentation"
       />
 
-      {/* SEARCH OVERLAY (Nike-style) */}
-      <div
-        className={["phd-search-modal", isSearchActive ? "open" : ""].join(" ")}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Search"
-      >
-        <div className="phd-search-top">
-          <NavLink
-            to="/"
-            className="phd-search-logo"
-            aria-label="Home"
-            onClick={closeAllOverlays}
-          >
-            BangingPrices
-          </NavLink>
-
-          <form className="phd-search-modal-form" onSubmit={handleSearch}>
-            <div className="phd-search-modal-field">
-              <span className="phd-search-modal-icon" aria-hidden="true">
-                <HeaderIcon name="search" />
-              </span>
-
-              <input
-                ref={searchInputRef}
-                className="phd-search-modal-input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search"
-                aria-label="Search products"
-              />
-            </div>
-          </form>
-
-          <button
-            type="button"
-            className="phd-search-cancel"
-            onClick={closeSearch}
-          >
-            Cancel
-          </button>
-        </div>
-
-        <div className="phd-search-body">
-          <div className="phd-search-section-title">Popular Search Terms</div>
-          <div className="phd-search-terms">
-            {popularTerms.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className="phd-search-term"
-                onClick={() => {
-                  setSearch(t);
-                  requestAnimationFrame(() => searchInputRef.current?.focus());
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* MOBILE DRAWER (Nike-style left + 2-level) */}
+      {/* mobile drawer (unchanged behavior) */}
       <div
         className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
           " ",
         )}
       >
-        <div className="phd-mobile-drawer-top">
-          {drawerView === "panel" ? (
-            <button
-              type="button"
-              className="phd-drawer-back"
-              onClick={() => {
-                setDrawerView("root");
-                setDrawerTab("");
-              }}
-              aria-label="Back"
-              title="Back"
-            >
-              <HeaderIcon name="chevronLeft" />
-              <span>All</span>
-            </button>
-          ) : (
-            <div className="phd-drawer-spacer" />
-          )}
-
-          <button
-            type="button"
-            className="phd-drawer-x"
-            onClick={closeAllOverlays}
-            aria-label="Close"
-            title="Close"
-          >
-            <HeaderIcon name="close" />
-          </button>
-        </div>
-
         <div className="phd-mobile-drawer-inner">
-          {drawerView === "root" && (
-            <div className="phd-drawer-root">
-              {!navLoading &&
-                megaTabs.map((t) => (
+          {quickLinks.length > 0 && (
+            <div className="phd-drawer-section">
+              <div className="phd-drawer-title">Quick links</div>
+              <div className="phd-drawer-grid">
+                {quickLinks.map((l) => (
                   <button
-                    key={t.key}
+                    key={l.key}
                     type="button"
-                    className="phd-drawer-row"
-                    onClick={() => openDrawerPanel(t.value)}
+                    className="phd-drawer-link"
+                    onClick={() => {
+                      navigate(l.to);
+                      closeAllOverlays();
+                    }}
                   >
-                    <span>{t.label}</span>
-                    <span className="phd-drawer-row-icon" aria-hidden="true">
-                      <HeaderIcon name="chevronRight" />
-                    </span>
+                    {l.label}
                   </button>
                 ))}
-
-              <div className="phd-drawer-divider" />
-
-              <SignedIn>
-                <button
-                  type="button"
-                  className="phd-drawer-row"
-                  onClick={() => {
-                    navigate("/saved-products");
-                    closeAllOverlays();
-                  }}
-                >
-                  <span>Saved products</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="phd-drawer-row"
-                  onClick={() => {
-                    navigate("/tracked");
-                    closeAllOverlays();
-                  }}
-                >
-                  <span>Tracked items</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="phd-drawer-row"
-                  onClick={() => {
-                    navigate("/dashboard");
-                    closeAllOverlays();
-                  }}
-                >
-                  <span>Dashboard</span>
-                </button>
-
-                <div className="phd-drawer-user">
-                  <UserButton afterSignOutUrl="/" />
-                </div>
-              </SignedIn>
-
-              <SignedOut>
-                <button
-                  className="phd-drawer-btn"
-                  onClick={() => {
-                    navigate("/login");
-                    closeAllOverlays();
-                  }}
-                  type="button"
-                >
-                  Log in
-                </button>
-                <button
-                  className="phd-drawer-btn phd-drawer-btn-primary"
-                  onClick={() => {
-                    navigate("/register");
-                    closeAllOverlays();
-                  }}
-                  type="button"
-                >
-                  Register
-                </button>
-              </SignedOut>
+              </div>
             </div>
           )}
 
-          {drawerView === "panel" && drawerPanel && (
-            <div className="phd-drawer-panel">
-              <div className="phd-drawer-panel-title">{drawerPanel.label}</div>
-
-              <div className="phd-drawer-panel-grid">
-                {safeArr(drawerPanel.columns).map((col) => (
-                  <div key={col.key} className="phd-drawer-panel-col">
-                    <div className="phd-drawer-panel-col-title">
-                      {col.title}
-                    </div>
-                    <div className="phd-drawer-panel-links">
-                      {safeArr(col.links).map((l) => (
-                        <button
-                          key={l.key}
-                          type="button"
-                          className="phd-drawer-panel-link"
-                          onClick={() => {
-                            navigate(l.to);
-                            closeAllOverlays();
-                          }}
-                        >
-                          {l.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          {genders.length > 0 && (
+            <div className="phd-drawer-section">
+              <div className="phd-drawer-title">Shop by</div>
+              <div className="phd-drawer-grid">
+                {genders.map((g) => (
+                  <button
+                    key={g.key}
+                    type="button"
+                    className={[
+                      "phd-drawer-link",
+                      activeGender === g.value ? "active" : "",
+                    ].join(" ")}
+                    onClick={() => {
+                      setActiveGender(g.value);
+                      navigate(g.to);
+                      closeAllOverlays();
+                    }}
+                  >
+                    {g.label}
+                  </button>
                 ))}
               </div>
-
-              <button
-                type="button"
-                className="phd-drawer-viewall"
-                onClick={() => {
-                  navigate(drawerPanel.to);
-                  closeAllOverlays();
-                }}
-              >
-                View all
-              </button>
             </div>
           )}
+
+          {genders.length > 0 && (
+            <div className="phd-drawer-section">
+              <button
+                type="button"
+                className="phd-drawer-accordion"
+                onClick={() => setDrawerCatsOpen((v) => !v)}
+              >
+                <span>Top categories</span>
+                <span
+                  className={[
+                    "phd-drawer-accordion-icon",
+                    drawerCatsOpen ? "open" : "",
+                  ].join(" ")}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
+              </button>
+
+              {drawerCatsOpen && (
+                <>
+                  <div className="phd-drawer-subtitle">
+                    {activeGender ? `For ${activeGender}` : "Browse"}
+                  </div>
+
+                  <div className="phd-drawer-grid">
+                    {safeArr(catsByGender?.[activeGender]).map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className="phd-drawer-link"
+                        onClick={() => {
+                          navigate(c.to);
+                          closeAllOverlays();
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+
+                    {activeGender && (
+                      <button
+                        type="button"
+                        className="phd-drawer-link phd-drawer-link-muted"
+                        onClick={() => {
+                          navigate(
+                            `/products?gender=${encodeURIComponent(activeGender)}&page=1`,
+                          );
+                          closeAllOverlays();
+                        }}
+                      >
+                        View all
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {topStores.length > 0 && (
+            <div className="phd-drawer-section">
+              <button
+                type="button"
+                className="phd-drawer-accordion"
+                onClick={() => setDrawerStoresOpen((v) => !v)}
+              >
+                <span>Top stores</span>
+                <span
+                  className={[
+                    "phd-drawer-accordion-icon",
+                    drawerStoresOpen ? "open" : "",
+                  ].join(" ")}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
+              </button>
+
+              {drawerStoresOpen && (
+                <div className="phd-drawer-grid">
+                  {topStores.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className="phd-drawer-link"
+                      onClick={() => {
+                        navigate(s.to);
+                        closeAllOverlays();
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="phd-drawer-divider" />
+
+          <SignedIn>
+            <NavLink
+              to="/saved-products"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
+              Saved products
+            </NavLink>
+
+            <NavLink
+              to="/tracked"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
+              Tracked items
+            </NavLink>
+
+            <NavLink
+              to="/dashboard"
+              className="phd-drawer-link"
+              onClick={closeAllOverlays}
+            >
+              Dashboard
+            </NavLink>
+
+            <div className="phd-drawer-user">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <button
+              className="phd-drawer-btn"
+              onClick={() => {
+                navigate("/login");
+                closeAllOverlays();
+              }}
+              type="button"
+            >
+              Log in
+            </button>
+            <button
+              className="phd-drawer-btn phd-drawer-btn-primary"
+              onClick={() => {
+                navigate("/register");
+                closeAllOverlays();
+              }}
+              type="button"
+            >
+              Register
+            </button>
+          </SignedOut>
         </div>
       </div>
     </>
