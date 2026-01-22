@@ -92,7 +92,7 @@
   gap: 8px;
 }
 
-/* remove white pill/background from Quick links / Shop by triggers */
+/* remove pill/background inconsistency on triggers */
 .phd-nav-trigger.phd-nav-link {
   background: transparent !important;
   border-color: transparent !important;
@@ -277,8 +277,9 @@
   text-decoration: none;
 }
 
+/* ✅ allow Clerk user button on both desktop + mobile */
 .phd-clerk-wrapper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   margin-left: 2px;
 }
@@ -468,12 +469,6 @@
   }
 }
 
-/* ✅ logout button matches system */
-.phd-drawer-btn-logout {
-  margin-top: 8px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
 .phd-drawer-user {
   padding: 10px 10px;
   border-radius: 12px;
@@ -504,13 +499,6 @@
 
       .phd-kbd {
         display: none;
-      }
-    }
-
-    /* ✅ on mobile Products page: use ProductsPage filters, not header search */
-    &.products-mode {
-      .phd-mobile-search-btn {
-        display: none !important;
       }
     }
   }

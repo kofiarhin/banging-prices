@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import {
-  SignedIn,
-  SignedOut,
-  UserButton,
-  SignOutButton,
-} from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import "./header.styles.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -89,9 +84,9 @@ const Header = () => {
     () => new URLSearchParams(location.search),
     [location.search],
   );
+
   const [search, setSearch] = useState(params.get("search") || "");
 
-  const isProductsRoute = location.pathname.startsWith("/products");
   const isDashboardRoute =
     location.pathname.startsWith("/dashboard") ||
     location.pathname.startsWith("/tracked") ||
@@ -143,13 +138,11 @@ const Header = () => {
         if (!res.ok) throw new Error("nav fetch failed");
         const json = await res.json();
         if (!alive) return;
-
         setNavData(json);
 
         const genders = safeArr(json?.genders);
-        if (genders.length && !activeGender) {
+        if (genders.length && !activeGender)
           setActiveGender(genders[0]?.value || "");
-        }
       } catch {
         if (!alive) return;
         setNavData(null);
@@ -180,12 +173,9 @@ const Header = () => {
     navigate(`/products?${nextParams.toString()}`);
   };
 
+  // ✅ don’t auto-close the drawer when opening search (prevents “drawer closes when I tap search”)
   const openSearch = () => {
-    // ✅ On mobile products page we want the ProductsPage filters to be primary
-    if (isProductsRoute) return;
-
     setIsSearchActive(true);
-    setIsMobileMenuOpen(false);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -212,7 +202,6 @@ const Header = () => {
         isSearchActive ? "search-mode" : "",
         isMobileMenuOpen ? "menu-open" : "",
         isDashboardRoute ? "dashboard-mode" : "",
-        isProductsRoute ? "products-mode" : "",
       ].join(" ")}
     >
       <div className="phd-header-container">
@@ -326,11 +315,7 @@ const Header = () => {
               placeholder={
                 isDashboardRoute ? "Search tracked products" : "Search products"
               }
-              // ✅ don't collapse/flip overlays when drawer is open
-              onFocus={() => {
-                if (isMobileMenuOpen) return;
-                setIsSearchActive(true);
-              }}
+              onFocus={() => setIsSearchActive(true)}
               aria-label="Search products"
             />
 
@@ -353,7 +338,7 @@ const Header = () => {
         {/* actions */}
         <div className="phd-actions">
           <button
-            className="phd-btn-icon mobile-only phd-mobile-search-btn"
+            className="phd-btn-icon mobile-only"
             onClick={openSearch}
             aria-label="Search"
             title="Search"
@@ -362,6 +347,36 @@ const Header = () => {
             <HeaderIcon name="search" />
           </button>
 
+          {/* ✅ MOBILE AUTH (so users can logout on mobile) */}
+          <SignedIn>
+            <button
+              className="phd-btn-icon mobile-only"
+              onClick={() => navigate("/saved-products")}
+              aria-label="Saved products"
+              title="Saved products"
+              type="button"
+            >
+              <HeaderIcon name="heart" />
+            </button>
+
+            <div className="phd-clerk-wrapper mobile-only">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <button
+              className="phd-btn-icon mobile-only"
+              onClick={() => navigate("/login")}
+              aria-label="Log in"
+              title="Log in"
+              type="button"
+            >
+              <HeaderIcon name="login" />
+            </button>
+          </SignedOut>
+
+          {/* desktop actions */}
           <NavLink
             to="/products"
             className="phd-btn-icon phd-icon-link desktop-only"
@@ -603,17 +618,6 @@ const Header = () => {
             <div className="phd-drawer-user">
               <UserButton afterSignOutUrl="/" />
             </div>
-
-            {/* ✅ explicit logout for mobile */}
-            <SignOutButton signOutCallback={() => navigate("/")}>
-              <button
-                type="button"
-                className="phd-drawer-btn phd-drawer-btn-logout"
-                onClick={closeAllOverlays}
-              >
-                Log out
-              </button>
-            </SignOutButton>
           </SignedIn>
 
           <SignedOut>
