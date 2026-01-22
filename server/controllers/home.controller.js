@@ -14,6 +14,22 @@ const pickCardFields = (p) => ({
   image: p.image,
 });
 
+const toSlug = (s = "") =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+
+const cap = (s = "") =>
+  String(s || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+
+const uniqNonEmpty = (arr = []) => [
+  ...new Set((arr || []).map((x) => String(x || "").trim()).filter(Boolean)),
+];
+
 const getHomeIntelligence = async (req, res) => {
   try {
     const sixHoursAgo = new Date(Date.now() - SIX_HOURS_MS);
@@ -174,6 +190,134 @@ const getHomeIntelligence = async (req, res) => {
   }
 };
 
+// ✅ NEW: header/home nav config for dynamic routes
+const getNav = async (req, res) => {
+  try {
+    const quickLinks = [
+      {
+        key: "biggest-drops",
+        label: "Biggest Drops",
+        to: "/products?sort=discount-desc&page=1",
+      },
+      {
+        key: "under-20",
+        label: "Under £20",
+        to: "/products?maxPrice=20&page=1",
+      },
+      {
+        key: "newly-detected",
+        label: "Newly detected",
+        to: "/products?sort=newest&page=1",
+      },
+      {
+        key: "browse-all",
+        label: "Browse all",
+        to: "/products?page=1",
+      },
+    ];
+
+    // genders from data
+    const rawGenders = await Product.distinct("gender");
+    const genders = uniqNonEmpty(rawGenders)
+      .map((g) => String(g).trim().toLowerCase())
+      .filter(Boolean)
+      .map((g) => ({
+        key: toSlug(g),
+        label: cap(g),
+        value: g,
+        to: `/products?gender=${encodeURIComponent(g)}&page=1`,
+      }));
+
+    // top categories per gender (top 8 each)
+    const catsAgg = await Product.aggregate([
+      {
+        $project: {
+          genderLabel: {
+            $toLower: { $trim: { input: { $ifNull: ["$gender", ""] } } },
+          },
+          categoryLabel: {
+            $toLower: { $trim: { input: { $ifNull: ["$category", ""] } } },
+          },
+        },
+      },
+      { $match: { genderLabel: { $ne: "" }, categoryLabel: { $ne: "" } } },
+      {
+        $group: {
+          _id: { gender: "$genderLabel", category: "$categoryLabel" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+      {
+        $group: {
+          _id: "$_id.gender",
+          categories: { $push: { name: "$_id.category", count: "$count" } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          gender: "$_id",
+          categories: { $slice: ["$categories", 8] },
+        },
+      },
+      { $sort: { gender: 1 } },
+    ]);
+
+    const topCategoriesByGender = {};
+    catsAgg.forEach((row) => {
+      topCategoriesByGender[row.gender] = row.categories.map((c) => ({
+        key: toSlug(c.name),
+        label: cap(c.name),
+        value: c.name,
+        to: `/products?gender=${encodeURIComponent(row.gender)}&category=${encodeURIComponent(
+          c.name,
+        )}&page=1`,
+      }));
+    });
+
+    // top stores overall (top 10)
+    const storesAgg = await Product.aggregate([
+      {
+        $project: {
+          storeValue: { $ifNull: ["$store", ""] },
+          storeLabel: {
+            $trim: { input: { $ifNull: ["$storeName", "$store"] } },
+          },
+        },
+      },
+      { $match: { storeValue: { $ne: "" }, storeLabel: { $ne: "" } } },
+      {
+        $group: {
+          _id: "$storeValue",
+          label: { $first: "$storeLabel" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1, label: 1 } },
+      { $limit: 10 },
+    ]);
+
+    const topStores = storesAgg.map((s) => ({
+      key: toSlug(s._id),
+      label: s.label,
+      value: s._id,
+      to: `/products?store=${encodeURIComponent(s._id)}&page=1`,
+    }));
+
+    res.json({
+      quickLinks,
+      genders,
+      topCategoriesByGender,
+      topStores,
+    });
+  } catch (err) {
+    console.error("Home nav error:", err);
+    return res.status(500).json({ message: "Failed to load nav" });
+  }
+};
+
 module.exports = {
   getHomeIntelligence,
+  getNav,
 };

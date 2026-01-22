@@ -59,9 +59,10 @@ const getStores = async (req, res) => {
   }
 };
 
+// ✅ UPDATED: supports ?gender=men (and keeps ?store=... working). Can use both.
 const getCategories = async (req, res) => {
   try {
-    const { store } = req.query;
+    const { store, gender } = req.query;
 
     const and = [];
 
@@ -71,6 +72,15 @@ const getCategories = async (req, res) => {
       if (s) {
         const sRe = makeExactRegex(s);
         and.push({ $or: [{ store: sRe }, { storeName: sRe }] });
+      }
+    }
+
+    // optional gender filter (exact, case-insensitive)
+    if (gender) {
+      const g = String(gender).trim().toLowerCase();
+      if (g) {
+        const gRe = makeExactRegex(g);
+        and.push({ gender: gRe });
       }
     }
 

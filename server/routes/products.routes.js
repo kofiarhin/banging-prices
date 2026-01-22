@@ -15,6 +15,8 @@ const {
 const router = express.Router();
 
 router.get("/stores", getStores);
+
+// ✅ now supports: /categories?store=asos  OR  /categories?gender=men  OR both
 router.get("/categories", getCategories);
 
 router.get("/", getProducts);
