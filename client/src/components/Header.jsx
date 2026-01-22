@@ -94,7 +94,7 @@ const Header = () => {
 
   useEffect(() => {
     setSearch(params.get("search") || "");
-  }, [location.search]);
+  }, [location.search, params]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -114,6 +114,7 @@ const Header = () => {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -141,8 +142,9 @@ const Header = () => {
         setNavData(json);
 
         const genders = safeArr(json?.genders);
-        if (genders.length && !activeGender)
+        if (genders.length && !activeGender) {
           setActiveGender(genders[0]?.value || "");
+        }
       } catch {
         if (!alive) return;
         setNavData(null);
@@ -173,7 +175,6 @@ const Header = () => {
     navigate(`/products?${nextParams.toString()}`);
   };
 
-  // ✅ don’t auto-close the drawer when opening search (prevents “drawer closes when I tap search”)
   const openSearch = () => {
     setIsSearchActive(true);
     requestAnimationFrame(() => searchInputRef.current?.focus());
@@ -196,236 +197,240 @@ const Header = () => {
   const activeCats = safeArr(catsByGender?.[activeGender]);
 
   return (
-    <header
-      className={[
-        "phd-header",
-        isSearchActive ? "search-mode" : "",
-        isMobileMenuOpen ? "menu-open" : "",
-        isDashboardRoute ? "dashboard-mode" : "",
-      ].join(" ")}
-    >
-      <div className="phd-header-container">
-        {/* left */}
-        <button
-          className="phd-btn-icon mobile-only"
-          onClick={() => {
-            setIsMobileMenuOpen((v) => !v);
-            setIsSearchActive(false);
-          }}
-          aria-label="Menu"
-          title="Menu"
-          type="button"
-        >
-          <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
-        </button>
-
-        {/* logo */}
-        <NavLink to="/" className="phd-logo" aria-label="Home">
-          BangingPrices
-        </NavLink>
-
-        {/* desktop nav */}
-        <nav className="phd-nav desktop-only" aria-label="Primary">
-          <NavLink to="/products" className="phd-nav-link">
-            Shop
-          </NavLink>
-
-          {!navLoading && quickLinks.length > 0 && (
-            <div className="phd-nav-group">
-              <button
-                type="button"
-                className="phd-nav-link phd-nav-trigger"
-                onClick={() =>
-                  navigate(quickLinks[0]?.to || "/products?page=1")
-                }
-                title="Quick links"
-              >
-                Quick links{" "}
-                <span className="phd-nav-chevron">
-                  <HeaderIcon name="chevronDown" />
-                </span>
-              </button>
-
-              <div className="phd-nav-pop">
-                {quickLinks.map((l) => (
-                  <button
-                    key={l.key}
-                    type="button"
-                    className="phd-nav-pop-item"
-                    onClick={() => navigate(l.to)}
-                  >
-                    {l.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!navLoading && genders.length > 0 && (
-            <div className="phd-nav-group">
-              <button
-                type="button"
-                className="phd-nav-link phd-nav-trigger"
-                onClick={() => navigate(genders[0]?.to || "/products?page=1")}
-                title="Shop by gender"
-              >
-                Shop by{" "}
-                <span className="phd-nav-chevron">
-                  <HeaderIcon name="chevronDown" />
-                </span>
-              </button>
-
-              <div className="phd-nav-pop">
-                {genders.map((g) => (
-                  <button
-                    key={g.key}
-                    type="button"
-                    className="phd-nav-pop-item"
-                    onClick={() => navigate(g.to)}
-                  >
-                    {g.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <SignedIn>
-            <NavLink to="/tracked" className="phd-nav-link">
-              Tracked
-            </NavLink>
-            <NavLink to="/dashboard" className="phd-nav-link">
-              Dashboard
-            </NavLink>
-          </SignedIn>
-        </nav>
-
-        {/* search */}
-        <form className="phd-search-form" onSubmit={handleSearch}>
-          <div className="phd-search-field">
-            <span className="phd-search-icon" aria-hidden="true">
-              <HeaderIcon name="search" />
-            </span>
-
-            <input
-              ref={searchInputRef}
-              className="phd-input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={
-                isDashboardRoute ? "Search tracked products" : "Search products"
-              }
-              onFocus={() => setIsSearchActive(true)}
-              aria-label="Search products"
-            />
-
-            <div className="phd-kbd" aria-hidden="true">
-              ⌘K
-            </div>
-
-            <button
-              type="button"
-              className="phd-search-exit"
-              onClick={closeSearch}
-              aria-label="Close search"
-              title="Close search"
-            >
-              <HeaderIcon name="close" />
-            </button>
-          </div>
-        </form>
-
-        {/* actions */}
-        <div className="phd-actions">
+    <>
+      <header
+        className={[
+          "phd-header",
+          isSearchActive ? "search-mode" : "",
+          isMobileMenuOpen ? "menu-open" : "",
+          isDashboardRoute ? "dashboard-mode" : "",
+        ].join(" ")}
+      >
+        <div className="phd-header-container">
+          {/* left */}
           <button
             className="phd-btn-icon mobile-only"
-            onClick={openSearch}
-            aria-label="Search"
-            title="Search"
+            onClick={() => {
+              setIsMobileMenuOpen((v) => !v);
+              setIsSearchActive(false);
+            }}
+            aria-label="Menu"
+            title="Menu"
             type="button"
           >
-            <HeaderIcon name="search" />
+            <HeaderIcon name={isMobileMenuOpen ? "close" : "menu"} />
           </button>
 
-          {/* ✅ MOBILE AUTH (so users can logout on mobile) */}
-          <SignedIn>
-            <button
-              className="phd-btn-icon mobile-only"
-              onClick={() => navigate("/saved-products")}
-              aria-label="Saved products"
-              title="Saved products"
-              type="button"
-            >
-              <HeaderIcon name="heart" />
-            </button>
-
-            <div className="phd-clerk-wrapper mobile-only">
-              <UserButton afterSignOutUrl="/" />
-            </div>
-          </SignedIn>
-
-          <SignedOut>
-            <button
-              className="phd-btn-icon mobile-only"
-              onClick={() => navigate("/login")}
-              aria-label="Log in"
-              title="Log in"
-              type="button"
-            >
-              <HeaderIcon name="login" />
-            </button>
-          </SignedOut>
-
-          {/* desktop actions */}
-          <NavLink
-            to="/products"
-            className="phd-btn-icon phd-icon-link desktop-only"
-            aria-label="Shop"
-            title="Shop"
-          >
-            <HeaderIcon name="store" />
+          {/* logo */}
+          <NavLink to="/" className="phd-logo" aria-label="Home">
+            BangingPrices
           </NavLink>
 
-          <SignedIn>
-            <button
-              className="phd-btn-icon desktop-only"
-              onClick={() => navigate("/saved-products")}
-              aria-label="Saved products"
-              title="Saved products"
-              type="button"
-            >
-              <HeaderIcon name="heart" />
-            </button>
+          {/* desktop nav */}
+          <nav className="phd-nav desktop-only" aria-label="Primary">
+            <NavLink to="/products" className="phd-nav-link">
+              Shop
+            </NavLink>
 
-            <div className="phd-clerk-wrapper desktop-only">
-              <UserButton afterSignOutUrl="/" />
+            {!navLoading && quickLinks.length > 0 && (
+              <div className="phd-nav-group">
+                <button
+                  type="button"
+                  className="phd-nav-link phd-nav-trigger"
+                  onClick={() =>
+                    navigate(quickLinks[0]?.to || "/products?page=1")
+                  }
+                  title="Quick links"
+                >
+                  Quick links{" "}
+                  <span className="phd-nav-chevron">
+                    <HeaderIcon name="chevronDown" />
+                  </span>
+                </button>
+
+                <div className="phd-nav-pop">
+                  {quickLinks.map((l) => (
+                    <button
+                      key={l.key}
+                      type="button"
+                      className="phd-nav-pop-item"
+                      onClick={() => navigate(l.to)}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!navLoading && genders.length > 0 && (
+              <div className="phd-nav-group">
+                <button
+                  type="button"
+                  className="phd-nav-link phd-nav-trigger"
+                  onClick={() => navigate(genders[0]?.to || "/products?page=1")}
+                  title="Shop by gender"
+                >
+                  Shop by{" "}
+                  <span className="phd-nav-chevron">
+                    <HeaderIcon name="chevronDown" />
+                  </span>
+                </button>
+
+                <div className="phd-nav-pop">
+                  {genders.map((g) => (
+                    <button
+                      key={g.key}
+                      type="button"
+                      className="phd-nav-pop-item"
+                      onClick={() => navigate(g.to)}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <SignedIn>
+              <NavLink to="/tracked" className="phd-nav-link">
+                Tracked
+              </NavLink>
+              <NavLink to="/dashboard" className="phd-nav-link">
+                Dashboard
+              </NavLink>
+            </SignedIn>
+          </nav>
+
+          {/* search */}
+          <form className="phd-search-form" onSubmit={handleSearch}>
+            <div className="phd-search-field">
+              <span className="phd-search-icon" aria-hidden="true">
+                <HeaderIcon name="search" />
+              </span>
+
+              <input
+                ref={searchInputRef}
+                className="phd-input"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={
+                  isDashboardRoute
+                    ? "Search tracked products"
+                    : "Search products"
+                }
+                onFocus={() => setIsSearchActive(true)}
+                aria-label="Search products"
+              />
+
+              <div className="phd-kbd" aria-hidden="true">
+                ⌘K
+              </div>
+
+              <button
+                type="button"
+                className="phd-search-exit"
+                onClick={closeSearch}
+                aria-label="Close search"
+                title="Close search"
+              >
+                <HeaderIcon name="close" />
+              </button>
             </div>
-          </SignedIn>
+          </form>
 
-          <SignedOut>
+          {/* actions */}
+          <div className="phd-actions">
             <button
-              className="phd-btn-icon desktop-only"
-              onClick={() => navigate("/login")}
-              aria-label="Log in"
-              title="Log in"
+              className="phd-btn-icon mobile-only"
+              onClick={openSearch}
+              aria-label="Search"
+              title="Search"
               type="button"
             >
-              <HeaderIcon name="login" />
+              <HeaderIcon name="search" />
             </button>
 
-            <button
-              className="phd-btn-icon desktop-only"
-              onClick={() => navigate("/register")}
-              aria-label="Register"
-              title="Register"
-              type="button"
+            <SignedIn>
+              <button
+                className="phd-btn-icon mobile-only"
+                onClick={() => navigate("/saved-products")}
+                aria-label="Saved products"
+                title="Saved products"
+                type="button"
+              >
+                <HeaderIcon name="heart" />
+              </button>
+
+              <div className="phd-clerk-wrapper mobile-only">
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </SignedIn>
+
+            <SignedOut>
+              <button
+                className="phd-btn-icon mobile-only"
+                onClick={() => navigate("/login")}
+                aria-label="Log in"
+                title="Log in"
+                type="button"
+              >
+                <HeaderIcon name="login" />
+              </button>
+            </SignedOut>
+
+            {/* desktop actions */}
+            <NavLink
+              to="/products"
+              className="phd-btn-icon phd-icon-link desktop-only"
+              aria-label="Shop"
+              title="Shop"
             >
-              <HeaderIcon name="register" />
-            </button>
-          </SignedOut>
+              <HeaderIcon name="store" />
+            </NavLink>
+
+            <SignedIn>
+              <button
+                className="phd-btn-icon desktop-only"
+                onClick={() => navigate("/saved-products")}
+                aria-label="Saved products"
+                title="Saved products"
+                type="button"
+              >
+                <HeaderIcon name="heart" />
+              </button>
+
+              <div className="phd-clerk-wrapper desktop-only">
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            </SignedIn>
+
+            <SignedOut>
+              <button
+                className="phd-btn-icon desktop-only"
+                onClick={() => navigate("/login")}
+                aria-label="Log in"
+                title="Log in"
+                type="button"
+              >
+                <HeaderIcon name="login" />
+              </button>
+
+              <button
+                className="phd-btn-icon desktop-only"
+                onClick={() => navigate("/register")}
+                aria-label="Register"
+                title="Register"
+                type="button"
+              >
+                <HeaderIcon name="register" />
+              </button>
+            </SignedOut>
+          </div>
         </div>
-      </div>
+      </header>
 
+      {/* ✅ moved OUTSIDE the header so it can't sit above header content */}
       <div
         className={[
           "phd-overlay",
@@ -438,7 +443,7 @@ const Header = () => {
         role="presentation"
       />
 
-      {/* mobile drawer */}
+      {/* mobile drawer (also outside header stacking context) */}
       <div
         className={["phd-mobile-drawer", isMobileMenuOpen ? "open" : ""].join(
           " ",
@@ -536,7 +541,9 @@ const Header = () => {
                         className="phd-drawer-link phd-drawer-link-muted"
                         onClick={() => {
                           navigate(
-                            `/products?gender=${encodeURIComponent(activeGender)}&page=1`,
+                            `/products?gender=${encodeURIComponent(
+                              activeGender,
+                            )}&page=1`,
                           );
                           closeAllOverlays();
                         }}
@@ -644,7 +651,7 @@ const Header = () => {
           </SignedOut>
         </div>
       </div>
-    </header>
+    </>
   );
 };
 
