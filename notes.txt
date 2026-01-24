@@ -120,3 +120,24 @@ For Sharp Dressers
 The elite price engine for UK fashion. Get notified before the stock
 
 
+
+
+//asos links
+--men: joggers
+https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668
+--men: new-in
+https://www.asos.com/men/new-in/new-in-clothing/cat/?cid=6993
+--men: shoes
+https://www.asos.com/men/new-in/new-in-shoes/cat/?cid=17184
+--men: jeans-jackets
+https://www.asos.com/men/jeans/cat/?cid=4208
+--men: hoodies & sweatshirts
+https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668
+--women: hoodies & sweatshirts
+https://www.asos.com/women/hoodies-sweatshirts/cat/?cid=11321
+--women: dresses
+https://www.asos.com/women/dresses/cat/?cid=8799
+--women: tops
+https://www.asos.com/women/tops/cat/?cid=4169
+--women: shoes
+https://www.asos.com/women/shoes/cat/?cid=4172
