@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { RedirectToSignIn, SignedIn, useAuth } from "@clerk/clerk-react";
 import "./product-details.styles.scss";
 import useSaveMutation from "../../hooks/useSaveMutation";
-import { useAuth } from "@clerk/clerk-react";
 import useSavedProductsQuery from "../../hooks/useSavedProductsQuery";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -84,7 +84,9 @@ const ProductDetailsPage = () => {
 
   const [token, setToken] = useState("");
 
-  // ✅ hooks that must NEVER be below conditional returns
+  // Track if we should show sign-in redirect
+  const [shouldRedirectToSignIn, setShouldRedirectToSignIn] = useState(false);
+
   const startXRef = useRef(null);
   const isDraggingRef = useRef(false);
 
@@ -132,6 +134,7 @@ const ProductDetailsPage = () => {
     setAlertSaved(false);
     setAlertSaving(false);
     setAlertError("");
+    setShouldRedirectToSignIn(false); // reset on product change
   }, [p?._id]);
 
   const gallery = useMemo(() => {
@@ -238,7 +241,11 @@ const ProductDetailsPage = () => {
   };
 
   const handleSave = async () => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded || !isSignedIn) {
+      setShouldRedirectToSignIn(true);
+      return;
+    }
+
     if (isAlreadySaved) return;
 
     const t = token || (await getToken());
@@ -259,7 +266,13 @@ const ProductDetailsPage = () => {
     );
   };
 
-  // ✅ now safe to conditionally return UI states
+  // ────────────────────────────────────────────────
+  //    Early return for sign-in redirect
+  // ────────────────────────────────────────────────
+  if (shouldRedirectToSignIn) {
+    return <RedirectToSignIn />;
+  }
+
   if (isLoading) return <div className="pd-state">Syncing PricePulse...</div>;
   if (isError) return <div className="pd-state">{error.message}</div>;
   if (!p) return <div className="pd-state">Listing unavailable.</div>;
@@ -299,7 +312,7 @@ const ProductDetailsPage = () => {
                 onClick={handleSave}
                 title="Save"
                 aria-label="Save"
-                disabled={!isLoaded || !isSignedIn || isPending}
+                disabled={!isLoaded || isPending}
                 type="button"
               >
                 <span className="material-symbols-outlined">
@@ -467,6 +480,11 @@ const ProductDetailsPage = () => {
               <button
                 className="pd-btn pd-btn-secondary"
                 onClick={() => {
+                  if (!isLoaded || !isSignedIn) {
+                    setShouldRedirectToSignIn(true);
+                    return;
+                  }
+
                   setAlertError("");
                   setAlertSaved(false);
                   setAlertOpen(true);

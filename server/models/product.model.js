@@ -14,7 +14,7 @@ const ProductSchema = new mongoose.Schema(
     image: { type: String, required: true },
     images: { type: [String], default: [] },
     productUrl: { type: String, required: true },
-    saleUrl: { type: String, required: true },
+    saleUrl: { type: String, default: null },
     category: { type: String, default: null },
     gender: { type: String, default: null },
     colors: { type: [String], default: [] },
@@ -24,7 +24,7 @@ const ProductSchema = new mongoose.Schema(
     status: { type: String, default: "active" },
     lastSeenAt: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Product", ProductSchema);

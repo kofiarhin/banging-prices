@@ -1,16 +1,18 @@
-const dotenv = require("dotenv").config();
-const Product = require("./server/models/product.model");
-const mongoose = require("mongoose");
-const run = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("connected to database");
-    const products = await Product.find();
+const { runBoohooCrawl } = require("./server/scrappers/boohoo.scraper");
 
-    console.log(products[0]);
-  } catch (error) {
-    process.exit(1);
-  }
+const run = async () => {
+  const products = await runBoohooCrawl({
+    startUrls: [
+      {
+        url: "https://www.boohooman.com/mens/hoodies-sweatshirts",
+        userData: { gender: "men", category: "hoodies & sweatshirts" },
+      },
+    ],
+    maxListPages: 1,
+    debug: true,
+  });
+
+  console.log("BOOHOO PRODUCTS:", products.length);
 };
 
-run();
+run().catch(console.error);
