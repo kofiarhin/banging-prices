@@ -1,227 +1,448 @@
 // server/scrappers/boohoo.scraper.js
-const { PlaywrightCrawler, log } = require("crawlee");
+const { PlaywrightCrawler } = require("crawlee");
+const crypto = require("crypto");
 
-const STORE = "boohooman";
-const STORE_NAME = "BoohooMAN";
+const DEFAULT_START_URLS = [
+  {
+    url: "https://www.boohooman.com/mens/hoodies-sweatshirts",
+    userData: { gender: "men", category: "hoodies-sweatshirts" },
+  },
+];
 
-const toAbsUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith("//")) return `https:${url}`;
-  if (url.startsWith("http")) return url;
-  return `https://www.boohooman.com${url.startsWith("/") ? "" : "/"}${url}`;
+const LIST_READY_SEL =
+  ".search-result-items, .search-result-items .grid-tile, .grid-tile";
+const LIST_TILES_SEL = ".search-result-items .grid-tile, .grid-tile";
+const LIST_LINKS_SEL = "a.thumb-link.js-canonical-link[href]";
+
+const PAGINATION_PAGE_LINKS_SEL = ".pagination a, .pagination-bar a, .paging a";
+
+const PDP_TITLE_SEL = "h1.product-name.js-product-name, h1.product-name, h1";
+
+// price
+const PDP_META_CURRENCY_SEL = 'meta[itemprop="priceCurrency"]';
+const PDP_META_PRICE_SEL =
+  'span[itemprop="price"][content], meta[itemprop="price"]';
+const PDP_PRICE_SALES_SEL = "span.price-sales, span.price-sales-red";
+const PDP_PRICE_WAS_SEL = "span.price-standard, span.price-was";
+
+// product json embedded in attributes
+const PDP_PDPMAIN_SEL = "#pdpMain";
+const PDP_FORM_SEL = 'form[id^="dwfrm_product_addtocart"]';
+
+// sizes
+const PDP_SIZE_SWATCH_LI_SEL =
+  "ul.swatches.size li.variation-value.selectable, ul.swatches.size li.variation-value";
+
+// colors
+const PDP_COLOR_LABEL_SEL =
+  ".product-variations, .product-options, #pdpMain, body";
+const PDP_COLOR_SWATCH_SEL =
+  "ul.swatches.color li.variation-value, ul.swatches.colour li.variation-value, ul.swatches.Color li.variation-value, ul.swatches.Colour li.variation-value, ul.swatches.color li, ul.swatches.colour li";
+
+// ✅ images (ONLY mediahub)
+const PDP_IMG_SEL =
+  'img[srcset*="mediahub.boohooman.com"], img[src*="mediahub.boohooman.com"]';
+
+const toNumber = (val) => {
+  if (val == null) return null;
+  if (typeof val === "number") return val;
+  const n = Number(String(val).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : null;
 };
 
-const stripQuery = (url) => {
-  try {
-    const u = new URL(url);
-    u.search = "";
-    u.hash = "";
-    return u.toString();
-  } catch {
-    return url;
-  }
+const parseCurrency = (str) => {
+  const s = String(str || "");
+  if (s.includes("£")) return "GBP";
+  if (s.includes("$")) return "USD";
+  if (s.includes("€")) return "EUR";
+  return "GBP";
 };
 
-const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
+const hash = (s) => crypto.createHash("sha1").update(String(s)).digest("hex");
 
-// Only accept real product codes like CMM21782, BMM54230, etc.
-// PREMIERMAN and other landing pages will fail this.
-const isValidProductId = (id) =>
-  /^[A-Z]{2,4}\d{4,6}$/i.test(String(id || "").trim());
-
-const parseProductDetails = async (page) => {
-  const form = page
-    .locator("form.js-pdpForm, form.pdpForm, form[data-product-details]")
-    .first();
-  const count = await form.count();
-  if (!count) return null;
-
-  const raw = await form.getAttribute("data-product-details");
-  if (!raw) return null;
-
+const safeText = async (page, sel) => {
   try {
-    return JSON.parse(raw);
+    const el = await page.$(sel);
+    if (!el) return null;
+    const t = await el.textContent();
+    return (t || "").trim() || null;
   } catch {
     return null;
   }
 };
 
-const readPriceFields = (details) => {
-  const sales =
-    details?.priceData?.sales ||
-    details?.priceData?.sale ||
-    details?.priceData?.price ||
-    details?.price ||
-    details?.salesPrice ||
-    null;
-
-  const list =
-    details?.priceData?.list ||
-    details?.priceData?.standard ||
-    details?.listPrice ||
-    details?.originalPrice ||
-    null;
-
-  const price =
-    typeof sales?.value === "number"
-      ? sales.value
-      : typeof sales === "number"
-        ? sales
-        : null;
-
-  const currency = sales?.currency || details?.currency || null;
-
-  const originalPrice =
-    typeof list?.value === "number"
-      ? list.value
-      : typeof list === "number"
-        ? list
-        : null;
-
-  const discountPercent =
-    details?.discount != null
-      ? Number(details.discount)
-      : originalPrice && price && originalPrice > price
-        ? Math.round(((originalPrice - price) / originalPrice) * 100)
-        : null;
-
-  return { price, currency, originalPrice, discountPercent };
-};
-
-const inferColorName = (details) =>
-  details?.dimension65 ||
-  details?.colour ||
-  details?.color ||
-  details?.attributes?.colour ||
-  details?.attributes?.color ||
-  null;
-
-const inferCategory = (details, fallback) =>
-  details?.categoryPath || details?.category || fallback || null;
-
-const extractTitle = async (page) => {
-  const t1 = await page
-    .locator("h1.product-name, h1.js-product-name, h1")
-    .first()
-    .textContent()
-    .catch(() => null);
-  return (t1 || "").trim() || null;
-};
-
-const extractSizes = async (page) => {
-  const texts = await page.$$eval(
-    ".product-options .variation-value, .variation-value, .swatchanchor-text, [data-variation-value]",
-    (els) => els.map((e) => (e.textContent || "").trim()).filter(Boolean),
-  );
-  return uniq(texts).filter((t) => t.length > 0 && t.length <= 10);
-};
-
-const extractOgImage = async (page) => {
-  const og = await page
-    .locator("meta[property='og:image']")
-    .first()
-    .getAttribute("content")
-    .catch(() => null);
-  return og ? toAbsUrl(og) : null;
-};
-
-/**
- * Reject junk mediahub assets:
- * - dbz_prod_*
- * - GIFT_CARD_ICON
- * - tiny swatches (w=28&h=28) / *_s.jpg
- */
-const isJunkMediahub = (url) => {
-  const u = String(url || "");
-  if (!u.includes("mediahub.boohooman.com")) return true;
-  if (/\/dbz_prod_/i.test(u)) return true;
-  if (/GIFT_CARD_ICON/i.test(u)) return true;
-  if (/_s\.jpg/i.test(u)) return true; // swatch images
-  if (/(\?|&)w=28(&|$)/i.test(u) && /(\?|&)h=28(&|$)/i.test(u)) return true;
-  return false;
-};
-
-/**
- * Normalize mediahub URLs to high quality:
- * - keep the same base asset
- * - force format + width
- */
-const toHighQualityMediahub = (rawUrl) => {
-  const abs = toAbsUrl(rawUrl);
-  if (!abs) return null;
-  if (isJunkMediahub(abs)) return null;
-
-  // If it's a template URL like ...?pdp.template -> keep it (already a good hero)
-  if (/\?pdp\.template$/i.test(abs)) return abs;
-
-  // Otherwise, rewrite query params to a consistent high-quality version
+const safeAttr = async (page, sel, attr) => {
   try {
-    const u = new URL(abs);
-    u.searchParams.set("qlt", "85");
-    u.searchParams.set("w", "1000");
-    u.searchParams.set("h", "1500");
-    u.searchParams.set("fit", "ctn");
-    u.searchParams.set("fmt", "jpeg");
-    // Optional: keep background/crop if already present; don't force crop
-    if (!u.searchParams.has("bgc")) u.searchParams.set("bgc", "FFFFFF");
-    return u.toString();
+    const el = await page.$(sel);
+    if (!el) return null;
+    const v = await el.getAttribute(attr);
+    return (v || "").trim() || null;
   } catch {
-    return abs;
+    return null;
   }
 };
 
-/**
- * Extract product images (not every <img> on the page).
- * Strategy:
- * - collect all mediahub links from img/src/data-src/data-zoom-image
- * - collect style background urls containing mediahub
- * - normalize to high quality + filter junk
- */
-const extractProductMediahubImages = async (page) => {
-  const imgCandidates = await page.$$eval("img", (imgs) =>
-    imgs
-      .map(
-        (img) =>
-          img.getAttribute("data-zoom-image") ||
-          img.getAttribute("data-src") ||
-          img.getAttribute("src"),
-      )
-      .filter(Boolean),
-  );
+// ✅ A) w=1500 balanced
+const normalizeMediahubImageUrl = (url) => {
+  if (!url) return null;
+  let u = String(url).trim().split(" ")[0];
 
-  const bgCandidates = await page.$$eval(
-    "[style*='mediahub.boohooman.com']",
-    (nodes) =>
-      nodes
-        .map((n) => n.getAttribute("style") || "")
-        .map((s) => {
-          const m = s.match(/url\((['"]?)(.*?)\1\)/i);
-          return m ? m[2] : null;
-        })
-        .filter(Boolean),
-  );
+  if (u.startsWith("//")) u = `https:${u}`;
 
-  const all = uniq(
-    [...imgCandidates, ...bgCandidates].map(toAbsUrl).filter(Boolean),
-  );
+  try {
+    const parsed = new URL(u);
 
-  // Keep only likely product image patterns:
-  // - /<productId>_<color>_xl
-  // - /<productId>_<color>_xl_1 etc
-  // - /<productId>_<color>_xl/<slug>?...
-  const filtered = all.filter((u) => !isJunkMediahub(u));
+    // wipe sizing/quality params (we enforce our own)
+    const kill = new Set([
+      "w",
+      "h",
+      "sw",
+      "sh",
+      "sm",
+      "qlt",
+      "fmt",
+      "fit",
+      "bg",
+      "upscale",
+      "crop",
+      "align",
+    ]);
+    for (const k of [...parsed.searchParams.keys()]) {
+      if (kill.has(k)) parsed.searchParams.delete(k);
+      if (k.includes("$") || k.toLowerCase().includes("n_"))
+        parsed.searchParams.delete(k);
+    }
 
-  return uniq(filtered.map(toHighQualityMediahub).filter(Boolean));
+    // enforce balanced HQ
+    parsed.searchParams.set("w", "1500");
+    parsed.searchParams.set("qlt", "95");
+    parsed.searchParams.set("fit", "ctn");
+    parsed.searchParams.set("fmt", "webp");
+
+    return parsed.toString();
+  } catch {
+    return u;
+  }
 };
 
-const extractSwatchUrls = async (page) => {
-  const hrefs = await page.$$eval(
-    "a.swatchanchor, a.js-swatchanchor, a[data-color], a[title*='Colour'], a[title*='Color']",
-    (as) => as.map((a) => a.getAttribute("href")).filter(Boolean),
-  );
+const extractDiscountPercent = ({ salesText, wasText }) => {
+  const s = String(salesText || "");
+  const m = s.match(/\((-?\d+)%\)/);
+  if (m) return toNumber(m[1]);
 
-  const colorLinks = hrefs.filter((h) => /(\?|&)color=\d+/i.test(h));
-  return uniq(colorLinks.map(toAbsUrl));
+  const now = toNumber(salesText);
+  const was = toNumber(wasText);
+
+  if (now != null && was != null && was > 0 && now > 0 && was >= now) {
+    const pct = Math.round(((was - now) / was) * 100);
+    return Number.isFinite(pct) ? pct : null;
+  }
+
+  return null;
+};
+
+const tryAcceptCookies = async (page) => {
+  const candidates = [
+    'button:has-text("Accept all")',
+    'button:has-text("Accept All")',
+    'button:has-text("Accept")',
+    'button:has-text("I Accept")',
+    'button:has-text("Agree")',
+    'button[id*="accept"]',
+    'button[class*="accept"]',
+    'button[aria-label*="accept" i]',
+  ];
+
+  for (const sel of candidates) {
+    try {
+      const btn = page.locator(sel).first();
+      if ((await btn.count()) > 0) {
+        await btn.click({ timeout: 1500 }).catch(() => null);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }
+};
+
+const waitForListGrid = async (page) => {
+  await page.waitForSelector(LIST_READY_SEL, { timeout: 25000 });
+  await page
+    .waitForFunction(
+      (sel) => document.querySelectorAll(sel).length >= 6,
+      LIST_TILES_SEL,
+      { timeout: 25000 },
+    )
+    .catch(() => null);
+};
+
+const collectPdpLinks = async (page) => {
+  await waitForListGrid(page);
+
+  const links = await page.$$eval(LIST_LINKS_SEL, (as) => {
+    const hrefs = as.map((a) => a.getAttribute("href") || "").filter(Boolean);
+
+    const abs = hrefs.map((h) => {
+      if (h.startsWith("http")) return h;
+      if (h.startsWith("//")) return `https:${h}`;
+      if (h.startsWith("/")) return `${location.origin}${h}`;
+      return `${location.origin}/${h}`;
+    });
+
+    return abs
+      .filter((u) => /\.html(\?|#|$)/i.test(u))
+      .map((u) => u.split("#")[0]);
+  });
+
+  return Array.from(new Set((links || []).filter(Boolean)));
+};
+
+const extractPaginationHrefs = async (page) => {
+  try {
+    const hrefs = await page.$$eval(PAGINATION_PAGE_LINKS_SEL, (as) => {
+      const links = as
+        .map((a) => (a.getAttribute("href") || "").trim())
+        .filter(Boolean);
+
+      const abs = links.map((h) => {
+        if (h.startsWith("http")) return h;
+        if (h.startsWith("//")) return `https:${h}`;
+        if (h.startsWith("/")) return `${location.origin}${h}`;
+        return `${location.origin}/${h}`;
+      });
+
+      return abs;
+    });
+
+    const filtered = (hrefs || []).filter((u) =>
+      /[?&](start|sz|page)=/i.test(u),
+    );
+
+    return Array.from(new Set(filtered));
+  } catch {
+    return [];
+  }
+};
+
+const extractProductId = async (page) => {
+  try {
+    const raw = await page.$eval(PDP_PDPMAIN_SEL, (el) =>
+      el.getAttribute("data-product-details-amplience"),
+    );
+    if (raw) {
+      try {
+        const obj = JSON.parse(raw);
+        const id = obj?.id || obj?.masterId || obj?.productId || null;
+        if (id) return String(id);
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const raw = await page.$eval(PDP_FORM_SEL, (el) =>
+      el.getAttribute("data-product-details"),
+    );
+    if (raw) {
+      try {
+        const obj = JSON.parse(raw);
+        const id = obj?.id || obj?.productId || obj?.masterId || null;
+        if (id) return String(id);
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const u = page.url();
+    const m = u.match(/\/([A-Z]{1,4}\d{4,10})\.html/i);
+    if (m && m[1]) return String(m[1]).toUpperCase();
+  } catch {
+    // ignore
+  }
+
+  return null;
+};
+
+// ✅ UPDATED: dedupe by path (strip query), then enforce HQ params
+const extractImages = async (page) => {
+  try {
+    const urls = await page.$$eval(PDP_IMG_SEL, (imgs) => {
+      const out = [];
+
+      const pickBest = (srcset) => {
+        const parts = String(srcset || "")
+          .split(",")
+          .map((p) => p.trim().split(" ")[0])
+          .filter(Boolean);
+        return parts.length ? parts[parts.length - 1] : null;
+      };
+
+      for (const img of imgs) {
+        const srcset = (img.getAttribute("srcset") || "").trim();
+        const src = (img.getAttribute("src") || "").trim();
+
+        const chosen = pickBest(srcset) || src;
+        if (!chosen) continue;
+
+        let u = chosen.split(" ")[0].trim();
+        if (u.startsWith("//")) u = `https:${u}`;
+        out.push(u);
+      }
+
+      return out;
+    });
+
+    const pathUniq = Array.from(
+      new Set(
+        (urls || [])
+          .filter(Boolean)
+          .filter((u) => /mediahub\.boohooman\.com/i.test(u))
+          .map((u) => u.split("#")[0])
+          .map((u) => u.split("?")[0]),
+      ),
+    );
+
+    const final = pathUniq
+      .map((u) => normalizeMediahubImageUrl(u))
+      .filter(Boolean);
+
+    return { image: final[0] || null, images: final };
+  } catch {
+    return { image: null, images: [] };
+  }
+};
+
+const extractColor = async (page) => {
+  try {
+    const txt = await page.$eval(PDP_COLOR_LABEL_SEL, () => {
+      const clean = (t) =>
+        String(t || "")
+          .replace(/\s+/g, " ")
+          .trim();
+      const body = clean(document.body?.innerText || "");
+      const m = body.match(
+        /(?:^|\s)(COLOUR|COLOR)\s*:\s*([A-Za-z0-9][A-Za-z0-9\s'/-]{1,40})/i,
+      );
+      return m ? clean(m[2]) : null;
+    });
+
+    if (txt) return { colorsRaw: [txt], colors: [txt] };
+  } catch {
+    // ignore
+  }
+
+  try {
+    const colors = await page.$$eval(PDP_COLOR_SWATCH_SEL, (lis) => {
+      const clean = (t) =>
+        String(t || "")
+          .replace(/\s+/g, " ")
+          .trim();
+      const out = new Set();
+
+      for (const li of lis) {
+        const raw = li.getAttribute("data-variation-values");
+        if (!raw) continue;
+
+        try {
+          const obj = JSON.parse(raw);
+          const c = obj?.color || obj?.colour || obj?.value || null;
+          if (c) out.add(clean(c));
+        } catch {
+          // ignore
+        }
+      }
+
+      return Array.from(out).filter(Boolean);
+    });
+
+    const uniq = Array.from(
+      new Set((colors || []).map((x) => String(x).trim()).filter(Boolean)),
+    );
+
+    return { colorsRaw: uniq, colors: uniq };
+  } catch {
+    return { colorsRaw: [], colors: [] };
+  }
+};
+
+const extractSizes = async (page) => {
+  try {
+    await page
+      .waitForSelector(PDP_SIZE_SWATCH_LI_SEL, { timeout: 15000 })
+      .catch(() => null);
+
+    const sizesRaw = await page.$$eval(PDP_SIZE_SWATCH_LI_SEL, (lis) => {
+      const clean = (t) =>
+        String(t || "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+      const looksLikeSize = (s) => {
+        const t = clean(s);
+        if (!t) return false;
+        if (t.length > 24) return false;
+        return (
+          /^(xxs|2xs|xs|s|m|l|xl|xxl|2xl|xxxl)$/i.test(t) ||
+          /^\d{1,3}$/.test(t) ||
+          /^(uk|us|eu)\s?\d{1,3}$/i.test(t)
+        );
+      };
+
+      const out = [];
+      for (const li of lis) {
+        const cls = (li.getAttribute("class") || "").toLowerCase();
+        if (cls.includes("unselectable") || cls.includes("disabled")) continue;
+
+        const anchor =
+          li.querySelector("span.swatchanchor") || li.querySelector("a") || li;
+
+        const t = clean(anchor.textContent);
+        if (t && looksLikeSize(t)) out.push(t);
+      }
+
+      return out;
+    });
+
+    const uniq = Array.from(new Set((sizesRaw || []).filter(Boolean)));
+    return { sizesRaw: uniq, sizes: uniq };
+  } catch {
+    return { sizesRaw: [], sizes: [] };
+  }
+};
+
+const extractPrices = async ({ page }) => {
+  const metaCurrency = await safeAttr(page, PDP_META_CURRENCY_SEL, "content");
+
+  const itempropPrice = await safeAttr(page, PDP_META_PRICE_SEL, "content");
+  const domSalesText = await safeText(page, PDP_PRICE_SALES_SEL);
+  const domWasText = await safeText(page, PDP_PRICE_WAS_SEL);
+
+  const price = toNumber(itempropPrice) ?? toNumber(domSalesText) ?? null;
+  const originalPrice = toNumber(domWasText) ?? null;
+
+  const currency = metaCurrency || parseCurrency(domSalesText) || "GBP";
+
+  const discountPercent = extractDiscountPercent({
+    salesText: domSalesText,
+    wasText: domWasText,
+  });
+
+  return {
+    price,
+    originalPrice,
+    currency,
+    discountPercent,
+    domSalesText,
+    domWasText,
+  };
 };
 
 const runBoohooCrawl = async ({
@@ -229,231 +450,228 @@ const runBoohooCrawl = async ({
   maxListPages = 1,
   debug = false,
 } = {}) => {
-  if (!startUrls.length) throw new Error("runBoohooCrawl requires startUrls");
-
-  const productsMap = new Map(); // productId -> aggregated doc (Option A)
-  const seenColorUrls = new Set();
-  const seenListPages = new Set();
+  const results = [];
 
   const crawler = new PlaywrightCrawler({
-    maxConcurrency: 3,
-    requestHandlerTimeoutSecs: 60,
-    navigationTimeoutSecs: 60,
-    async requestHandler({ request, page }) {
-      const label = request.userData?.label || "LIST";
+    maxConcurrency: 1,
+    requestHandlerTimeoutSecs: 120,
 
-      if (debug) log.info(`[${label}] ${request.url}`);
+    async requestHandler({ page, request, enqueueLinks }) {
+      const label = (request.label || "LIST").toUpperCase();
+
+      await page
+        .setViewportSize({ width: 1400, height: 900 })
+        .catch(() => null);
 
       if (label === "LIST") {
-        const hrefs = await page.$$eval(
-          "a.thumb-link.js-canonical-link, a.js-canonical-link, a.thumb-link",
-          (as) =>
-            as
-              .map((a) => a.getAttribute("href") || a.getAttribute("data-href"))
-              .filter(Boolean),
-        );
+        const gender = request.userData?.gender || null;
+        const category = request.userData?.category || null;
+        const baseUrl = request.userData?.baseUrl || request.url;
 
-        const productUrls = uniq(hrefs.map(toAbsUrl)).filter(Boolean);
+        await page.goto(request.url, { waitUntil: "domcontentloaded" });
+        await tryAcceptCookies(page);
 
-        for (const url of productUrls) {
-          await crawler.addRequests([
-            {
-              url,
-              userData: {
-                label: "PDP",
-                gender: request.userData?.gender || null,
-                category: request.userData?.category || null,
-              },
-            },
-          ]);
+        const pageUrls = await extractPaginationHrefs(page);
+
+        const targetListUrls = pageUrls.length
+          ? [request.url, ...pageUrls].slice(0, maxListPages)
+          : [request.url];
+
+        if (pageUrls.length) {
+          if (debug)
+            console.log("📄 LIST enqueued href-pages:", targetListUrls.length);
+
+          await enqueueLinks({
+            urls: Array.from(new Set(targetListUrls)),
+            label: "LIST_PAGE",
+            userData: { gender, category, baseUrl },
+          });
+          return;
         }
 
-        seenListPages.add(request.url);
-        if (seenListPages.size >= maxListPages) return;
-
-        const nextHref =
-          (await page
-            .locator("li.pagination-item-next a")
-            .first()
-            .getAttribute("href")
-            .catch(() => null)) ||
-          (await page
-            .locator("a[title*='Next']")
-            .first()
-            .getAttribute("href")
-            .catch(() => null));
-
-        const nextUrl = nextHref ? toAbsUrl(nextHref) : null;
-
-        if (nextUrl && !seenListPages.has(nextUrl)) {
-          await crawler.addRequests([
-            {
-              url: nextUrl,
-              userData: {
-                label: "LIST",
-                gender: request.userData?.gender || null,
-                category: request.userData?.category || null,
-              },
-            },
-          ]);
-        }
+        await enqueueLinks({
+          urls: [request.url],
+          label: "LIST_PAGE",
+          userData: { gender, category, baseUrl },
+        });
 
         return;
       }
 
-      // PDP
-      const details = await parseProductDetails(page);
+      if (label === "LIST_PAGE") {
+        const gender = request.userData?.gender || null;
+        const category = request.userData?.category || null;
+        const baseUrl = request.userData?.baseUrl || request.url;
 
-      const productId =
-        details?.id || details?.productId || details?.masterId || null;
-      const title =
-        (details?.name || (await extractTitle(page)) || "").trim() || null;
+        await page.goto(request.url, { waitUntil: "domcontentloaded" });
+        await tryAcceptCookies(page);
 
-      // ✅ Skip non-product pages like PREMIERMAN
-      if (!productId || !isValidProductId(productId)) {
-        if (debug)
-          log.warning(
-            `Skipping non-product PDP: id=${productId} url=${request.url}`,
+        const tileCount = await page
+          .locator(LIST_TILES_SEL)
+          .count()
+          .catch(() => 0);
+        const pdpLinks = await collectPdpLinks(page);
+
+        if (debug) {
+          console.log("📄 LIST_PAGE", request.url);
+          console.log(
+            "📄 LIST_PAGE tileCount",
+            tileCount,
+            "links",
+            pdpLinks.length,
           );
+        }
+
+        if (!pdpLinks.length) return;
+
+        await enqueueLinks({
+          urls: pdpLinks,
+          label: "DETAIL",
+          userData: { gender, category, baseUrl },
+        });
+
         return;
       }
 
-      const canonicalKey = `${STORE}:${productId}`;
-      const productUrl = stripQuery(request.url);
+      if (label === "DETAIL") {
+        if (debug) console.log("🔎 DETAIL:", request.url);
 
-      const { price, currency, originalPrice, discountPercent } =
-        readPriceFields(details);
+        await tryAcceptCookies(page);
 
-      const ogImageRaw = await extractOgImage(page);
-      const ogImage = toHighQualityMediahub(ogImageRaw);
+        try {
+          await page.waitForSelector(PDP_TITLE_SEL, { timeout: 30000 });
+        } catch {
+          if (debug) {
+            const htmlTitle = await page.title().catch(() => null);
+            console.log(
+              "❌ DETAIL title not found:",
+              request.url,
+              "PAGE_TITLE:",
+              htmlTitle,
+            );
+          }
+          return;
+        }
 
-      const galleryImages = await extractProductMediahubImages(page);
+        const title =
+          (await page
+            .$eval(PDP_TITLE_SEL, (el) => el.textContent?.trim() || "")
+            .catch(() => "")) || null;
 
-      // ensure main image is included and high quality
-      const images = uniq([ogImage, ...galleryImages].filter(Boolean));
-      const mainImage = ogImage || images[0] || null;
+        const productUrl = request.url;
+        const productId = await extractProductId(page);
 
-      const color = inferColorName(details);
-      const sizes = await extractSizes(page);
+        const { price, originalPrice, currency, discountPercent } =
+          await extractPrices({ page });
 
-      const gender = request.userData?.gender || "men";
-      const category = inferCategory(
-        details,
-        request.userData?.category || null,
-      );
+        const { image, images } = await extractImages(page);
 
-      const inStock =
-        details?.isInStock != null ? Boolean(details.isInStock) : true;
+        const { colors } = await extractColor(page);
+        const { sizesRaw, sizes } = await extractSizes(page);
 
-      const existing = productsMap.get(productId);
+        const inStock = Array.isArray(sizes) ? sizes.length > 0 : true;
 
-      const merged = existing || {
-        canonicalKey,
-        store: STORE,
-        storeName: STORE_NAME,
-        title,
-        price,
-        currency,
-        originalPrice: originalPrice || null,
-        discountPercent: discountPercent != null ? discountPercent : null,
-        image: mainImage,
-        images: [],
-        productUrl,
-        saleUrl: null,
-        category,
-        gender,
-        colors: [],
-        sizesRaw: [],
-        sizes: [],
-        inStock,
-        status: "active",
-      };
+        const store = "boohoo";
+        const storeName = "BoohooMAN";
+        const canonicalKey = hash(`${store}:${productId || productUrl}`);
 
-      // Merge
-      merged.title = merged.title || title;
-      merged.price = price != null ? price : merged.price;
-      merged.currency = currency || merged.currency;
-      merged.originalPrice =
-        originalPrice != null ? originalPrice : merged.originalPrice;
-      merged.discountPercent =
-        discountPercent != null ? discountPercent : merged.discountPercent;
-      merged.productUrl = merged.productUrl || productUrl;
-      merged.category = merged.category || category;
-      merged.gender = merged.gender || gender;
+        const gender = request.userData?.gender || null;
+        const category = request.userData?.category || null;
+        const saleUrl = request.userData?.baseUrl || null;
 
-      // ✅ All colors: accumulate high-quality images only
-      merged.images = uniq([...(merged.images || []), ...images]);
-      merged.image = merged.image || mainImage || merged.images[0] || null;
-
-      if (color)
-        merged.colors = uniq([
-          ...(merged.colors || []),
-          String(color).trim().toLowerCase(),
-        ]);
-
-      merged.sizesRaw = uniq([...(merged.sizesRaw || []), ...sizes]);
-      merged.sizes = uniq([...(merged.sizes || []), ...sizes]);
-
-      merged.inStock = Boolean(merged.inStock || inStock);
-
-      productsMap.set(productId, merged);
-
-      // ✅ DEBUG: print required fields + images (clean)
-      if (debug) {
-        const preview = {
-          canonicalKey: merged.canonicalKey,
-          store: merged.store,
-          storeName: merged.storeName,
-          title: merged.title,
-          price: merged.price,
-          currency: merged.currency,
-          originalPrice: merged.originalPrice,
-          discountPercent: merged.discountPercent,
-          image: merged.image,
-          images: merged.images,
-          productUrl: merged.productUrl,
-          saleUrl: merged.saleUrl,
-          category: merged.category,
-          gender: merged.gender,
-          colors: merged.colors,
-          sizesRaw: merged.sizesRaw,
-          sizes: merged.sizes,
-          inStock: merged.inStock,
-          status: merged.status,
+        const doc = {
+          canonicalKey,
+          store,
+          storeName,
+          title,
+          price,
+          currency,
+          originalPrice,
+          discountPercent,
+          image,
+          images,
+          productUrl,
+          saleUrl,
+          category,
+          gender,
+          colors,
+          sizesRaw,
+          sizes,
+          inStock,
+          status: "active",
+          lastSeenAt: new Date(),
         };
 
-        console.log("✅ BOOHOO_PRODUCT:", JSON.stringify(preview, null, 2));
-      }
+        if (
+          !doc.canonicalKey ||
+          !doc.store ||
+          !doc.storeName ||
+          !doc.title ||
+          doc.price == null ||
+          !doc.currency ||
+          !doc.image ||
+          !doc.productUrl
+        ) {
+          if (debug) {
+            console.log("⚠️ DETAIL skip missing required:", {
+              url: productUrl,
+              title: doc.title,
+              price: doc.price,
+              currency: doc.currency,
+              image: doc.image,
+              imagesLen: doc.images?.length || 0,
+              productId,
+            });
+          }
+          return;
+        }
 
-      // Enqueue other colors (All colors)
-      const swatchUrls = await extractSwatchUrls(page);
-      for (const u of swatchUrls) {
-        if (seenColorUrls.has(u)) continue;
-        if (!u.includes(`/${productId}.html`)) continue;
+        if (debug) {
+          console.log("🟩 PRODUCT_DOC_REQUIRED", {
+            canonicalKey: doc.canonicalKey,
+            store: doc.store,
+            storeName: doc.storeName,
+            title: doc.title,
+            price: doc.price,
+            currency: doc.currency,
+            image: doc.image,
+            imagesCount: Array.isArray(doc.images) ? doc.images.length : 0, // ✅ count
+            productUrl: doc.productUrl,
+          });
 
-        seenColorUrls.add(u);
-        await crawler.addRequests([
-          {
-            url: u,
-            userData: {
-              label: "PDP",
-              gender,
-              category,
-            },
-          },
-        ]);
+          // ✅ optional sample (first 3)
+          const sample = (doc.images || []).slice(0, 3);
+          console.log("🖼️ IMAGES_SAMPLE", sample);
+        }
+
+        results.push(doc);
+        return;
       }
     },
   });
 
-  const initialRequests = startUrls.map((s) => ({
-    url: s.url,
-    userData: { label: "LIST", ...(s.userData || {}) },
-  }));
+  const finalStartUrls = (startUrls || []).length
+    ? startUrls
+    : DEFAULT_START_URLS;
 
-  await crawler.run(initialRequests);
+  const seeds = (finalStartUrls || []).filter(Boolean).map((u) => {
+    const url = typeof u === "string" ? u : u.url;
+    const userData = typeof u === "string" ? {} : u.userData || {};
+    return {
+      url,
+      label: "LIST",
+      userData: { ...userData, baseUrl: url, page: 1 },
+    };
+  });
 
-  return Array.from(productsMap.values());
+  if (debug) console.log("🌱 SEEDS", seeds);
+
+  await crawler.run(seeds);
+
+  const map = new Map();
+  for (const p of results) map.set(p.canonicalKey, p);
+
+  return Array.from(map.values());
 };
 
 module.exports = { runBoohooCrawl };

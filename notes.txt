@@ -1,143 +1,341 @@
+ONLY_CRAWLER=asos node server/crawlers/storeCrawlers.js
+node server/crawlers/storeCrawlers.js
+
+
+
+## 1. Git Workflow (Origin + Heroku)
+
+```bash
 git pull --rebase origin main
 git pull --rebase heroku main
 git push origin main
 git push heroku main
+```
 
+**Order rationale**
+
+* Rebase from both remotes first
+* Push to GitHub (source of truth)
+* Push to Heroku (deployment)
+
+---
+
+## 2. Canonical Product Data Shape (Normalized)
+
+```json
 {
   "_id": "ObjectId",
-  "canonicalKey": "boohoo:3f8a9c...",
+  "canonicalKey": "store:hash",
   "store": "boohoo",
   "storeName": "Boohoo",
   "title": "Black Oversized Hoodie",
-  "price": 12.99,
-  "currency": "GBP",
-  "originalPrice": 29.99,
-  "discountPercent": 57,
-  "image": "https://...jpg",
-  "images": ["https://...jpg"],
-  "productUrl": "https://www....",
-  "saleUrl": "https://www....",
   "category": "hoodies",
   "gender": "women",
+
+  "price": 12.99,
+  "originalPrice": 29.99,
+  "discountPercent": 57,
+  "currency": "GBP",
+
+  "image": "https://...jpg",
+  "images": ["https://...jpg"],
+
+  "productUrl": "https://www....",
+  "saleUrl": "https://www....",
+
   "inStock": true,
   "status": "active",
+
   "lastSeenAt": "2026-01-14T10:00:00.000Z",
   "createdAt": "2026-01-14T10:00:00.000Z",
   "updatedAt": "2026-01-14T16:00:00.000Z"
 }
+```
 
+**Key insight**
 
-//zara sales url
+* `canonicalKey = store + product fingerprint` → dedupe across crawls
+* `lastSeenAt` ≠ `updatedAt` (important for availability logic)
+
+---
+
+## 3. Store Sale / Entry URLs
+
+### PrettyLittleThing
+
+```
 https://www.prettylittlething.com/sale.html?page=1
+```
 
+### BoohooMAN (Sale Root)
 
-e:    https://static.zara.net/assets/public/5277/7f81/c8d54c6388dd/3b1f942956e5/05755156401-p/05755156401-p.jpg?ts=1764071556754&w=560
-│ URL:      https://www.zara.com/uk/en/plain-knit-jumper-p05755156.html
-└─────────────────────────────────────────────────
+```
+https://www.boohooman.com/mens/sale
+```
 
-┌─── ZARA PRODUCT [11/200]
-│ Title:    ZW COLLECTION WO
+---
 
+## 4. Zara Scrape Notes (Raw Observations)
 
+### Single Product (Example)
 
-└─────────────────────────────────────────────────
+```
+URL: https://www.zara.com/uk/en/plain-knit-jumper-p05755156.html
+Image:
+https://static.zara.net/assets/public/5277/7f81/.../05755156401-p.jpg?w=560
+```
 
-┌─── ZARA PRODUCT [4/200]
-│ Title:    SHORT GAUZE DRESS WITH LACE...
-│ Price:    £6.89 ➔ -70% (Was: £22.99)
-│ Sizes:    [ NONE ]
-│ Color:    Black
-│ Image:    https://static.zara.net/assets/public/8354/de68/f9a3477e954d/f4858a17b5bb/00881319800-p/00881319800-p.jpg?ts=1753261588721&w=270
-│ ImagesCount: 12
-│ Images:   https://static.zara.net/assets/public/8354/de68/f9a3477e954d/f4858a17b5bb/00881319800-p/00881319800-p.jpg?ts=1753261588721&w=270 | https://static.zara.net/assets/public/0892/6621/adc14d35b343/a047d5f0cd2e/00881319800-a1/00881319800-a1.jpg?ts=1753261588914&w=270 | https://static.zara.net/assets/public/ec47/fc53/4f074c61aeec/add6468f58d6/00881319800-a2/00881319800-a2.jpg?ts=1753261588640&w=270 | https://static.zara.net/assets/public/a9d9/a0ea/51c64eb192c5/f5548f733160/00881319800-a3/00881319800-a3.jpg?ts=1753261589126&w=270 | https://static.zara.net/assets/public/9c88/3140/480148619ec0/be8a53c7edd3/00881319800-a4/00881319800-a4.jpg?ts=1753261589030&w=270│ URL:      https://www.zara.com/uk/en/short-gauze-dress-with-lace-p00881319.html
-└─────────────────────────────────────────────────
+---
 
+### Zara Sale Product (Parsed)
 
+```
+Title: SHORT GAUZE DRESS WITH LACE
+Price: £6.89
+Original: £22.99
+Discount: -70%
+Color: Black
+Sizes: NONE
+ImagesCount: 12
+URL: https://www.zara.com/uk/en/short-gauze-dress-with-lace-p00881319.html
+```
+
+**Crawler notes**
+
+* Sizes often empty → treat as `outOfStock`
+* Multiple images per SKU (good for galleries)
+* Zara image URLs are stable + cacheable
+
+---
+
+## 5. BoohooMAN – Full Stored Product Example
+
+```json
 {
-  "_id": {
-    "$oid": "6968348fa71d089512882ab4"
-  },
   "canonicalKey": "boohooman:84347f1e49859615f0251d548cee7252c2be0f6f",
-  "__v": 0,
-  "category": "tops",
-  "colors": [
-    "khaki"
-  ],
-  "createdAt": {
-    "$date": "2026-01-15T00:28:32.131Z"
-  },
-  "currency": "GBP",
-  "discountPercent": 70,
-  "gender": "men",
-  "image": "https://mediahub.boohooman.com/cmm13070_khaki_xl/mens-khaki-oversized-homme-mesh-hockey-top?qlt=85&w=556&h=0&fit=ctn",
-  "images": [
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl/mens-khaki-oversized-homme-mesh-hockey-top?qlt=85&w=556&h=0&fit=ctn",
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl/khaki-oversized-homme-mesh-hockey-top?qlt=85&w=556&h=0&fit=ctn&fmt=auto",
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl/khaki-oversized-homme-mesh-hockey-top?qlt=85&w=112&h=167&fit=ctn&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl_1/khaki-oversized-homme-mesh-hockey-top?qlt=85&w=112&h=167&fit=ctn&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl_2/khaki-oversized-homme-mesh-hockey-top?qlt=85&w=112&h=167&fit=ctn&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13070_khaki_xl_s.jpg?qlt=85&w=28&h=28&fit=ctn&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13071_ecru_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13073_khaki_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm18470_blue_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm13654_ecru_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm19562_grey_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm09836_black_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/cmm19355_black_xl?qlt=85&w=249&h=374&sm=C&fmt=webp",
-    "https://mediahub.boohooman.com/GIFT_CARD_ICON_5481_1"
-  ],
-  "inStock": true,
-  "lastSeenAt": {
-    "$date": "2026-01-15T02:14:32.105Z"
-  },
-  "originalPrice": 20,
-  "price": 6,
-  "productUrl": "https://www.boohooman.com/oversized-homme-mesh-hockey-top/CMM13070.html",
-  "saleUrl": "https://www.boohooman.com/mens/sale",
-  "sizes": [
-    "XS",
-    "M",
-    "L"
-  ],
-  "sizesRaw": [
-    "XS",
-    "M",
-    "L"
-  ],
-  "status": "active",
   "store": "boohooman",
   "storeName": "boohooMAN",
   "title": "Oversized Homme Mesh Hockey Top",
-  "updatedAt": {
-    "$date": "2026-01-15T02:14:32.105Z"
-  }
+  "category": "tops",
+  "gender": "men",
+
+  "price": 6,
+  "originalPrice": 20,
+  "discountPercent": 70,
+  "currency": "GBP",
+
+  "colors": ["khaki"],
+  "sizes": ["XS", "M", "L"],
+  "sizesRaw": ["XS", "M", "L"],
+
+  "image": "https://mediahub.boohooman.com/cmm13070_khaki_xl/...",
+  "images": [ "...multiple variants..." ],
+
+  "productUrl": "https://www.boohooman.com/oversized-homme-mesh-hockey-top/CMM13070.html",
+  "saleUrl": "https://www.boohooman.com/mens/sale",
+
+  "inStock": true,
+  "status": "active",
+
+  "lastSeenAt": "2026-01-15T02:14:32.105Z",
+  "createdAt": "2026-01-15T00:28:32.131Z",
+  "updatedAt": "2026-01-15T02:14:32.105Z"
 }
+```
 
+**Notes**
 
+* `sizesRaw` is good for audits / re-parsing
+* Images include swatches + alternates → filter later if needed
 
+---
+
+## 6. Product Positioning / Copy Draft
+
+```
 Smart Tracking
 For Sharp Dressers
-The elite price engine for UK fashion. Get notified before the stock
+
+The elite price engine for UK fashion.
+Get notified before the stock disappears.
+```
+
+(Strong hero copy — short, premium, notification-first)
+
+---
+
+## 7. ASOS – Category Entry Points (Clean List)
+
+### Men
+
+* New In (Clothing)
+  [https://www.asos.com/men/new-in/new-in-clothing/cat/?cid=6993](https://www.asos.com/men/new-in/new-in-clothing/cat/?cid=6993)
+
+* Shoes (New In)
+  [https://www.asos.com/men/new-in/new-in-shoes/cat/?cid=17184](https://www.asos.com/men/new-in/new-in-shoes/cat/?cid=17184)
+
+* Hoodies & Sweatshirts
+  [https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668](https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668)
+
+* Jeans
+  [https://www.asos.com/men/jeans/cat/?cid=4208](https://www.asos.com/men/jeans/cat/?cid=4208)
+
+* Jackets & Coats
+  [https://www.asos.com/men/jackets-coats/cat/?cid=3606](https://www.asos.com/men/jackets-coats/cat/?cid=3606)
+
+### Women
+
+* Hoodies & Sweatshirts
+  [https://www.asos.com/women/hoodies-sweatshirts/cat/?cid=11321](https://www.asos.com/women/hoodies-sweatshirts/cat/?cid=11321)
+
+* Dresses
+  [https://www.asos.com/women/dresses/cat/?cid=8799](https://www.asos.com/women/dresses/cat/?cid=8799)
+
+* Tops
+  [https://www.asos.com/women/tops/cat/?cid=4169](https://www.asos.com/women/tops/cat/?cid=4169)
+
+* Shoes
+  [https://www.asos.com/women/shoes/cat/?cid=4172](https://www.asos.com/women/shoes/cat/?cid=4172)
+
+---
+
+## 8. BoohooMAN – Category Entry
+
+### Men
+
+* Hoodies & Sweatshirts
+  [https://www.boohooman.com/mens/hoodies-sweatshirts](https://www.boohooman.com/mens/hoodies-sweatshirts)
 
 
 
 
-//asos links
---men: joggers
-https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668
---men: new-in
-https://www.asos.com/men/new-in/new-in-clothing/cat/?cid=6993
---men: shoes
-https://www.asos.com/men/new-in/new-in-shoes/cat/?cid=17184
---men: jeans-jackets
-https://www.asos.com/men/jeans/cat/?cid=4208
---men: hoodies & sweatshirts
-https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668
---women: hoodies & sweatshirts
-https://www.asos.com/women/hoodies-sweatshirts/cat/?cid=11321
---women: dresses
-https://www.asos.com/women/dresses/cat/?cid=8799
---women: tops
-https://www.asos.com/women/tops/cat/?cid=4169
---women: shoes
-https://www.asos.com/women/shoes/cat/?cid=4172
+
+
+  canonicalKey: 'f4434f286cb735f62084858aa4b08120ac29fb20',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Basic Oversized Boxy Hoodie',
+  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm16449_charcoal_xl/charcoal-basic-oversized-boxy-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/basic-oversized-boxy-hoodie/CMM16449.html'
+}
+� DETAIL: https://www.boohooman.com/plus-basic-oversized-over-t 
+he-head-hoodie/CMM16706.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '3ad162aa983f6ef5bd670419fe9cf8906bd46879',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Plus Basic Oversized Over the Head Hoodie',
+  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm16706_burgundy_xl/burgundy-plus-basic-oversized-over-the-head-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/plus-basic-oversized-over-the-head-hoodie/CMM16706.html'
+}
+� DETAIL: https://www.boohooman.com/basic-regular-fit-over-the- 
+head-hoodie/CMM16603.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '00eec8a2a6234a7113d6e9b7f73596975b357dd0',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Basic Regular Fit Over the Head Hoodie',
+  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm16603_charcoal_xl/charcoal-basic-regular-fit-over-the-head-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/basic-regular-fit-over-the-head-hoodie/CMM16603.html'
+}
+� DETAIL: https://www.boohooman.com/plus-basic-regular-fit-over 
+-the-head-hoodie/CMM16693.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '7eed3def9ebf5fc388d6c7008774df032d291c02',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Plus Basic Regular Fit Over the Head Hoodie',
+  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm16693_black_xl/black-plus-basic-regular-fit-over-the-head-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/plus-basic-regular-fit-over-the-head-hoodie/CMM16693.html'
+}
+� DETAIL: https://www.boohooman.com/basic-regular-fit-quarter-z 
+ip-funnel-neck-sweatshirt/CMM23424.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: 'a97be75e178b8303ae9f6b5cfe69f7d1fe5ffdbd',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Basic Regular Fit Quarter Zip Funnel Neck Sweatshirt',  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm23424_grey%20marl_xl/grey-marl-basic-regular-fit-quarter-zip-funnel-neck-sweatshirt?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/basic-regular-fit-quarter-zip-funnel-neck-sweatshirt/CMM23424.html'
+}
+� DETAIL: https://www.boohooman.com/regular-fit-cable-knitted-1 
+%2F4-zip-jumper/CMM24812.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '86b5b5c4600c543512f9fe692ccdb80afccfd77b',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Regular Fit Cable Knitted 1/4 Zip Jumper',
+  price: 19.6,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm24812_ecru_xl/ecru-regular-fit-cable-knitted-1/4-zip-jumper?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/regular-fit-cable-knitted-1%2F4-zip-jumper/CMM24812.html'
+}
+� DETAIL: https://www.boohooman.com/oversized-boxy-branded-ragl 
+an-sleeve-sweatshirt/CMM14354.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '74ec276b47545442155cb10c12a51368ca5ed4e5',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Oversized Boxy Branded Raglan Sleeve Sweatshirt',     
+  price: 15.4,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm14354_ecru_xl/ecru-oversized-boxy-branded-raglan-sleeve-sweatshirt?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/oversized-boxy-branded-raglan-sleeve-sweatshirt/CMM14354.html'
+}
+� DETAIL: https://www.boohooman.com/man-active-gym-1%2F4-zip-tr 
+acksuit/BMM79368.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '3cf724c94c6f484bfecd20339e5c4a0a2acd3dd2',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Man Active Gym 1/4 Zip Tracksuit',
+  price: 31.5,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/bmm79368_black_xl/black-man-active-gym-1/4-zip-tracksuit?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/man-active-gym-1%2F4-zip-tracksuit/BMM79368.html'
+}
+� DETAIL: https://www.boohooman.com/plus-basic-oversized-over-t 
+he-head-hoodie/CMM16704.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: 'c532930d398534d7f416257b39bf699ef1625bcb',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Plus Basic Oversized Over the Head Hoodie',
+  price: 14,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm16704_forest_xl/forest-plus-basic-oversized-over-the-head-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/plus-basic-oversized-over-the-head-hoodie/CMM16704.html'
+}
+� DETAIL: https://www.boohooman.com/oversized-contrast-stitch-h 
+oodie/CMM21369.html
+� PRODUCT_DOC_REQUIRED {
+  canonicalKey: '4bc29374a9b467c337d4f9d2e146f968744ed293',     
+  store: 'boohoo',
+  storeName: 'BoohooMAN',
+  title: 'Oversized Contrast Stitch Hoodie',
+  price: 12,
+  currency: 'GBP',
+  image: 'https://mediahub.boohooman.com/cmm21369_black_xl/black-oversized-contrast-stitch-hoodie?w=1500&qlt=95&fit=ctn&fmt=webp',
+  productUrl: 'https://www.boohooman.com/oversized-contrast-stitch-hoodie/CMM21369.html'
+}
+WARN  PlaywrightCrawler: Pausing... Press CTRL+C again to force 
+exit. To resume, do: CRAWLEE_PURGE_ON_START=0 npm start
+WARN  PlaywrightCrawler: Reclaiming failed request back to the list or queue. page.goto: Target page, context or browser has been closed
+Call log:
+  - navigating to "https://www.boohooman.com/zip-up-tape-hoodie/Pfda0f68989a1497ea8f52641ed88ec30.html", waiting until "load"   
+
+ {"id":"oBl11WWi3HzSx2i","url":"https://www.boohooman.com/zip-up-tape-hoodie/Pfda0f68989a1497ea8f52641ed88ec30.html","retryCount":1}
+
+
+
+//logo url
+https://res.cloudinary.com/dlsiabgiw/image/upload/v1769220692/image_mqxn1h.jpg

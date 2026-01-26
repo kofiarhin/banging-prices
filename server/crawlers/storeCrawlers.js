@@ -1,13 +1,21 @@
-// server/scripts/runAsos.js
+// server/crawlers/storeCrawlers.js
 require("dotenv").config();
+
+process.env.CRAWLEE_SYSTEM_INFO_V2 = process.env.CRAWLEE_SYSTEM_INFO_V2 ?? "0";
 
 const mongoose = require("mongoose");
 const Product = require("../models/product.model");
 
+const { makeCanonicalKey } = require("../utils/canonical");
+
+// ✅ Boohoo crawler
 const { runBoohooCrawl } = require("../scrappers/boohoo.scraper");
+
+// ✅ ASOS crawler
 const { runAsosCrawl } = require("../scrappers/asos.scraper");
 
-const { makeCanonicalKey } = require("../utils/canonical");
+// ✅ NIKE crawler
+const { runNikeCrawl } = require("../scrappers/nike.scraper");
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI;
@@ -30,10 +38,15 @@ const guessCurrency = (raw) => {
   return raw?.currency || null;
 };
 
-// ✅ normalize ANY store result into your Product model shape
-const normalize = (raw = {}) => {
-  const store = String(raw.store || raw.source || "asos").toLowerCase();
+const inferStoreFromUrl = (url = "") => {
+  const u = String(url).toLowerCase();
+  if (u.includes("boohooman.com")) return "boohooman";
+  if (u.includes("asos.com")) return "asos";
+  if (u.includes("nike.com")) return "nike";
+  return null;
+};
 
+const normalize = (raw = {}) => {
   const productUrl =
     raw.productUrl ||
     raw.url ||
@@ -42,15 +55,23 @@ const normalize = (raw = {}) => {
     raw.product?.url ||
     null;
 
-  // ✅ boohoo already sends canonicalKey; asos needs makeCanonicalKey
+  const store = String(
+    raw.store || raw.source || inferStoreFromUrl(productUrl) || "unknown",
+  ).toLowerCase();
+
   const canonicalKey =
     raw.canonicalKey ||
-    (productUrl ? makeCanonicalKey({ store, productUrl }) : null);
+    (productUrl && store !== "unknown"
+      ? makeCanonicalKey({ store, productUrl })
+      : null);
 
   const price = toNumber(raw.price ?? raw.sr);
   const originalPrice = toNumber(raw.originalPrice ?? raw.wasPrice ?? raw.rrp);
 
-  const currency = raw.currency || guessCurrency(raw);
+  const currency =
+    raw.currency ||
+    guessCurrency(raw) ||
+    (store === "boohooman" ? "GBP" : store === "nike" ? "GBP" : null);
 
   const images = Array.isArray(raw.images) ? raw.images.filter(Boolean) : [];
   const image = raw.image || images[0] || null;
@@ -61,7 +82,13 @@ const normalize = (raw = {}) => {
     storeName:
       raw.storeName ||
       raw.sourceName ||
-      (store === "boohooman" ? "BoohooMAN" : "ASOS"),
+      (store === "boohooman"
+        ? "BoohooMAN"
+        : store === "asos"
+          ? "ASOS"
+          : store === "nike"
+            ? "Nike"
+            : "Unknown"),
     title: raw.title || raw.name || null,
     price,
     currency,
@@ -114,9 +141,9 @@ const upsertProducts = async (products, label = "STORE") => {
       if (miss.length) {
         debug.missingRequired += 1;
         stats.skipped += 1;
-
         if (debug.missingRequired <= 3) {
           console.log(`⚠️ ${label} SKIP missing:`, miss, {
+            store: doc.store,
             title: doc.title,
             price: doc.price,
             currency: doc.currency,
@@ -128,7 +155,7 @@ const upsertProducts = async (products, label = "STORE") => {
 
       const res = await Product.updateOne(
         { canonicalKey: doc.canonicalKey },
-        { $set: doc, $setOnInsert: { createdAt: new Date() } },
+        { $set: doc },
         { upsert: true },
       );
 
@@ -146,58 +173,155 @@ const upsertProducts = async (products, label = "STORE") => {
 
   console.log(`📊 ${label} STATS:`, stats);
   console.log(`🔎 ${label} DEBUG:`, debug);
-
-  return { stats, debug };
 };
 
 const run = async () => {
   await connectDB();
 
-  // =========================
-  // 1) BOOHOO FIRST
-  // =========================
-  const boohooStartUrls = [
-    {
-      url: "https://www.boohooman.com/mens/hoodies-sweatshirts",
-      userData: { gender: "men", category: "hoodies & sweatshirts" },
-    },
-  ];
+  // ---------- NIKE (FIRST) ----------
+  const nikeProducts = await runNikeCrawl({
+    startUrls: [
+      // men
+      {
+        url: "https://www.nike.com/gb/w/mens-lifestyle-shoes-13jrmznik1zy7ok",
+        userData: { gender: "men", category: "lifestyle-shoes" },
+      },
+      {
+        url: "https://www.nike.com/gb/w/mens-running-shoes-37v7jznik1zy7ok",
+        userData: { gender: "men", category: "running-shoes" },
+      },
 
-  const boohooProducts = await runBoohooCrawl({
-    startUrls: boohooStartUrls,
-    maxListPages: 1,
+      // women
+      {
+        url: "https://www.nike.com/gb/w/womens-lifestyle-shoes-13jrmz5e1x6zy7ok",
+        userData: { gender: "women", category: "lifestyle-shoes" },
+      },
+      {
+        url: "https://www.nike.com/gb/w/womens-running-shoes-37v7jz5e1x6zy7ok",
+        userData: { gender: "women", category: "running-shoes" },
+      },
+
+      // kids
+      {
+        url: "https://www.nike.com/gb/w/kids-lifestyle-shoes-13jrmzv4dhzy7ok",
+        userData: { gender: "kids", category: "lifestyle-shoes" },
+      },
+      {
+        url: "https://www.nike.com/gb/w/kids-running-shoes-37v7jzv4dhzy7ok",
+        userData: { gender: "kids", category: "running-shoes" },
+      },
+    ],
+    maxListPages: 2,
     debug: true,
   });
 
-  console.log("✅ BOOHOO PRODUCTS:", boohooProducts.length);
+  await upsertProducts(nikeProducts, "NIKE");
+
+  // ---------- BOOHOO ----------
+  const boohooProducts = await runBoohooCrawl({
+    startUrls: [
+      {
+        url: "https://www.boohooman.com/mens/hoodies-sweatshirts",
+        userData: { gender: "men", category: "hoodies-sweatshirts" },
+      },
+      {
+        url: "https://www.boohooman.com/mens/coats-jackets",
+        userData: { gender: "men", category: "coats-jackets" },
+      },
+      {
+        url: "https://www.boohooman.com/mens/tracksuits",
+        userData: { gender: "men", category: "tracksuits" },
+      },
+      {
+        url: "https://www.boohooman.com/mens/joggers",
+        userData: { gender: "men", category: "joggers" },
+      },
+    ],
+    maxListPages: 3,
+    debug: true,
+  });
+
   await upsertProducts(boohooProducts, "BOOHOO");
 
-  // quick sanity check
-  const boohooCount = await Product.countDocuments({ store: "boohooman" });
-  console.log("🧾 BOOHOO docs in DB:", boohooCount);
-
-  // =========================
-  // 2) THEN ASOS
-  // =========================
-  const asosStartUrls = [
-    {
-      url: "https://www.asos.com/women/dresses/cat/?cid=8799",
-      userData: { gender: "women", category: "dresses" },
-    },
-  ];
-
+  // ---------- ASOS ----------
   const asosProducts = await runAsosCrawl({
-    startUrls: asosStartUrls,
-    maxListPages: 1,
+    startUrls: [
+      // women
+      {
+        url: "https://www.asos.com/women/dresses/cat/?cid=8799",
+        userData: { gender: "women", category: "dresses" },
+      },
+      {
+        url: "https://www.asos.com/women/tops/cat/?cid=4169",
+        userData: { gender: "women", category: "tops" },
+      },
+      {
+        url: "https://www.asos.com/women/co-ords/cat/?cid=19632",
+        userData: { gender: "women", category: "co-ords" },
+      },
+      {
+        url: "https://www.asos.com/women/coats-jackets/cat/?cid=2641",
+        userData: { gender: "women", category: "coats-jackets" },
+      },
+      {
+        url: "https://www.asos.com/women/jeans/cat/?cid=3630",
+        userData: { gender: "women", category: "jeans" },
+      },
+      {
+        url: "https://www.asos.com/women/skirts/cat/?cid=2639",
+        userData: { gender: "women", category: "skirts" },
+      },
+      {
+        url: "https://www.asos.com/women/jumpers-cardigans/cat/?cid=2637",
+        userData: { gender: "women", category: "jumpers-cardigans" },
+      },
+      {
+        url: "https://www.asos.com/women/shoes/trainers/cat/?cid=6456",
+        userData: { gender: "women", category: "trainers" },
+      },
+      {
+        url: "https://www.asos.com/women/shoes/boots/cat/?cid=6455",
+        userData: { gender: "women", category: "boots" },
+      },
+
+      // men
+      {
+        url: "https://www.asos.com/men/t-shirts-vests/cat/?cid=7616",
+        userData: { gender: "men", category: "t-shirts-vests" },
+      },
+      {
+        url: "https://www.asos.com/men/hoodies-sweatshirts/cat/?cid=5668",
+        userData: { gender: "men", category: "hoodies-sweatshirts" },
+      },
+      {
+        url: "https://www.asos.com/men/jackets-coats/cat/?cid=3606",
+        userData: { gender: "men", category: "jackets-coats" },
+      },
+      {
+        url: "https://www.asos.com/men/jeans/cat/?cid=4208",
+        userData: { gender: "men", category: "jeans" },
+      },
+      {
+        url: "https://www.asos.com/men/trousers-chinos/cat/?cid=4910",
+        userData: { gender: "men", category: "trousers-chinos" },
+      },
+      {
+        url: "https://www.asos.com/men/shoes-boots-trainers/trainers/cat/?cid=5775",
+        userData: { gender: "men", category: "trainers" },
+      },
+      {
+        url: "https://www.asos.com/men/shoes-boots-trainers/smart-shoes/cat/?cid=5773",
+        userData: { gender: "men", category: "smart-shoes" },
+      },
+    ],
+    maxListPages: 3,
     debug: true,
   });
 
-  console.log("✅ ASOS PRODUCTS:", asosProducts.length);
   await upsertProducts(asosProducts, "ASOS");
 
-  // quick sanity check
-  const asosCount = await Product.countDocuments({ store: "asos" });
-  console.log("🧾 ASOS docs in DB:", asosCount);
+  const total = await Product.countDocuments({});
+  console.log("🧾 total product docs in DB:", total);
 };
 
 run()
