@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useHomeQuery } from "../../hooks/useHomeQuery";
+import HeroCarousel from "../../components/HeroCarousel/HeroCarousel";
 import "./home-page.styles.scss";
 
-/* ---------- helpers ---------- */
 const formatSecondsAgo = (seconds) => {
   if (!Number.isFinite(seconds)) return "—";
   const hrs = Math.floor(seconds / 3600);
@@ -12,274 +12,221 @@ const formatSecondsAgo = (seconds) => {
   return `${mins}m ago`;
 };
 
-const money = (currency, value) => {
-  if (!currency) return value;
-  if (value === null || value === undefined) return "—";
-  return `${currency}${value}`;
+const fmtCurrency = (currency, price) => {
+  const n = Number(price);
+  const v = Number.isFinite(n) ? n : 0;
+  const sym =
+    currency === "GBP"
+      ? "£"
+      : currency === "USD"
+        ? "$"
+        : currency === "EUR"
+          ? "€"
+          : "";
+  return `${sym}${v.toFixed(2)}`;
 };
-/* ----------------------------- */
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-
   const { data, isLoading, isError } = useHomeQuery();
+  const [q, setQ] = useState("");
 
-  const tiles = useMemo(
-    () => [
-      { label: "Biggest drops", to: "/products?sort=discount-desc" },
-      { label: "Under £20", to: "/products?maxPrice=20&sort=discount-desc" },
-      { label: "Newly detected", to: "/products?sort=newest" },
-      { label: "Men", to: "/products?gender=men&sort=discount-desc" },
-      { label: "Women", to: "/products?gender=women&sort=discount-desc" },
-      { label: "Browse all", to: "/products" },
-    ],
-    [],
-  );
+  const system = data?.system || {};
+  const sections = Array.isArray(data?.sections) ? data.sections : [];
+
+  // backend may return either:
+  // { heroCarousel: [...] } OR { carousel: { slides: [...] } } OR { carousel: { ... } }
+  const slides = useMemo(() => {
+    if (Array.isArray(data?.heroCarousel)) return data.heroCarousel;
+    if (Array.isArray(data?.carousel?.slides)) return data.carousel.slides;
+    if (Array.isArray(data?.carousel)) return data.carousel;
+    return [];
+  }, [data]);
 
   const onSearch = (e) => {
     e.preventDefault();
-    const q = search.trim();
-    if (!q) return;
-    navigate(`/products?search=${encodeURIComponent(q)}`);
+    const query = String(q || "").trim();
+    if (!query) return;
+    navigate(`/products?search=${encodeURIComponent(query)}&page=1`);
   };
 
-  const sections = Array.isArray(data?.sections) ? data.sections : [];
-
-  const featured = data?.featured || null;
-
   return (
-    <main className="hp">
-      <div className="hp-grid-overlay" />
-      <div className="hp-scanline" />
-
-      <div className="hp-container">
+    <div className="pp-home">
+      <div className="pp-container">
         {/* HERO */}
-        <section className="hp-hero">
-          <div className="hp-toprow">
-            <div className="hp-badge-wrapper">
-              <span className="hp-badge">
-                <span className="hp-pulse-dot" aria-hidden="true" />
-                SYSTEM STATUS: OPERATIONAL
-              </span>
-
-              <div className="hp-system-metrics" aria-label="System metrics">
-                {isLoading && <span>Loading metrics…</span>}
-
-                {!isLoading && !isError && data?.system && (
-                  <>
-                    <span>
-                      Retailers active (6h): {data.system.retailersOnline} /{" "}
-                      {data.system.retailersTotal}
-                    </span>
-                    <span>
-                      Last scan:{" "}
-                      {formatSecondsAgo(data.system.lastScanSecondsAgo)}
-                    </span>
-                    <span>Assets tracked: {data.system.assetsTracked}</span>
-                  </>
-                )}
-
-                {isError && <span>Metrics unavailable</span>}
+        <section className="pp-hero">
+          <div className="pp-hero-inner">
+            <div className="pp-hero-copy">
+              <div className="pp-hero-kicker">
+                <span className="pp-hero-dot" />
+                LIVE MARKET TRACKING
               </div>
-            </div>
 
-            <Link to="/products" className="hp-ghost-link">
-              Browse live
-              <span className="material-symbols-outlined" aria-hidden="true">
-                arrow_right_alt
-              </span>
-            </Link>
-          </div>
-
-          <h1 className="hp-title">
-            Buy smarter.
-            <br />
-            <span className="hp-title-accent">
-              Catch real fashion drops in the UK.
-            </span>
-          </h1>
-
-          <p className="hp-lead">
-            Real-time price movements across UK retailers. Clean signals. No
-            fake sales.
-          </p>
-
-          {/* SEARCH */}
-          <form className="hp-search-box" onSubmit={onSearch}>
-            <div className="hp-search-inner">
-              <span
-                className="material-symbols-outlined hp-search-icon"
-                aria-hidden="true"
-              >
-                terminal
-              </span>
-
-              <input
-                className="hp-input"
-                placeholder='Search a brand, product, or retailer (e.g. "Stussy hoodie")'
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-
-              <button
-                type="submit"
-                className="hp-search-submit"
-                aria-label="Search"
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  north_east
+              <h1 className="pp-hero-title">
+                Real fashion price drops.
+                <br />
+                <span className="pp-hero-accent">
+                  Tracked live across UK retailers.
                 </span>
-              </button>
+              </h1>
+
+              <p className="pp-hero-subtitle">
+                We monitor real prices in real time to surface only genuine
+                drops — not sale labels or promo noise.
+              </p>
+
+              <form className="pp-hero-search" onSubmit={onSearch}>
+                <div className="pp-hero-searchbar">
+                  <span className="pp-hero-searchicon" aria-hidden="true">
+                    ⌕
+                  </span>
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search a product or brand..."
+                    aria-label="Search products"
+                  />
+                </div>
+                <button className="pp-hero-searchbtn" type="submit">
+                  ↗
+                </button>
+              </form>
             </div>
 
-            <div className="hp-search-hint">
-              Live scan • No cached data • Updates continuously
+            <div className="pp-hero-right">
+              {!isLoading && slides.length > 0 ? (
+                <HeroCarousel slides={slides} />
+              ) : (
+                <div className="pp-hero-carousel-skel" aria-hidden="true" />
+              )}
             </div>
-          </form>
-
-          {/* QUICK TILES */}
-          <div className="hp-tiles" aria-label="Quick shortcuts">
-            {tiles.map((t) => (
-              <button
-                key={t.to}
-                type="button"
-                className="hp-tile"
-                onClick={() => navigate(t.to)}
-              >
-                <span className="hp-tile-label">{t.label}</span>
-                <span
-                  className="material-symbols-outlined hp-tile-icon"
-                  aria-hidden="true"
-                >
-                  arrow_right_alt
-                </span>
-              </button>
-            ))}
           </div>
         </section>
 
-        {/* FEATURED */}
-        {!!featured && (
-          <section className="hp-featured" aria-label="Featured">
-            <div className="hp-featured-card">
-              <div className="hp-featured-media" aria-hidden="true">
-                <img
-                  src={featured.imageUrl}
-                  alt={featured.title || "Featured"}
-                  className="hp-featured-img"
-                  loading="lazy"
-                  draggable="false"
-                />
-                <div className="hp-featured-overlay" />
+        {/* HOW + STATS */}
+        <section className="pp-how">
+          <div className="pp-how-head">
+            <h3>How we track real price drops</h3>
+          </div>
+
+          <div className="pp-how-grid">
+            <div className="pp-how-steps">
+              <div className="pp-step">
+                <span className="pp-step-k">SCAN</span>
+                <p>Continuous monitoring across UK retailers.</p>
               </div>
 
-              <div className="hp-featured-body">
-                <div className="hp-featured-kicker">Featured</div>
-                <div className="hp-featured-title">{featured.title}</div>
-                {!!featured.subtitle && (
-                  <div className="hp-featured-sub">{featured.subtitle}</div>
-                )}
+              <div className="pp-step">
+                <span className="pp-step-k">VERIFY</span>
+                <p>
+                  Prices compared over time to filter fake sales and inflated
+                  discounts.
+                </p>
+              </div>
 
-                <button
-                  type="button"
-                  className="hp-featured-cta"
-                  onClick={() => navigate(featured.to || "/products")}
-                >
-                  Explore
-                  <span
-                    className="material-symbols-outlined"
-                    aria-hidden="true"
-                  >
-                    north_east
-                  </span>
-                </button>
+              <div className="pp-step">
+                <span className="pp-step-k">SURFACE</span>
+                <p>Only genuine price drops appear — live.</p>
               </div>
             </div>
-          </section>
-        )}
 
-        {/* SECTIONS (PriceSpy-style strips) */}
-        <section className="hp-sections" aria-label="Home sections">
+            <div className="pp-live-stats">
+              <div className="pp-stat">
+                <div className="pp-stat-num">
+                  {Number(system.retailersOnline || 0)}
+                </div>
+                <div className="pp-stat-label">Retailers monitored</div>
+              </div>
+
+              <div className="pp-stat">
+                <div className="pp-stat-num">
+                  {Number(system.assetsTracked || 0)}
+                </div>
+                <div className="pp-stat-label">Products tracked</div>
+              </div>
+
+              <div className="pp-stat">
+                <div className="pp-stat-num">
+                  {formatSecondsAgo(system.lastScanSecondsAgo)}
+                </div>
+                <div className="pp-stat-label">Last scan</div>
+              </div>
+
+              <div className="pp-stat">
+                <div className="pp-stat-num">
+                  {Number(system.verifiedDropsToday || 0)}
+                </div>
+                <div className="pp-stat-label">Verified drops today</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTIONS */}
+        <section className="pp-sections">
+          {isError && (
+            <div className="pp-home-error">Failed to load home feed.</div>
+          )}
+
           {isLoading && (
-            <div className="hp-loading">Loading live opportunities…</div>
-          )}
-          {!isLoading && isError && (
-            <div className="hp-loading">Home intelligence unavailable.</div>
-          )}
-
-          {!isLoading && !isError && sections.length === 0 && (
-            <div className="hp-loading">
-              No sections configured. Try browsing live opportunities.
-            </div>
+            <div className="pp-home-loading">Loading live market feed…</div>
           )}
 
           {!isLoading &&
-            !isError &&
-            sections.map((s) => (
-              <div key={s.id || s.title} className="hp-section">
-                <div className="hp-section-head">
-                  <div className="hp-section-left">
-                    <h2 className="hp-section-title">{s.title}</h2>
-                    {!!s.subtitle && (
-                      <p className="hp-section-sub">{s.subtitle}</p>
-                    )}
+            sections.map((sec) => (
+              <div key={sec.id} className="pp-section">
+                <div className="pp-section-head">
+                  <div className="pp-section-titlewrap">
+                    <h3 className="pp-section-title">{sec.title}</h3>
+                    {sec.subtitle ? (
+                      <p className="pp-section-subtitle">{sec.subtitle}</p>
+                    ) : null}
                   </div>
 
-                  <button
-                    type="button"
-                    className="hp-seeall"
-                    onClick={() => navigate(s.seeAllUrl || "/products")}
-                  >
-                    See all
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      arrow_right_alt
-                    </span>
-                  </button>
+                  {sec.seeAllUrl ? (
+                    <Link className="pp-seeall" to={sec.seeAllUrl}>
+                      See all <span className="pp-seeall-arrow">→</span>
+                    </Link>
+                  ) : null}
                 </div>
 
-                <div className="hp-strip" role="list">
-                  {(s.items || []).map((p) => (
+                <div className="pp-strip">
+                  {(sec.items || []).map((p) => (
                     <Link
                       key={p._id}
+                      className="pp-card"
                       to={`/products/${p._id}`}
-                      className="hp-item"
-                      role="listitem"
                     >
-                      <div className="hp-item-media">
+                      <div className="pp-card-media">
+                        {p.discountPercent ? (
+                          <div className="pp-badge">-{p.discountPercent}%</div>
+                        ) : null}
+
                         <img
+                          className="pp-card-img"
                           src={p.image}
                           alt={p.title}
-                          className="hp-item-img"
                           loading="lazy"
-                          draggable="false"
                         />
-
-                        {Number(p.discountPercent) > 0 && (
-                          <div className="hp-item-badge">
-                            -{p.discountPercent}%
-                          </div>
-                        )}
                       </div>
 
-                      <div className="hp-item-body">
-                        <div className="hp-item-store">
+                      <div className="pp-card-details">
+                        <div className="pp-card-store">
                           {p.storeName || p.store}
                         </div>
-                        <div className="hp-item-title">{p.title}</div>
 
-                        <div className="hp-item-price">
-                          <span className="hp-item-now">
-                            {money(p.currency, p.price)}
-                          </span>
-                          {!!p.originalPrice && (
-                            <span className="hp-item-was">
-                              {money(p.currency, p.originalPrice)}
-                            </span>
-                          )}
+                        <div className="pp-card-title">{p.title}</div>
+
+                        <div className="pp-card-price">
+                          <div className="pp-card-now">
+                            {fmtCurrency(p.currency, p.price)}
+                          </div>
+
+                          {p.originalPrice ? (
+                            <div className="pp-card-was">
+                              {fmtCurrency(p.currency, p.originalPrice)}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </Link>
@@ -288,49 +235,8 @@ const HomePage = () => {
               </div>
             ))}
         </section>
-
-        {/* SNAPSHOT (optional) */}
-        {!!data?.snapshot && (
-          <section className="hp-snapshot" aria-label="Market snapshot">
-            <div className="hp-snapshot-head">
-              <div className="hp-snapshot-title">Live market snapshot</div>
-              <div className="hp-snapshot-note">Fast read. Real signals.</div>
-            </div>
-
-            <div className="hp-snapshot-grid">
-              <div className="hp-snapshot-card">
-                <div className="hp-snapshot-label">Top drop right now</div>
-                <div className="hp-snapshot-value">
-                  {data.snapshot.topDrop?.title || "—"}{" "}
-                  {data.snapshot.topDrop?.discountPercent
-                    ? `— ↓${data.snapshot.topDrop.discountPercent}%`
-                    : ""}
-                </div>
-              </div>
-
-              <div className="hp-snapshot-card">
-                <div className="hp-snapshot-label">
-                  Biggest volatility today
-                </div>
-                <div className="hp-snapshot-value">
-                  {data.snapshot.biggestVolatility?.title || "—"}{" "}
-                  {data.snapshot.biggestVolatility?.discountPercent
-                    ? `— ↓${data.snapshot.biggestVolatility.discountPercent}%`
-                    : ""}
-                </div>
-              </div>
-
-              <div className="hp-snapshot-card">
-                <div className="hp-snapshot-label">Most searched brand</div>
-                <div className="hp-snapshot-value">
-                  {data.snapshot.mostSearchedBrand || "—"}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
       </div>
-    </main>
+    </div>
   );
 };
 
