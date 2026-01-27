@@ -1,7 +1,9 @@
+// client/src/App.jsx
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 
 import Header from "./components/Header.jsx";
+import Footer from "./components/footer/Footer.jsx";
 
 import HomePage from "./pages/HomePage/HomePage.jsx";
 import ProductsPage from "./pages/ProductsPage/ProductsPage.jsx";
@@ -117,6 +119,8 @@ const App = () => {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:id" element={<ProductDetailsPage />} />
       </Routes>
+
+      <Footer />
     </>
   );
 };
