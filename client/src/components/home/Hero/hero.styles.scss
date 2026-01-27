@@ -1,0 +1,121 @@
+.pp-hero {
+  padding: 22px 0;
+}
+
+.pp-hero-inner {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.pp-hero-copy {
+  flex: 1;
+  min-width: 280px;
+}
+
+.pp-hero-right {
+  width: min(520px, 46%);
+  min-height: 300px;
+}
+
+.pp-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+}
+
+.pp-hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pp-hero-title {
+  margin: 12px 0 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.pp-hero-accent {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.pp-hero-subtitle {
+  margin: 12px 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 56ch;
+}
+
+.pp-hero-search {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pp-hero-searchbar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pp-hero-searchbar input {
+  width: 100%;
+  background: none;
+  border: none;
+  outline: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+}
+
+.pp-hero-searchbar input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.pp-hero-searchicon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pp-hero-searchbtn {
+  height: 46px;
+  width: 54px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0b0f16;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pp-hero-searchbtn:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .pp-hero-inner {
+    flex-direction: column;
+  }
+
+  .pp-hero-right {
+    width: 100%;
+    min-height: 260px;
+  }
+}

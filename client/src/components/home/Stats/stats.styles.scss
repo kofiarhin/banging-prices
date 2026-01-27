@@ -1,0 +1,32 @@
+.pp-live-stats {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.pp-stat {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+}
+
+.pp-stat-num {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.pp-stat-label {
+  margin-top: 6px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .pp-live-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

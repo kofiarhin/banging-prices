@@ -1,0 +1,91 @@
+.pp-card {
+  width: 220px;
+  display: block;
+  text-decoration: none;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    transform 0.08s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pp-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.pp-card:active {
+  transform: translateY(1px);
+}
+
+.pp-card-media {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pp-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pp-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: #0b0f16;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.pp-card-details {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-card-store {
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pp-card-title {
+  font-weight: 900;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.92);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pp-card-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pp-card-now {
+  font-weight: 900;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.pp-card-was {
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: line-through;
+}
