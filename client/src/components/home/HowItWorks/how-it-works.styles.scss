@@ -1,0 +1,44 @@
+.pp-how {
+  margin-top: 18px;
+}
+
+.pp-how-head h3 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.pp-how-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.pp-step {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 14px;
+}
+
+.pp-step-k {
+  display: inline-block;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pp-step p {
+  margin: 10px 0 0;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .pp-how-steps {
+    grid-template-columns: 1fr;
+  }
+}

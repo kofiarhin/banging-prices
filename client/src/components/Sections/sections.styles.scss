@@ -1,0 +1,69 @@
+.pp-sections {
+  width: 100%;
+}
+
+.pp-sections-loading,
+.pp-sections-error,
+.pp-sections-empty {
+  padding: 18px 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+}
+
+.pp-section {
+  margin-top: 18px;
+}
+
+.pp-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pp-section-titlewrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pp-section-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.pp-section-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.pp-seeall {
+  text-decoration: none;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pp-seeall:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.pp-strip {
+  display: flex;
+  gap: 12px;
+  overflow: auto;
+  padding-bottom: 6px;
+}
+
+.pp-strip-item {
+  flex: 0 0 auto;
+}
