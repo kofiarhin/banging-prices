@@ -9,6 +9,8 @@ import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
 
+import SectionSkeleton from "../../components/skeletons/SectionSkeleton/SectionSkeleton";
+
 import "./home-page.styles.scss";
 
 const HomePage = () => {
@@ -54,7 +56,11 @@ const HomePage = () => {
           isLoading={isLoading}
           isError={isError}
           loadingUI={
-            <div className="pp-home-loading">Loading live market feed…</div>
+            <>
+              <SectionSkeleton cards={8} />
+              <SectionSkeleton cards={8} />
+              <SectionSkeleton cards={8} />
+            </>
           }
           errorUI={
             <div className="pp-home-error">Failed to load home feed.</div>
