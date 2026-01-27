@@ -4,3 +4,5 @@ client/dist
 .env
 storage
 notes.txt
+.vercel
+.env*.local

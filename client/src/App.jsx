@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 
 import Header from "./components/Header.jsx";
-import Footer from "./components/footer/Footer.jsx";
+import Footer from "./components/Footer/Footer.jsx";
 
 import HomePage from "./pages/HomePage/HomePage.jsx";
 import ProductsPage from "./pages/ProductsPage/ProductsPage.jsx";
