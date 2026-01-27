@@ -26,9 +26,20 @@ const PDP_THUMB_IMGS_SEL =
 const PDP_PRICE_CONTAINER_SEL = "#price-container";
 const PDP_CURRENT_PRICE_SEL = 'span[data-testid="currentPrice-container"]';
 
-const PDP_SIZE_WRAP_SEL = 'div#size-selector[data-testid="size-selector"]';
+// ✅ Nike PDP varies: can be #size-selector, [data-testid="size-selector"], or grid-selector fieldset
+const PDP_SIZE_WRAP_SEL =
+  '#size-selector, [data-testid="size-selector"], [data-testid*="grid-selector" i]';
+
+// ✅ Cover both legacy button picker and the grid input/label picker
 const PDP_SIZE_BTN_SEL =
-  'div#size-selector button, [data-testid="size-selector"] button';
+  '#size-selector button, [data-testid="size-selector"] button';
+
+const PDP_SIZE_GRID_LABEL_SEL = [
+  '[data-testid="pdp-grid-selector-grid"] label[for]',
+  '[data-testid*="grid-selector-grid" i] label[for]',
+  'fieldset[data-testid*="grid-selector" i] label[for]',
+  'div[data-testid*="grid-selector" i] label[for]',
+].join(", ");
 
 const hash = (s) => crypto.createHash("sha1").update(String(s)).digest("hex");
 
@@ -185,15 +196,24 @@ const extractPrices = async (page) => {
   };
 };
 
+// ✅ FIX: Nike sizes are often input+label grid, not buttons.
+// - Extract AVAILABLE sizes only
+// - Disabled detection checks: aria-disabled, input.disabled, wrapper .disabled, etc.
 const extractSizes = async (page) => {
+  const clean = (t) =>
+    String(t || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
   try {
     await page
       .waitForSelector(PDP_SIZE_WRAP_SEL, { timeout: 12000 })
       .catch(() => null);
 
-    const sizesRaw = await page
+    // 1) Legacy button picker (some PDPs)
+    const fromButtons = await page
       .$$eval(PDP_SIZE_BTN_SEL, (btns) => {
-        const clean = (t) =>
+        const cleanLocal = (t) =>
           String(t || "")
             .replace(/\s+/g, " ")
             .trim();
@@ -209,12 +229,69 @@ const extractSizes = async (page) => {
 
         return btns
           .filter((b) => !isDisabled(b))
-          .map((b) => clean(b.textContent))
+          .map((b) => cleanLocal(b.textContent))
           .filter(Boolean);
       })
       .catch(() => []);
 
-    const uniq = Array.from(new Set((sizesRaw || []).filter(Boolean)));
+    // 2) Grid selector (common): input[type=radio] + label[for=id]
+    const fromGridLabels = await page
+      .$$eval(PDP_SIZE_GRID_LABEL_SEL, (labels) => {
+        const cleanLocal = (t) =>
+          String(t || "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const hasDisabledClassUpTree = (el) => {
+          let cur = el;
+          for (let i = 0; i < 6 && cur; i += 1) {
+            const cls = (cur.getAttribute && cur.getAttribute("class")) || "";
+            if (String(cls).toLowerCase().includes("disabled")) return true;
+            cur = cur.parentElement;
+          }
+          return false;
+        };
+
+        const isLabelDisabled = (label) => {
+          const aria = (
+            label.getAttribute("aria-disabled") || ""
+          ).toLowerCase();
+          if (aria === "true") return true;
+
+          // Check the associated input, if present
+          const forId = label.getAttribute("for");
+          if (forId) {
+            const input = document.getElementById(forId);
+            if (input && input.disabled) return true;
+
+            const inputAria =
+              input &&
+              (input.getAttribute("aria-disabled") || "").toLowerCase();
+            if (inputAria === "true") return true;
+
+            const inputCls = input && (input.getAttribute("class") || "");
+            if (String(inputCls).toLowerCase().includes("disabled"))
+              return true;
+          }
+
+          // Some Nike variants mark disabled on wrappers
+          if (hasDisabledClassUpTree(label)) return true;
+
+          return false;
+        };
+
+        return labels
+          .filter((l) => !isLabelDisabled(l))
+          .map((l) => cleanLocal(l.textContent))
+          .filter(Boolean);
+      })
+      .catch(() => []);
+
+    const merged = [...(fromButtons || []), ...(fromGridLabels || [])]
+      .map(clean)
+      .filter(Boolean);
+
+    const uniq = Array.from(new Set(merged));
     return { sizesRaw: uniq, sizes: uniq };
   } catch {
     return { sizesRaw: [], sizes: [] };
@@ -380,6 +457,8 @@ const runNikeCrawl = async ({
           image: doc.image,
           imagesCount: Array.isArray(doc.images) ? doc.images.length : 0,
           productUrl: doc.productUrl,
+          sizesCount: Array.isArray(doc.sizes) ? doc.sizes.length : 0,
+          inStock: doc.inStock,
         });
       }
 

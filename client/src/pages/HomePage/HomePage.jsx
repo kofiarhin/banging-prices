@@ -9,8 +9,6 @@ import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
 
-import SectionSkeleton from "../../components/skeletons/SectionSkeleton/SectionSkeleton";
-
 import "./home-page.styles.scss";
 
 const HomePage = () => {
@@ -38,15 +36,13 @@ const HomePage = () => {
   return (
     <div className="pp-home">
       <div className="pp-container">
-        <div className="pp-home-hero-wrap">
-          <div className="pp-home-hero-left">
-            <Hero q={q} setQ={setQ} onSearch={onSearch} />
-          </div>
+        <section className="pp-home-hero">
+          <Hero q={q} setQ={setQ} onSearch={onSearch} />
+        </section>
 
-          <div className="pp-home-hero-right">
-            <Carousel slides={slides} isLoading={isLoading} />
-          </div>
-        </div>
+        {/* <section className="pp-home-carousel">
+          <Carousel slides={slides} isLoading={isLoading} />
+        </section> */}
 
         <HowItWorks />
         <Stats system={system} />
@@ -56,11 +52,7 @@ const HomePage = () => {
           isLoading={isLoading}
           isError={isError}
           loadingUI={
-            <>
-              <SectionSkeleton cards={8} />
-              <SectionSkeleton cards={8} />
-              <SectionSkeleton cards={8} />
-            </>
+            <div className="pp-home-loading">Loading live market feed…</div>
           }
           errorUI={
             <div className="pp-home-error">Failed to load home feed.</div>
