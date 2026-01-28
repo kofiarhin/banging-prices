@@ -1,9 +1,6 @@
-/* client/pages/ProductsPage/products.styles.scss */
-
 $accent-yellow: #f3d55b;
 $bg: #0d0f10;
 $panel: rgba(255, 255, 255, 0.04);
-$panel-2: rgba(255, 255, 255, 0.06);
 $border: rgba(255, 255, 255, 0.1);
 $border-2: rgba(255, 255, 255, 0.14);
 $text: rgba(255, 255, 255, 0.92);
@@ -53,6 +50,15 @@ $muted-2: rgba(255, 255, 255, 0.48);
   border-bottom: 1px solid $border;
 }
 
+.pp-toolbar.is-hidden {
+  transform: translateY(-14px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
 .pp-toolbar-inner {
   display: flex;
   flex-direction: column;
@@ -80,10 +86,10 @@ $muted-2: rgba(255, 255, 255, 0.48);
   padding-bottom: 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
 
-  &::-webkit-scrollbar {
-    display: none;
-  }
+.pp-genderbar::-webkit-scrollbar {
+  display: none;
 }
 
 .pp-genderbtn {
@@ -103,22 +109,22 @@ $muted-2: rgba(255, 255, 255, 0.48);
     border-color 0.15s ease,
     color 0.15s ease,
     transform 0.06s ease;
+}
 
-  &:hover {
-    background: $panel;
-    border-color: $border-2;
-    color: $text;
-  }
+.pp-genderbtn:hover {
+  background: $panel;
+  border-color: $border-2;
+  color: $text;
+}
 
-  &:active {
-    transform: translateY(1px);
-  }
+.pp-genderbtn:active {
+  transform: translateY(1px);
+}
 
-  &.is-active {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(255, 255, 255, 0.92);
-    color: #0b0f16;
-  }
+.pp-genderbtn.is-active {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.92);
+  color: #0b0f16;
 }
 
 /* Category row (chips) */
@@ -129,10 +135,10 @@ $muted-2: rgba(255, 255, 255, 0.48);
   padding-bottom: 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
 
-  &::-webkit-scrollbar {
-    display: none;
-  }
+.pp-catbar::-webkit-scrollbar {
+  display: none;
 }
 
 .pp-catbtn {
@@ -150,21 +156,21 @@ $muted-2: rgba(255, 255, 255, 0.48);
     border-color 0.15s ease,
     color 0.15s ease,
     transform 0.06s ease;
+}
 
-  &:hover {
-    background: $panel;
-    border-color: $border-2;
-  }
+.pp-catbtn:hover {
+  background: $panel;
+  border-color: $border-2;
+}
 
-  &:active {
-    transform: translateY(1px);
-  }
+.pp-catbtn:active {
+  transform: translateY(1px);
+}
 
-  &.is-active {
-    background: rgba(255, 255, 255, 0.92);
-    border-color: rgba(255, 255, 255, 0.92);
-    color: #0b0f16;
-  }
+.pp-catbtn.is-active {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.92);
+  color: #0b0f16;
 }
 
 /* Meta row (count + sort) */
@@ -200,32 +206,32 @@ $muted-2: rgba(255, 255, 255, 0.48);
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
+}
 
-  &:hover {
-    background: $panel;
-    border-color: $border-2;
-  }
+.pp-sort-select:hover {
+  background: $panel;
+  border-color: $border-2;
+}
 
-  &:focus {
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
-  }
+.pp-sort-select:focus {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
 
-  option {
-    background: #0b0f16;
-    color: #fff;
-  }
+.pp-sort-select option {
+  background: #0b0f16;
+  color: #fff;
 }
 
 /* =========================
-   Grid + Cards
+   Grid + Cards (TIGHT)
 ========================= */
 
 .pp-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 18px 12px;
-  padding: 18px 0 10px;
+  gap: 12px 10px;
+  padding: 14px 0 8px;
 }
 
 @media (max-width: 360px) {
@@ -237,15 +243,15 @@ $muted-2: rgba(255, 255, 255, 0.48);
 @media (min-width: 600px) {
   .pp-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 22px 14px;
+    gap: 16px 12px;
   }
 }
 
 @media (min-width: 1024px) {
   .pp-grid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 26px 16px;
-    padding: 22px 0 12px;
+    gap: 18px 14px;
+    padding: 16px 0 10px;
   }
 }
 
@@ -293,25 +299,28 @@ $muted-2: rgba(255, 255, 255, 0.48);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+/* ✅ main spacing fix */
 .pp-card-details {
-  padding: 10px 2px 0;
+  padding: 8px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .pp-card-store {
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
   color: $accent-yellow;
 }
 
 .pp-card-title {
+  margin: 0;
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.25;
   color: rgba(255, 255, 255, 0.92);
 
   display: -webkit-box;
@@ -329,12 +338,13 @@ $muted-2: rgba(255, 255, 255, 0.48);
 .pp-card-price {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-top: 2px;
+  gap: 8px;
+  margin-top: 0;
+  line-height: 1.1;
 }
 
 .pp-card-now {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.95);
 }
@@ -355,7 +365,7 @@ $muted-2: rgba(255, 255, 255, 0.48);
   justify-content: center;
   align-items: center;
   gap: 14px;
-  padding: 22px 0 70px;
+  padding: 18px 0 60px;
 }
 
 .pp-pager-btn {
@@ -373,20 +383,20 @@ $muted-2: rgba(255, 255, 255, 0.48);
     background 0.15s ease,
     border-color 0.15s ease,
     transform 0.06s ease;
+}
 
-  &:hover {
-    background: $panel;
-    border-color: $border-2;
-  }
+.pp-pager-btn:hover {
+  background: $panel;
+  border-color: $border-2;
+}
 
-  &:active {
-    transform: translateY(1px);
-  }
+.pp-pager-btn:active {
+  transform: translateY(1px);
+}
 
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
+.pp-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* =========================
