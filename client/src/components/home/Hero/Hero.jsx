@@ -1,10 +1,14 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import "./hero.styles.scss";
 
+const AUTOPLAY_MS = 5000;
+
 const Hero = () => {
   const scrollRef = useRef(null);
+  const timerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -17,13 +21,14 @@ const Hero = () => {
     },
   });
 
+  const slidesCount = data?.carousel?.slides?.length || 0;
+
   const scrollToIndex = (index) => {
-    if (!scrollRef.current || !data?.carousel?.slides?.length) return;
+    if (!scrollRef.current || !slidesCount) return;
 
-    const slides = data.carousel.slides;
-    const targetIndex = (index + slides.length) % slides.length;
-
+    const targetIndex = (index + slidesCount) % slidesCount;
     const width = scrollRef.current.offsetWidth;
+
     scrollRef.current.scrollTo({
       left: width * targetIndex,
       behavior: "smooth",
@@ -32,12 +37,70 @@ const Hero = () => {
     setCurrentIndex(targetIndex);
   };
 
+  const stopAutoplay = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const startAutoplay = () => {
+    stopAutoplay();
+    if (!slidesCount || isPaused) return;
+
+    timerRef.current = setInterval(() => {
+      setCurrentIndex((prev) => {
+        const next = (prev + 1) % slidesCount;
+
+        // scroll immediately using the DOM ref (avoid stale closures)
+        if (scrollRef.current) {
+          const width = scrollRef.current.offsetWidth;
+          scrollRef.current.scrollTo({
+            left: width * next,
+            behavior: "smooth",
+          });
+        }
+
+        return next;
+      });
+    }, AUTOPLAY_MS);
+  };
+
+  // start/stop autoplay when data loads or pause toggles
+  useEffect(() => {
+    startAutoplay();
+    return stopAutoplay;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slidesCount, isPaused]);
+
+  // pause when tab is hidden
+  useEffect(() => {
+    const onVisibility = () => setIsPaused(document.hidden);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  // keep slide aligned on resize
+  useEffect(() => {
+    const onResize = () => scrollToIndex(currentIndex);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, slidesCount]);
+
   if (isLoading || !data)
     return <div className="hero-skeleton">Scanning for drops...</div>;
 
   return (
     <section className="hero-container">
-      <div className="hero-scroll-track" ref={scrollRef}>
+      <div
+        className="hero-scroll-track"
+        ref={scrollRef}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
+      >
         {data.carousel.slides.map((slide) => {
           const featured = slide?.items?.[0];
           if (!featured) return null;
@@ -90,7 +153,11 @@ const Hero = () => {
 
       <div className="nav-controls">
         <button
-          onClick={() => scrollToIndex(currentIndex - 1)}
+          onClick={() => {
+            setIsPaused(true);
+            scrollToIndex(currentIndex - 1);
+            setTimeout(() => setIsPaused(false), 600);
+          }}
           className="ctrl-btn"
         >
           <svg
@@ -104,7 +171,11 @@ const Hero = () => {
         </button>
 
         <button
-          onClick={() => scrollToIndex(currentIndex + 1)}
+          onClick={() => {
+            setIsPaused(true);
+            scrollToIndex(currentIndex + 1);
+            setTimeout(() => setIsPaused(false), 600);
+          }}
           className="ctrl-btn"
         >
           <svg
