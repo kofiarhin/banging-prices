@@ -17,6 +17,9 @@ const { runAsosCrawl } = require("../scrappers/asos.scraper");
 // ✅ NIKE crawler
 const { runNikeCrawl } = require("../scrappers/nike.scraper");
 
+// ✅ River Island crawler
+const { runRiverIslandCrawl } = require("../scrappers/riverisland.scraper");
+
 const connectDB = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) throw new Error("Missing MONGO_URI in .env");
@@ -43,6 +46,7 @@ const inferStoreFromUrl = (url = "") => {
   if (u.includes("boohooman.com")) return "boohooman";
   if (u.includes("asos.com")) return "asos";
   if (u.includes("nike.com")) return "nike";
+  if (u.includes("riverisland.com")) return "riverisland";
   return null;
 };
 
@@ -71,7 +75,13 @@ const normalize = (raw = {}) => {
   const currency =
     raw.currency ||
     guessCurrency(raw) ||
-    (store === "boohooman" ? "GBP" : store === "nike" ? "GBP" : null);
+    (store === "boohooman"
+      ? "GBP"
+      : store === "nike"
+        ? "GBP"
+        : store === "riverisland"
+          ? "GBP"
+          : null);
 
   const images = Array.isArray(raw.images) ? raw.images.filter(Boolean) : [];
   const image = raw.image || images[0] || null;
@@ -88,7 +98,9 @@ const normalize = (raw = {}) => {
           ? "ASOS"
           : store === "nike"
             ? "Nike"
-            : "Unknown"),
+            : store === "riverisland"
+              ? "River Island"
+              : "Unknown"),
     title: raw.title || raw.name || null,
     price,
     currency,
@@ -178,7 +190,74 @@ const upsertProducts = async (products, label = "STORE") => {
 const run = async () => {
   await connectDB();
 
-  // ---------- NIKE (FIRST) ----------
+  // ---------- RIVER ISLAND (FIRST) ----------
+  const riverIslandProducts = await runRiverIslandCrawl({
+    startUrls: [
+      // women
+      {
+        url: "https://www.riverisland.com/c/women/tops?f-cat=hoodies&f-cat=sweatshirts",
+        userData: { gender: "women", category: "hoodies-sweatshirts" },
+      },
+      {
+        url: "https://www.riverisland.com/c/women/coats-and-jackets",
+        userData: { gender: "women", category: "coats-jackets" },
+      },
+      {
+        url: "https://www.riverisland.com/c/women/jeans",
+        userData: { gender: "women", category: "jeans" },
+      },
+      {
+        url: "https://www.riverisland.com/c/women/shoes-and-boots?f-cat=shoes",
+        userData: { gender: "women", category: "shoes" },
+      },
+      {
+        url: "https://www.riverisland.com/c/women/shoes-and-boots?f-cat=trainers",
+        userData: { gender: "women", category: "trainers" },
+      },
+
+      // men
+      {
+        url: "https://www.riverisland.com/c/men/hoodies-and-sweatshirts",
+        userData: { gender: "men", category: "hoodies-sweatshirts" },
+      },
+      {
+        url: "https://www.riverisland.com/c/men/coats-and-jackets",
+        userData: { gender: "men", category: "coats-jackets" },
+      },
+      {
+        url: "https://www.riverisland.com/c/men/jeans",
+        userData: { gender: "men", category: "jeans" },
+      },
+      {
+        url: "https://www.riverisland.com/c/men/shoes-and-boots?f-cat=shoes",
+        userData: { gender: "men", category: "shoes" },
+      },
+      {
+        url: "https://www.riverisland.com/c/men/shoes-and-boots?f-cat=trainers",
+        userData: { gender: "men", category: "trainers" },
+      },
+
+      // kids (starter set)
+      {
+        url: "https://www.riverisland.com/c/kids-and-baby/girls",
+        userData: { gender: "kids", category: "girls" },
+      },
+      {
+        url: "https://www.riverisland.com/c/kids-and-baby/boys",
+        userData: { gender: "kids", category: "boys" },
+      },
+      {
+        url: "https://www.riverisland.com/c/kids-and-baby/baby",
+        userData: { gender: "kids", category: "baby" },
+      },
+    ],
+    maxListPages: 2,
+    debug: true,
+  });
+
+  await upsertProducts(riverIslandProducts, "RIVER_ISLAND");
+
+  // ---------- NIKE ----------
   const nikeProducts = await runNikeCrawl({
     startUrls: [
       // men

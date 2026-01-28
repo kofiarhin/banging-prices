@@ -1,7 +1,5 @@
 // server/scrappers/riverisland.scraper.js
 const { PlaywrightCrawler } = require("crawlee");
-const crypto = require("crypto");
-
 const { makeCanonicalKey } = require("../utils/canonical");
 
 const DEFAULT_START_URLS = [
@@ -11,13 +9,13 @@ const DEFAULT_START_URLS = [
   },
 ];
 
-const LIST_READY_SEL = 'img[data-qa="product-image"]';
-const LIST_LINKS_SEL = 'a[href^="/p/"]';
+const LIST_READY_SEL = 'a[href^="/p/"], a[href*="/p/"]';
+const LIST_LINKS_SEL = 'a[href^="/p/"], a[href*="/p/"]';
 
 const PDP_ROOT_SEL = 'section[data-cs-override-id="product-details"]';
 const PDP_TITLE_SEL = `${PDP_ROOT_SEL} h1`;
 
-const PDP_SIZE_BUTTON_SEL = 'li[data-qa="size-box"] [role="button"]';
+const PDP_SIZE_LI_SEL = 'li[data-qa="size-box"]';
 
 const PDP_JSONLD_SEL = 'script[type="application/ld+json"]';
 const PDP_META_PRICE_SEL =
@@ -25,13 +23,13 @@ const PDP_META_PRICE_SEL =
 const PDP_META_CURRENCY_SEL =
   'meta[itemprop="priceCurrency"], meta[property="product:price:currency"]';
 
-const PDP_IMG_SEL = `${PDP_ROOT_SEL} img[src], ${PDP_ROOT_SEL} img[srcset]`;
+const PDP_PRICE_SEL = 'p[data-qa="price"]';
+const PDP_PRICE_CURRENT_SEL = `${PDP_PRICE_SEL} span.price__current-price`;
 
-const sha1 = (s) => crypto.createHash("sha1").update(String(s)).digest("hex");
+const PDP_IMG_SEL = `${PDP_ROOT_SEL} img[src], ${PDP_ROOT_SEL} img[srcset]`;
 
 const toNumber = (val) => {
   if (val == null) return null;
-  if (typeof val === "number") return Number.isFinite(val) ? val : null;
   const n = Number(String(val).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
@@ -95,14 +93,7 @@ const safeAttr = async (page, sel, attr) => {
 };
 
 const extractFromJsonLd = async (page) => {
-  const out = {
-    price: null,
-    currency: null,
-    originalPrice: null,
-    title: null,
-    images: [],
-    color: null,
-  };
+  const out = { price: null, currency: null, originalPrice: null };
 
   try {
     const blocks = await page.$$eval(PDP_JSONLD_SEL, (els) =>
@@ -111,11 +102,6 @@ const extractFromJsonLd = async (page) => {
         .filter(Boolean)
         .slice(0, 10),
     );
-
-    const pushImage = (u) => {
-      if (!u) return;
-      out.images.push(u);
-    };
 
     for (const raw of blocks) {
       let data = null;
@@ -129,15 +115,6 @@ const extractFromJsonLd = async (page) => {
 
       for (const node of nodes) {
         if (!node || typeof node !== "object") continue;
-
-        if (typeof node.name === "string" && !out.title) out.title = node.name;
-        if (typeof node.color === "string" && !out.color)
-          out.color = node.color;
-
-        if (node.image) {
-          if (Array.isArray(node.image)) node.image.forEach(pushImage);
-          else if (typeof node.image === "string") pushImage(node.image);
-        }
 
         const offers = node.offers;
         const offerArr = Array.isArray(offers)
@@ -155,84 +132,61 @@ const extractFromJsonLd = async (page) => {
           if (p != null && p > 0 && out.price == null) out.price = p;
           if (c && !out.currency) out.currency = c;
 
-          // best-effort "was" price
           const high = toNumber(o.highPrice ?? null);
           const low = toNumber(o.lowPrice ?? null);
+
           if (high != null && high > 0 && out.originalPrice == null) {
             if (out.price != null && high > out.price) out.originalPrice = high;
           } else if (low != null && low > 0 && out.originalPrice == null) {
             if (out.price != null && low > out.price) out.originalPrice = low;
           }
         }
-
-        const graph = node["@graph"];
-        if (Array.isArray(graph)) {
-          for (const g of graph) {
-            if (!g || typeof g !== "object") continue;
-            if (typeof g.name === "string" && !out.title) out.title = g.name;
-            if (typeof g.color === "string" && !out.color) out.color = g.color;
-
-            if (g.image) {
-              if (Array.isArray(g.image)) g.image.forEach(pushImage);
-              else if (typeof g.image === "string") pushImage(g.image);
-            }
-
-            const offers2 = g.offers;
-            const offerArr2 = Array.isArray(offers2)
-              ? offers2
-              : offers2
-                ? [offers2]
-                : [];
-
-            for (const o of offerArr2) {
-              const p = toNumber(
-                o?.price ?? o?.priceSpecification?.price ?? null,
-              );
-              const c = o?.priceCurrency || null;
-              if (p != null && p > 0 && out.price == null) out.price = p;
-              if (c && !out.currency) out.currency = c;
-            }
-          }
-        }
       }
 
       if (out.price != null && out.currency) break;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 
-  out.images = Array.from(new Set(out.images.map(String))).filter(Boolean);
   return out;
 };
 
 const extractDomPrices = async (page) => {
-  // strictly scan within product-details, not whole body
   try {
-    const res = await page.evaluate(
-      ({ rootSel }) => {
-        const root = document.querySelector(rootSel);
-        if (!root) return { priceText: null, wasText: null };
+    await page
+      .waitForSelector(PDP_PRICE_SEL, { timeout: 12000 })
+      .catch(() => null);
 
-        const text = (root.innerText || "").replace(/\s+/g, " ").trim();
+    const res = await page.evaluate(() => {
+      const root = document.querySelector(
+        'section[data-cs-override-id="product-details"]',
+      );
+      const priceWrap = document.querySelector('p[data-qa="price"]');
 
-        // current price: first £xx.xx near title area (best-effort)
-        const priceMatch =
-          text.match(/£\s*\d+(?:\.\d{1,2})?/i) ||
-          text.match(/\b\d+(?:\.\d{1,2})?\s*GBP\b/i);
+      const clean = (t) => (t || "").replace(/\s+/g, " ").trim();
 
-        // was price: "Was £xx.xx" or similar
-        const wasMatch =
-          text.match(/Was\s*(£\s*\d+(?:\.\d{1,2})?)/i) ||
-          text.match(/Was\s*(\d+(?:\.\d{1,2})?)/i);
+      const current =
+        clean(
+          document.querySelector('p[data-qa="price"] span.price__current-price')
+            ?.textContent,
+        ) ||
+        clean(priceWrap?.textContent) ||
+        clean(root?.textContent);
 
-        return {
-          priceText: priceMatch ? priceMatch[0] : null,
-          wasText: wasMatch ? wasMatch[1] || wasMatch[0] : null,
-        };
-      },
-      { rootSel: PDP_ROOT_SEL },
-    );
+      if (!current) return { priceText: null, wasText: null };
+
+      const priceMatch =
+        current.match(/£\s*\d+(?:\.\d{1,2})?/i) ||
+        current.match(/\b\d+(?:\.\d{1,2})?\s*GBP\b/i);
+
+      const wasMatch =
+        current.match(/Was\s*(£\s*\d+(?:\.\d{1,2})?)/i) ||
+        current.match(/Was\s*(\d+(?:\.\d{1,2})?)/i);
+
+      return {
+        priceText: priceMatch ? priceMatch[0] : null,
+        wasText: wasMatch ? wasMatch[1] || wasMatch[0] : null,
+      };
+    });
 
     return {
       price: toNumber(res?.priceText),
@@ -248,20 +202,13 @@ const extractImagesFromDom = async (page, baseUrl) => {
     const urls = await page.evaluate(
       ({ imgSel }) => {
         const imgs = Array.from(document.querySelectorAll(imgSel));
-
         const out = [];
-        const push = (u) => {
-          if (!u) return;
-          out.push(u);
-        };
 
         for (const img of imgs) {
           const srcset = img.getAttribute("srcset") || "";
           const src = img.getAttribute("src") || "";
-
-          // store both; caller will pick largest srcset
-          if (srcset) push(`SRCSET:${srcset}`);
-          if (src) push(`SRC:${src}`);
+          if (srcset) out.push(`SRCSET:${srcset}`);
+          if (src) out.push(`SRC:${src}`);
         }
 
         return out;
@@ -273,8 +220,7 @@ const extractImagesFromDom = async (page, baseUrl) => {
 
     for (const u of urls) {
       if (u.startsWith("SRCSET:")) {
-        const raw = u.replace(/^SRCSET:/, "");
-        const picked = pickLargestFromSrcset(raw);
+        const picked = pickLargestFromSrcset(u.replace(/^SRCSET:/, ""));
         if (picked) expanded.push(picked);
       } else if (u.startsWith("SRC:")) {
         expanded.push(u.replace(/^SRC:/, ""));
@@ -295,62 +241,123 @@ const extractImagesFromDom = async (page, baseUrl) => {
 const extractSizesFromDom = async (page) => {
   try {
     await page
-      .waitForSelector(PDP_SIZE_BUTTON_SEL, { timeout: 12000 })
+      .waitForSelector(PDP_SIZE_LI_SEL, { timeout: 12000 })
       .catch(() => null);
 
-    const sizesRaw = await page.$$eval(PDP_SIZE_BUTTON_SEL, (btns) =>
-      btns
-        .map((b) => (b.textContent || "").replace(/\s+/g, " ").trim())
-        .filter(Boolean),
-    );
+    const res = await page.$$eval(PDP_SIZE_LI_SEL, (items) => {
+      const clean = (t) => (t || "").replace(/\s+/g, " ").trim();
 
-    const uniq = Array.from(new Set((sizesRaw || []).filter(Boolean)));
+      const parsed = items
+        .map((li) => {
+          const btn = li.querySelector('[role="button"]') || li;
+          const text = clean(btn.textContent);
+          if (!text) return null;
 
-    // Light filter: exclude non-sizes if any slip in
-    const sizes = uniq.filter((s) => {
-      const t = String(s).trim();
-      if (!t) return false;
-      if (t.length > 24) return false;
-      if (/size\s*guide/i.test(t)) return false;
-      return true;
+          const disabled =
+            btn.getAttribute("aria-disabled") === "true" ||
+            btn.hasAttribute("disabled") ||
+            li.getAttribute("aria-disabled") === "true" ||
+            li.hasAttribute("disabled");
+
+          return { text, disabled };
+        })
+        .filter(Boolean);
+
+      const sizesRaw = parsed.map((i) => i.text);
+      const sizes = parsed.filter((i) => !i.disabled).map((i) => i.text);
+
+      return { sizesRaw, sizes };
     });
 
-    return { sizesRaw: sizes, sizes };
+    return {
+      sizesRaw: res?.sizesRaw || [],
+      sizes: res?.sizes || [],
+      inStock: (res?.sizes || []).length > 0,
+      hasSizes: (res?.sizesRaw || []).length > 0,
+    };
   } catch {
-    return { sizesRaw: [], sizes: [] };
+    return { sizesRaw: [], sizes: [], inStock: false, hasSizes: false };
   }
 };
 
-const extractColorsBestEffort = async (page, jsonldColor) => {
-  if (jsonldColor) return [String(jsonldColor).trim()].filter(Boolean);
-
-  // conservative DOM scan within product-details
+const inferInStockFallback = async (page) => {
   try {
-    const c = await page.evaluate(
-      ({ rootSel }) => {
-        const root = document.querySelector(rootSel);
-        if (!root) return null;
+    const outOfStockVisible = await page
+      .locator("text=/out of stock/i")
+      .first()
+      .isVisible()
+      .catch(() => false);
 
-        const text = (root.innerText || "").replace(/\s+/g, " ").trim();
+    if (outOfStockVisible) return false;
 
-        // Common patterns: "Colour: Black" / "Color: Black"
-        const m = text.match(
-          /(?:Colour|Color)\s*:\s*([A-Za-z0-9\s'/-]{1,40})/i,
-        );
-        if (!m || !m[1]) return null;
+    const addBtn = page.locator('button:has-text("Add to bag")').first();
+    const hasAddBtn = await addBtn.count().catch(() => 0);
 
-        const v = m[1].trim();
-        if (!v) return null;
-        if (v.length > 40) return null;
-        return v;
-      },
-      { rootSel: PDP_ROOT_SEL },
-    );
+    if (hasAddBtn) {
+      const disabled = await addBtn.isDisabled().catch(() => false);
+      return !disabled;
+    }
 
-    return c ? [c] : [];
+    return true;
   } catch {
-    return [];
+    return true;
   }
+};
+
+const isPdpUrl = (rawUrl = "") => {
+  try {
+    const u = new URL(String(rawUrl));
+    return u.pathname.includes("/p/");
+  } catch {
+    return String(rawUrl).includes("/p/");
+  }
+};
+
+const loadAllListItems = async (
+  page,
+  { maxScrolls = 50, stableRounds = 5, waitMs = 900 } = {},
+) => {
+  let stable = 0;
+  let lastCount = 0;
+
+  await page
+    .waitForSelector(LIST_READY_SEL, { timeout: 25000 })
+    .catch(() => {});
+
+  for (let i = 0; i < maxScrolls; i += 1) {
+    const count = await page
+      .locator(LIST_LINKS_SEL)
+      .count()
+      .catch(() => 0);
+
+    if (count <= lastCount) stable += 1;
+    else stable = 0;
+
+    lastCount = count;
+
+    const noMore = await page
+      .locator("text=/No more results/i")
+      .first()
+      .isVisible()
+      .catch(() => false);
+
+    if (noMore || stable >= stableRounds) break;
+
+    await page.mouse.wheel(0, 2400);
+    await page.waitForTimeout(waitMs);
+  }
+
+  const hrefs = await page
+    .$$eval(LIST_LINKS_SEL, (as) =>
+      Array.from(
+        new Set(
+          (as || []).map((a) => a.getAttribute("href") || "").filter(Boolean),
+        ),
+      ),
+    )
+    .catch(() => []);
+
+  return hrefs;
 };
 
 const runRiverIslandCrawl = async ({
@@ -362,92 +369,71 @@ const runRiverIslandCrawl = async ({
 
   const crawler = new PlaywrightCrawler({
     maxConcurrency: 1,
-    requestHandlerTimeoutSecs: 90,
+    requestHandlerTimeoutSecs: 180,
+    navigationTimeoutSecs: 60,
+    maxRequestRetries: 2,
+
+    launchContext: {
+      launchOptions: {
+        headless: true,
+        timeout: 60000,
+        args: [
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--disable-blink-features=AutomationControlled",
+        ],
+      },
+    },
+
+    browserPoolOptions: { maxOpenPagesPerBrowser: 1 },
+
+    preNavigationHooks: [
+      async ({ page }) => {
+        page.setDefaultTimeout(60000);
+        page.setDefaultNavigationTimeout(60000);
+
+        await page.route("**/*", async (route) => {
+          const type = route.request().resourceType();
+          if (type === "media" || type === "font") return route.abort();
+          return route.continue();
+        });
+      },
+    ],
 
     async requestHandler({ page, request, enqueueLinks }) {
       const label = (request.label || "LIST").toUpperCase();
+      const effectiveLabel = isPdpUrl(request.url) ? "DETAIL" : label;
 
-      if (label === "LIST") {
-        try {
-          await page.waitForSelector(LIST_READY_SEL, { timeout: 20000 });
-        } catch {
-          if (debug) console.log("❌ RI LIST wait failed:", request.url);
-          return;
-        }
+      if (effectiveLabel === "LIST") {
+        const currentPage = Number(request.userData?.page || 1);
+        if (currentPage > Number(maxListPages || 1)) return;
 
-        // Collect absolute PDP links ourselves (more reliable than enqueueLinks resolving)
-        const hrefs = await page
-          .$$eval(LIST_LINKS_SEL, (as) =>
-            Array.from(
-              new Set(
-                as.map((a) => a.getAttribute("href") || "").filter(Boolean),
-              ),
-            ),
-          )
-          .catch(() => []);
-
-        if (!hrefs.length) {
-          if (debug) console.log("⚠️ RI LIST no links:", request.url);
-          return;
-        }
-
+        const hrefs = await loadAllListItems(page);
         const absLinks = hrefs
-          .map((h) => {
-            try {
-              return new URL(h, window.location.origin).toString();
-            } catch {
-              return h;
-            }
-          })
+          .map((h) => absolutize(h, request.url))
           .filter(Boolean);
 
         await enqueueLinks({
-          urls: absLinks.map((u) => ({
-            url: u,
-            label: "DETAIL",
-            userData: request.userData || {},
-          })),
+          urls: absLinks,
+          label: "DETAIL",
+          userData: request.userData || {},
         });
 
-        const pageNum = Number(request.userData?.page || 1);
-        const baseUrl = request.userData?.baseUrl || request.url;
-
-        if (pageNum < maxListPages) {
-          const nextPage = pageNum + 1;
-
-          const nextUrl = (() => {
-            try {
-              const u = new URL(baseUrl);
-              u.searchParams.set("page", String(nextPage));
-              return u.toString();
-            } catch {
-              const sep = baseUrl.includes("?") ? "&" : "?";
-              return `${baseUrl}${sep}page=${nextPage}`;
-            }
-          })();
-
-          await enqueueLinks({
-            urls: [
-              {
-                url: nextUrl,
-                label: "LIST",
-                userData: {
-                  ...(request.userData || {}),
-                  page: nextPage,
-                  baseUrl,
-                },
-              },
-            ],
-          });
-        }
+        if (debug) console.log("🟦 RI LIST extracted:", absLinks.length);
 
         return;
       }
 
       // DETAIL
       try {
-        await page.waitForSelector(PDP_ROOT_SEL, { timeout: 20000 });
-        await page.waitForSelector(PDP_TITLE_SEL, { timeout: 20000 });
+        await page.waitForSelector(PDP_ROOT_SEL, { timeout: 25000 });
+        await page
+          .waitForSelector(PDP_TITLE_SEL, { timeout: 25000 })
+          .catch(() => null);
+        await page
+          .waitForSelector(PDP_PRICE_SEL, { timeout: 12000 })
+          .catch(() => null);
       } catch {
         if (debug) console.log("❌ RI DETAIL wait failed:", request.url);
         return;
@@ -473,47 +459,25 @@ const runRiverIslandCrawl = async ({
 
       const domPrices = await extractDomPrices(page);
 
-      const price = jsonld.price ?? metaPrice ?? domPrices.price ?? null;
-
+      const price = metaPrice ?? jsonld.price ?? domPrices.price ?? null;
       const originalPrice =
         jsonld.originalPrice ?? domPrices.originalPrice ?? null;
 
-      const currency = (jsonld.currency || metaCurrency || "GBP").toUpperCase();
+      const currency = String(
+        jsonld.currency || metaCurrency || "GBP",
+      ).toUpperCase();
 
-      const imagesFromDom = await extractImagesFromDom(page, productUrl);
-      const imagesFromJsonLd = (jsonld.images || [])
-        .map((u) => absolutize(u, productUrl))
-        .filter(Boolean);
-
-      const images = Array.from(
-        new Set(
-          [...imagesFromDom, ...imagesFromJsonLd]
-            .map((u) => String(u).trim())
-            .filter(Boolean),
-        ),
-      );
-
+      const images = await extractImagesFromDom(page, productUrl);
       const image = images[0] || null;
 
       const sizes = await extractSizesFromDom(page);
-      const inStock = Array.isArray(sizes.sizes)
-        ? sizes.sizes.length > 0
-        : true;
-
-      const colors = await extractColorsBestEffort(page, jsonld.color);
+      const inStock = sizes.hasSizes
+        ? sizes.inStock
+        : await inferInStockFallback(page);
 
       const store = "riverisland";
       const storeName = "River Island";
       const canonicalKey = makeCanonicalKey({ store, productUrl });
-
-      const gender = request.userData?.gender || null;
-      const category = request.userData?.category || null;
-      const saleUrl = request.userData?.baseUrl || null;
-
-      const discountPercent =
-        originalPrice && price && originalPrice > price
-          ? Math.round(((originalPrice - price) / originalPrice) * 100)
-          : null;
 
       const doc = {
         canonicalKey,
@@ -523,14 +487,17 @@ const runRiverIslandCrawl = async ({
         price,
         currency,
         originalPrice: originalPrice || null,
-        discountPercent,
+        discountPercent:
+          originalPrice && price && originalPrice > price
+            ? Math.round(((originalPrice - price) / originalPrice) * 100)
+            : null,
         image,
         images,
         productUrl,
-        saleUrl,
-        category,
-        gender,
-        colors,
+        saleUrl: request.userData?.baseUrl || null,
+        category: request.userData?.category || null,
+        gender: request.userData?.gender || null,
+        colors: [],
         sizesRaw: sizes.sizesRaw,
         sizes: sizes.sizes,
         inStock,
@@ -538,56 +505,18 @@ const runRiverIslandCrawl = async ({
         lastSeenAt: new Date(),
       };
 
-      const missing =
-        !doc.canonicalKey ||
-        !doc.store ||
-        !doc.storeName ||
-        !doc.title ||
-        doc.price == null ||
-        !doc.currency ||
-        !doc.image ||
-        !doc.productUrl;
-
-      if (missing) {
-        if (debug) {
-          console.log("⚠️ RI SKIP missing required fields:", {
-            url: productUrl,
-            title: doc.title,
-            price: doc.price,
-            currency: doc.currency,
-            image: doc.image,
-            imagesLen: doc.images?.length || 0,
-            sizes: doc.sizes,
-            colors: doc.colors,
-          });
-        }
-        return;
-      }
-
       if (debug) {
         console.log("🟩 RI PRODUCT_DOC_REQUIRED", {
-          canonicalKey: doc.canonicalKey,
-          store: doc.store,
-          storeName: doc.storeName,
           title: doc.title,
           price: doc.price,
           currency: doc.currency,
-          image: doc.image,
-          productUrl: doc.productUrl,
-        });
-
-        console.log("🟦 RI PRODUCT_DOC_OPTIONAL", {
-          originalPrice: doc.originalPrice,
-          discountPercent: doc.discountPercent,
-          imagesLength: doc.images?.length || 0,
-          imagesSample: (doc.images || []).slice(0, 6),
-          saleUrl: doc.saleUrl,
-          category: doc.category,
-          gender: doc.gender,
-          colors: doc.colors,
-          sizesRaw: doc.sizesRaw,
-          sizes: doc.sizes,
           inStock: doc.inStock,
+          image: doc.image,
+          images0: doc.images?.[0] || null,
+          images1: doc.images?.[1] || null,
+          sizes0: doc.sizes?.[0] || null,
+          sizesCount: doc.sizes?.length || 0,
+          productUrl: doc.productUrl,
         });
       }
 
@@ -609,11 +538,8 @@ const runRiverIslandCrawl = async ({
     };
   });
 
-  if (debug) console.log("🌱 RI SEEDS", seeds);
-
   await crawler.run(seeds);
 
-  // de-dupe by canonicalKey
   const map = new Map();
   for (const p of results) map.set(p.canonicalKey, p);
 
