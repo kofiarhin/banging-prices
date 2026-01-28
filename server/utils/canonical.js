@@ -13,6 +13,11 @@ const normalizeUrl = (rawUrl) => {
       "affid",
       "cmp",
       "kid",
+
+      // M&S (don’t treat colour variants as separate products)
+      "color",
+      "intid",
+      "intcmp",
     ].forEach((k) => u.searchParams.delete(k));
     return u.toString();
   } catch {
