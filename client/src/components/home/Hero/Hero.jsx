@@ -6,17 +6,21 @@ const Hero = () => {
   const scrollRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Consuming your real API data structure
+  const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
   const { data, isLoading } = useQuery({
     queryKey: ["homeData"],
-    queryFn: () =>
-      fetch("http://localhost:5000/api/home").then((res) => res.json()),
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/home`);
+      if (!res.ok) throw new Error("Failed to load home data");
+      return res.json();
+    },
   });
 
   const scrollToIndex = (index) => {
-    if (!scrollRef.current || !data) return;
+    if (!scrollRef.current || !data?.carousel?.slides?.length) return;
+
     const slides = data.carousel.slides;
-    // Handle infinite loop logic
     const targetIndex = (index + slides.length) % slides.length;
 
     const width = scrollRef.current.offsetWidth;
@@ -24,6 +28,7 @@ const Hero = () => {
       left: width * targetIndex,
       behavior: "smooth",
     });
+
     setCurrentIndex(targetIndex);
   };
 
@@ -32,10 +37,11 @@ const Hero = () => {
 
   return (
     <section className="hero-container">
-      {/* Dynamic Background Track */}
       <div className="hero-scroll-track" ref={scrollRef}>
         {data.carousel.slides.map((slide) => {
-          const featured = slide.items[0]; // Extract highest discount item
+          const featured = slide?.items?.[0];
+          if (!featured) return null;
+
           return (
             <div className="hero-slide" key={slide.key}>
               <div
@@ -47,13 +53,18 @@ const Hero = () => {
                   <span className="drop-badge">
                     {featured.discountPercent}% OFF — {featured.storeName}
                   </span>
+
                   <h2 className="display-title">
                     {slide.label}
                     <br />
                     <span className="sub-accent">
-                      {featured.title.split(" ").slice(0, 2).join(" ")}
+                      {String(featured.title || "")
+                        .split(" ")
+                        .slice(0, 2)
+                        .join(" ")}
                     </span>
                   </h2>
+
                   <div className="action-row">
                     <button className="buy-btn">
                       SECURE DROP — £{featured.price}
@@ -69,13 +80,14 @@ const Hero = () => {
         })}
       </div>
 
-      {/* Real-time System Status (from data.system) */}
       <div className="system-pill">
         <span className="pulse-dot"></span>
-        <p>{data.system.assetsTracked.toLocaleString()} ASSETS TRACKED</p>
+        <p>
+          {Number(data?.system?.assetsTracked || 0).toLocaleString()} ASSETS
+          TRACKED
+        </p>
       </div>
 
-      {/* Precision Navigation */}
       <div className="nav-controls">
         <button
           onClick={() => scrollToIndex(currentIndex - 1)}
@@ -90,6 +102,7 @@ const Hero = () => {
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
+
         <button
           onClick={() => scrollToIndex(currentIndex + 1)}
           className="ctrl-btn"
