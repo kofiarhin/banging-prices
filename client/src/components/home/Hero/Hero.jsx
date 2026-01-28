@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 import "./hero.styles.scss";
 
 const AUTOPLAY_MS = 5000;
@@ -9,6 +10,8 @@ const Hero = () => {
   const timerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  const navigate = useNavigate();
 
   const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
@@ -22,6 +25,12 @@ const Hero = () => {
   });
 
   const slidesCount = data?.carousel?.slides?.length || 0;
+
+  const getHref = (featured) => {
+    // support multiple shapes
+    const productId = featured?.productId || featured?._id || featured?.id;
+    return productId ? `/products/${productId}` : "/products";
+  };
 
   const scrollToIndex = (index) => {
     if (!scrollRef.current || !slidesCount) return;
@@ -52,7 +61,6 @@ const Hero = () => {
       setCurrentIndex((prev) => {
         const next = (prev + 1) % slidesCount;
 
-        // scroll immediately using the DOM ref (avoid stale closures)
         if (scrollRef.current) {
           const width = scrollRef.current.offsetWidth;
           scrollRef.current.scrollTo({
@@ -66,21 +74,18 @@ const Hero = () => {
     }, AUTOPLAY_MS);
   };
 
-  // start/stop autoplay when data loads or pause toggles
   useEffect(() => {
     startAutoplay();
     return stopAutoplay;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slidesCount, isPaused]);
 
-  // pause when tab is hidden
   useEffect(() => {
     const onVisibility = () => setIsPaused(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  // keep slide aligned on resize
   useEffect(() => {
     const onResize = () => scrollToIndex(currentIndex);
     window.addEventListener("resize", onResize);
@@ -105,8 +110,16 @@ const Hero = () => {
           const featured = slide?.items?.[0];
           if (!featured) return null;
 
+          const href = getHref(featured);
+
           return (
-            <div className="hero-slide" key={slide.key}>
+            <Link
+              key={slide.key}
+              to={href}
+              className="hero-slide"
+              onClick={() => stopAutoplay()}
+              aria-label={`View product: ${featured.title || slide.label}`}
+            >
               <div
                 className="slide-image"
                 style={{ backgroundImage: `url(${featured.image})` }}
@@ -129,7 +142,16 @@ const Hero = () => {
                   </h2>
 
                   <div className="action-row">
-                    <button className="buy-btn">
+                    <button
+                      type="button"
+                      className="buy-btn"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        stopAutoplay();
+                        navigate(href);
+                      }}
+                    >
                       SECURE DROP — £{featured.price}
                     </button>
                     <span className="market-price">
@@ -138,7 +160,7 @@ const Hero = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -153,12 +175,14 @@ const Hero = () => {
 
       <div className="nav-controls">
         <button
+          type="button"
           onClick={() => {
             setIsPaused(true);
             scrollToIndex(currentIndex - 1);
             setTimeout(() => setIsPaused(false), 600);
           }}
           className="ctrl-btn"
+          aria-label="Previous slide"
         >
           <svg
             viewBox="0 0 24 24"
@@ -171,12 +195,14 @@ const Hero = () => {
         </button>
 
         <button
+          type="button"
           onClick={() => {
             setIsPaused(true);
             scrollToIndex(currentIndex + 1);
             setTimeout(() => setIsPaused(false), 600);
           }}
           className="ctrl-btn"
+          aria-label="Next slide"
         >
           <svg
             viewBox="0 0 24 24"
