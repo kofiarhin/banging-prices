@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useHomeQuery } from "../../hooks/useHomeQuery";
 
 import Hero from "../../components/home/Hero/Hero";
-import Carousel from "../../components/home/Carousel/Carousel";
 import HowItWorks from "../../components/home/HowItWorks/HowItWorks";
 import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
@@ -37,12 +36,16 @@ const HomePage = () => {
     <div className="pp-home">
       <div className="pp-container">
         <section className="pp-home-hero">
-          <Hero q={q} setQ={setQ} onSearch={onSearch} />
+          <Hero
+            q={q}
+            setQ={setQ}
+            onSearch={onSearch}
+            data={data}
+            isLoading={isLoading}
+            slides={slides}
+            system={system}
+          />
         </section>
-
-        {/* <section className="pp-home-carousel">
-          <Carousel slides={slides} isLoading={isLoading} />
-        </section> */}
 
         <HowItWorks />
         <Stats system={system} />
