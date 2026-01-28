@@ -26,10 +26,28 @@ const Hero = () => {
 
   const slidesCount = data?.carousel?.slides?.length || 0;
 
-  const getHref = (featured) => {
-    // support multiple shapes
-    const productId = featured?.productId || featured?._id || featured?.id;
-    return productId ? `/products/${productId}` : "/products";
+  const slugify = (value = "") =>
+    String(value)
+      .toLowerCase()
+      .trim()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
+  const getCategoryHref = (slide, featured) => {
+    // prefer explicit category fields if your API provides them
+    const rawCategory =
+      featured?.category ||
+      featured?.categoryName ||
+      slide?.category ||
+      slide?.label ||
+      "";
+
+    const category = slugify(rawCategory);
+
+    return category
+      ? `/products?category=${encodeURIComponent(category)}`
+      : "/products";
   };
 
   const scrollToIndex = (index) => {
@@ -110,7 +128,7 @@ const Hero = () => {
           const featured = slide?.items?.[0];
           if (!featured) return null;
 
-          const href = getHref(featured);
+          const href = getCategoryHref(slide, featured);
 
           return (
             <Link
@@ -118,7 +136,7 @@ const Hero = () => {
               to={href}
               className="hero-slide"
               onClick={() => stopAutoplay()}
-              aria-label={`View product: ${featured.title || slide.label}`}
+              aria-label={`View category: ${slide?.label || featured?.category || "Products"}`}
             >
               <div
                 className="slide-image"
@@ -152,8 +170,9 @@ const Hero = () => {
                         navigate(href);
                       }}
                     >
-                      SECURE DROP — £{featured.price}
+                      VIEW CATEGORY — {slide.label}
                     </button>
+
                     <span className="market-price">
                       RRP £{featured.originalPrice}
                     </span>

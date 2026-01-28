@@ -36,15 +36,11 @@ const ProductsPage = () => {
     lastYRef.current = window.scrollY || 0;
 
     const onScroll = () => {
-      // ✅ don't hide/show while user is tapping/scrolling inside toolbar
       if (interactingRef.current) return;
-
-      // ✅ don't hide/show while a toolbar control has focus (select/input)
       if (toolbarRef.current?.contains(document.activeElement)) return;
 
       const y = window.scrollY || 0;
 
-      // ✅ always show near top
       if (y <= 12) {
         if (toolbarHidden) setToolbarHidden(false);
         lastYRef.current = y;
@@ -58,14 +54,12 @@ const ProductsPage = () => {
         const now = Date.now();
         const delta = y - lastYRef.current;
 
-        // ✅ small cooldown to prevent jitter + missed taps
         if (now - lastToggleAtRef.current < 180) {
           lastYRef.current = y;
           tickingRef.current = false;
           return;
         }
 
-        // ✅ stronger thresholds so tiny finger movement doesn't collapse toolbar
         if (delta > 14 && !toolbarHidden) {
           setToolbarHidden(true);
           lastToggleAtRef.current = now;
@@ -135,7 +129,6 @@ const ProductsPage = () => {
   };
 
   const unlockToolbarInteraction = () => {
-    // ✅ tiny delay prevents "tap" from being interpreted as scroll hide
     window.setTimeout(() => {
       interactingRef.current = false;
     }, 120);
@@ -229,14 +222,17 @@ const ProductsPage = () => {
                       <div className="pp-badge">-{p.discountPercent}%</div>
                     )}
                   </div>
+
                   <div className="pp-card-details">
                     <span className="pp-card-store">{p.storeName}</span>
                     <h3 className="pp-card-title">{p.title}</h3>
+
                     <div className="pp-card-price">
                       <span className="pp-card-now">
                         {p.currency}
                         {p.price}
                       </span>
+
                       {p.originalPrice && (
                         <span className="pp-card-was">
                           {p.currency}
