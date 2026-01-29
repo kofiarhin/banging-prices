@@ -196,7 +196,16 @@ const getHomeIntelligence = async (req, res) => {
 
 const getNav = async (req, res) => {
   try {
-    const [rawGenders, storesAgg] = await Promise.all([
+    const categoriesLimit = Math.max(
+      1,
+      Math.min(Number(req.query.categoriesLimit || 10), 24),
+    );
+    const storesLimit = Math.max(
+      1,
+      Math.min(Number(req.query.storesLimit || 10), 24),
+    );
+
+    const [rawGenders, storesAgg, categoriesAgg] = await Promise.all([
       Product.distinct("gender"),
       Product.aggregate([
         {
@@ -216,7 +225,36 @@ const getNav = async (req, res) => {
           },
         },
         { $sort: { count: -1, label: 1 } },
-        { $limit: 10 },
+        { $limit: storesLimit },
+      ]),
+      Product.aggregate([
+        {
+          $match: {
+            gender: { $in: ["men", "women", "kids"] },
+            category: { $type: "string", $ne: "" },
+          },
+        },
+        {
+          $project: {
+            gender: { $toLower: { $trim: { input: "$gender" } } },
+            category: { $toLower: { $trim: { input: "$category" } } },
+          },
+        },
+        {
+          $group: {
+            _id: { gender: "$gender", category: "$category" },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+        {
+          $group: {
+            _id: "$_id.gender",
+            categories: {
+              $push: "$_id.category",
+            },
+          },
+        },
       ]),
     ]);
 
@@ -237,7 +275,41 @@ const getNav = async (req, res) => {
       to: `/products?store=${encodeURIComponent(s._id)}&page=1`,
     }));
 
-    return res.json({ genders, topStores });
+    const topCategoriesByGender = { men: [], women: [], kids: [] };
+
+    (categoriesAgg || []).forEach((row) => {
+      const g = String(row._id || "")
+        .trim()
+        .toLowerCase();
+      if (!topCategoriesByGender[g]) return;
+
+      const uniq = [];
+      const seen = new Set();
+
+      for (const c of row.categories || []) {
+        const v = String(c || "")
+          .trim()
+          .toLowerCase();
+        if (!v) continue;
+        if (seen.has(v)) continue;
+        seen.add(v);
+        uniq.push(v);
+        if (uniq.length >= categoriesLimit) break;
+      }
+
+      topCategoriesByGender[g] = uniq;
+    });
+
+    return res.json({
+      genders,
+      topStores,
+      topCategoriesByGender,
+      meta: {
+        categoriesLimit,
+        storesLimit,
+        updatedAt: new Date().toISOString(),
+      },
+    });
   } catch (err) {
     console.error("Home nav error:", err);
     return res.status(500).json({ message: "Failed to load nav" });
