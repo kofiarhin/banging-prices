@@ -51,10 +51,6 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
     if (panelKey === "women") return "Women";
     if (panelKey === "kids") return "Kids";
     if (panelKey === "stores") return "Stores";
-    if (panelKey.endsWith("-categories")) {
-      const g = panelKey.split("-")[0];
-      return `${toLabel(g)} Categories`;
-    }
     return "Menu";
   }, [panelKey]);
 
@@ -260,6 +256,7 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
               >
                 View All
               </button>
+
               <button
                 className="phd-sidenav-item"
                 type="button"
@@ -267,24 +264,12 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
               >
                 New Arrivals
               </button>
-              <button
-                className="phd-sidenav-item has-next"
-                type="button"
-                onClick={() => push(`${panelKey}-categories`)}
-              >
-                Categories{" "}
-                <span className="phd-sidenav-next">
-                  <Icon name="chevronRight" />
-                </span>
-              </button>
-            </div>
-          )}
 
-          {panelKey.endsWith("-categories") && (
-            <div className="phd-sidenav-list">
+              <div className="phd-sidenav-divider" />
+              <div className="phd-sidenav-section-title">Categories</div>
+
               {(() => {
-                const g = panelKey.split("-")[0];
-                const cats = topCategoriesByGender?.[g] || [];
+                const cats = topCategoriesByGender?.[panelKey] || [];
                 if (!cats.length)
                   return (
                     <div className="phd-sidenav-empty">No categories yet</div>
@@ -292,10 +277,10 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
 
                 return cats.map((cat) => (
                   <button
-                    key={`${g}-${cat}`}
+                    key={`${panelKey}-${cat}`}
                     className="phd-sidenav-item"
                     type="button"
-                    onClick={() => goGenderCategory(g, cat)}
+                    onClick={() => goGenderCategory(panelKey, cat)}
                   >
                     {toLabel(cat)}
                   </button>

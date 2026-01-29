@@ -152,13 +152,14 @@ $text-muted: rgba(255, 255, 255, 0.58);
   );
 }
 
+/* ✅ FULL-WIDTH LOOK, MINIMAL PADDING */
 .pd-main-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 18px;
+  padding: 6px; /* was 18px */
   display: block;
   user-select: none;
 }
@@ -713,8 +714,9 @@ $text-muted: rgba(255, 255, 255, 0.58);
     grid-template-columns: repeat(4, 1fr);
   }
 
+  /* keep it minimal even on tablet/desktop */
   .pd-main-img {
-    padding: 22px;
+    padding: 8px; /* was 22px */
   }
 }
 
