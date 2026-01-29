@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import "./hero.styles.scss";
 
-const AUTOPLAY_MS = 5000;
+const AUTOPLAY_MS = 2500; // ✅ was 5000
 
 const Hero = () => {
   const scrollRef = useRef(null);
@@ -35,7 +35,6 @@ const Hero = () => {
       .replace(/(^-|-$)+/g, "");
 
   const getCategoryHref = (slide, featured) => {
-    // prefer explicit category fields if your API provides them
     const rawCategory =
       featured?.category ||
       featured?.categoryName ||
@@ -136,7 +135,9 @@ const Hero = () => {
               to={href}
               className="hero-slide"
               onClick={() => stopAutoplay()}
-              aria-label={`View category: ${slide?.label || featured?.category || "Products"}`}
+              aria-label={`View category: ${
+                slide?.label || featured?.category || "Products"
+              }`}
             >
               <div
                 className="slide-image"
@@ -198,7 +199,7 @@ const Hero = () => {
           onClick={() => {
             setIsPaused(true);
             scrollToIndex(currentIndex - 1);
-            setTimeout(() => setIsPaused(false), 600);
+            setTimeout(() => setIsPaused(false), 400);
           }}
           className="ctrl-btn"
           aria-label="Previous slide"
@@ -218,7 +219,7 @@ const Hero = () => {
           onClick={() => {
             setIsPaused(true);
             scrollToIndex(currentIndex + 1);
-            setTimeout(() => setIsPaused(false), 600);
+            setTimeout(() => setIsPaused(false), 400);
           }}
           className="ctrl-btn"
           aria-label="Next slide"
