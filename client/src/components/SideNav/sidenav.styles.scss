@@ -1,0 +1,215 @@
+/* client/src/components/SideNav/sidenav.styles.scss */
+
+/* Backdrop */
+.phd-sidenav-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.phd-sidenav-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Panel */
+.phd-sidenav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: min(86vw, 380px);
+  background: #0a0a0a;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 2100;
+
+  transform: translateX(-100%);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+
+  display: flex;
+  flex-direction: column;
+
+  /* subtle depth */
+  box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
+}
+
+.phd-sidenav.open {
+  transform: translateX(0);
+}
+
+/* Top bar */
+.phd-sidenav-top {
+  height: 64px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.phd-sidenav-top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.phd-sidenav-title {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phd-sidenav-spacer {
+  width: 36px;
+  height: 36px;
+}
+
+/* Icon buttons */
+.phd-sidenav-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.12s ease;
+}
+
+.phd-sidenav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.phd-sidenav-icon-btn:active {
+  transform: scale(0.98);
+}
+
+/* Body */
+.phd-sidenav-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* List */
+.phd-sidenav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Items */
+.phd-sidenav-item {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.94);
+
+  padding: 14px 14px;
+  border-radius: 14px;
+
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.12s ease;
+}
+
+.phd-sidenav-item:hover {
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.phd-sidenav-item:active {
+  transform: scale(0.99);
+}
+
+.phd-sidenav-item.has-next {
+  padding-right: 10px;
+}
+
+.phd-sidenav-next {
+  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Divider */
+.phd-sidenav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 12px 4px;
+  border-radius: 999px;
+}
+
+/* Empty */
+.phd-sidenav-empty {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Account row */
+.phd-sidenav-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 6px 0;
+}
+
+.phd-sidenav-account-text {
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* Desktop: hide completely */
+@media (min-width: 900px) {
+  .phd-sidenav,
+  .phd-sidenav-backdrop {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .phd-sidenav,
+  .phd-sidenav-backdrop {
+    transition: none !important;
+  }
+}

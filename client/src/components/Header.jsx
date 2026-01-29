@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import "./header.styles.scss";
+
+import SideNav from "./SideNav/SideNav";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const Icon = ({ name }) => {
   const paths = {
     search: "M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z",
-    close: "M18 6L6 18M6 6l12 12",
     menu: "M4 6h16M4 12h16M4 18h16",
-    chevronRight: "M9 18l6-6-6-6",
-    chevronLeft: "M15 18l-6-6 6-6",
   };
 
   return (
@@ -40,6 +39,7 @@ const toLabel = (slug = "") =>
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [search, setSearch] = useState("");
   const [navData, setNavData] = useState(null);
@@ -47,12 +47,10 @@ const Header = () => {
   const [activeMega, setActiveMega] = useState("");
   const [isMobileSearch, setIsMobileSearch] = useState(false);
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerView, setDrawerView] = useState("root"); // "root" | "gender"
-  const [drawerGender, setDrawerGender] = useState(""); // men | women | kids
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+  const [sideStack, setSideStack] = useState(["root"]);
 
   const megaTimer = useRef(null);
-
   const genders = useMemo(() => ["men", "women", "kids"], []);
 
   useEffect(() => {
@@ -63,56 +61,76 @@ const Header = () => {
         setNavData(data);
       } catch (err) {
         console.error("Nav Fetch Error:", err);
-        setNavData({ topCategoriesByGender: { men: [], women: [], kids: [] } });
+        setNavData({
+          topCategoriesByGender: { men: [], women: [], kids: [] },
+          topStores: [],
+        });
       }
     };
     fetchNav();
   }, []);
 
   useEffect(() => {
-    if (!drawerOpen) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [drawerOpen]);
+    setIsSideNavOpen(false);
+    setSideStack(["root"]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
-    if (!drawerOpen) return;
+    if (!isSideNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev || "";
+    };
+  }, [isSideNavOpen]);
 
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") closeDrawer();
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onTouchStart = (e) => {
+      const t = e.touches?.[0];
+      if (!t) return;
+      if (t.clientX > 24) return;
+      startX = t.clientX;
+      startY = t.clientY;
+      tracking = true;
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [drawerOpen]);
+    const onTouchEnd = (e) => {
+      if (!tracking) return;
+      tracking = false;
 
-  const openDrawer = () => {
-    setDrawerOpen(true);
-    setDrawerView("root");
-    setDrawerGender("");
-  };
+      if (isSideNavOpen) return;
 
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setDrawerView("root");
-    setDrawerGender("");
-  };
+      const t = e.changedTouches?.[0];
+      if (!t) return;
 
-  const openGenderSubnav = (gender) => {
-    setDrawerGender(gender);
-    setDrawerView("gender"); // ✅ drilldown, no navigation
-  };
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
 
-  const backToRoot = () => {
-    setDrawerView("root");
-    setDrawerGender("");
-  };
+      if (Math.abs(dx) < 70) return;
+      if (Math.abs(dy) > 90) return;
+
+      if (dx > 70) {
+        setIsMobileSearch(false);
+        setIsSideNavOpen(true);
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isSideNavOpen]);
 
   const goProducts = (url) => {
     navigate(url);
-    closeDrawer();
     setIsMobileSearch(false);
   };
 
@@ -146,6 +164,7 @@ const Header = () => {
             <button
               className="phd-mega-link"
               onClick={() => goProducts(`/products?gender=${gender}&page=1`)}
+              type="button"
             >
               View All
             </button>
@@ -154,6 +173,7 @@ const Header = () => {
               onClick={() =>
                 goProducts(`/products?gender=${gender}&sort=newest&page=1`)
               }
+              type="button"
             >
               New Arrivals
             </button>
@@ -173,12 +193,13 @@ const Header = () => {
                       )}&page=1`,
                     )
                   }
+                  type="button"
                 >
                   {toLabel(cat)}
                 </button>
               ))
             ) : (
-              <div className="phd-mega-link" style={{ opacity: 0.55 }}>
+              <div className="phd-mega-link phd-mega-muted">
                 No categories yet
               </div>
             )}
@@ -188,19 +209,29 @@ const Header = () => {
     );
   };
 
-  const drawerCategories = drawerGender
-    ? navData?.topCategoriesByGender?.[drawerGender] || []
-    : [];
+  const openSideNav = () => {
+    setIsMobileSearch(false);
+    setIsSideNavOpen(true);
+  };
 
-  const drawerTitle = drawerView === "gender" ? toLabel(drawerGender) : "Menu";
+  const closeSideNav = () => {
+    setIsSideNavOpen(false);
+    setSideStack(["root"]);
+  };
 
   return (
     <header className="phd-header">
       <div className="phd-main">
-        {/* Mobile Search Overlay */}
         {isMobileSearch && (
-          <div className="phd-mobile-search-overlay">
-            <form onSubmit={handleSearchSubmit}>
+          <div
+            className="phd-mobile-search-overlay"
+            role="dialog"
+            aria-modal="true"
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="phd-mobile-search-form"
+            >
               <input
                 autoFocus
                 className="phd-input"
@@ -209,9 +240,11 @@ const Header = () => {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </form>
+
             <button
               onClick={() => setIsMobileSearch(false)}
-              className="phd-tab"
+              className="phd-tab phd-cancel"
+              type="button"
             >
               CANCEL
             </button>
@@ -220,9 +253,9 @@ const Header = () => {
 
         <div className="phd-left">
           <button
+            className="phd-hamburger-btn"
             type="button"
-            className="phd-menu-btn"
-            onClick={openDrawer}
+            onClick={openSideNav}
             aria-label="Open menu"
           >
             <Icon name="menu" />
@@ -232,8 +265,7 @@ const Header = () => {
             BANGINGPRICES
           </NavLink>
 
-          {/* desktop tabs */}
-          <nav className="phd-tabs">
+          <nav className="phd-tabs" aria-label="Shop categories">
             {genders.map((gender) => (
               <button
                 key={gender}
@@ -241,6 +273,7 @@ const Header = () => {
                 onMouseEnter={() => onMouseEnter(gender)}
                 onMouseLeave={onMouseLeave}
                 onClick={() => goProducts(`/products?gender=${gender}&page=1`)}
+                type="button"
               >
                 {gender.toUpperCase()}
               </button>
@@ -250,7 +283,9 @@ const Header = () => {
 
         <div className="phd-center desktop-only">
           <form className="phd-search-field" onSubmit={handleSearchSubmit}>
-            <Icon name="search" />
+            <span className="phd-search-icon" aria-hidden="true">
+              <Icon name="search" />
+            </span>
             <input
               className="phd-input"
               placeholder="Search products..."
@@ -263,157 +298,47 @@ const Header = () => {
         <div className="phd-right">
           <button
             className="phd-mobile-search-btn"
-            onClick={() => setIsMobileSearch(true)}
+            onClick={() => {
+              setIsSideNavOpen(false);
+              setSideStack(["root"]);
+              setIsMobileSearch(true);
+            }}
             aria-label="Search"
+            type="button"
           >
             <Icon name="search" />
           </button>
 
           <SignedIn>
-            <UserButton afterSignOutUrl="/" />
+            <div className="phd-user">
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </SignedIn>
 
           <SignedOut>
-            <button className="phd-tab" onClick={() => navigate("/login")}>
+            <button
+              className="phd-tab"
+              onClick={() => navigate("/login")}
+              type="button"
+            >
               LOGIN
             </button>
           </SignedOut>
         </div>
 
-        {/* Desktop mega menus */}
         {renderMegaLinks("men")}
         {renderMegaLinks("women")}
         {renderMegaLinks("kids")}
       </div>
 
-      {/* Fullscreen Mobile Drawer (Drilldown) */}
-      <div className={`phd-drawer ${drawerOpen ? "open" : ""}`}>
-        <div className="phd-drawer-surface" role="dialog" aria-modal="true">
-          <div className="phd-drawer-top">
-            {drawerView === "gender" ? (
-              <button
-                type="button"
-                className="phd-drawer-iconbtn"
-                onClick={backToRoot}
-                aria-label="Back"
-              >
-                <Icon name="chevronLeft" />
-              </button>
-            ) : (
-              <div className="phd-drawer-spacer" />
-            )}
-
-            <div className="phd-drawer-title">{drawerTitle}</div>
-
-            <button
-              type="button"
-              className="phd-drawer-iconbtn"
-              onClick={closeDrawer}
-              aria-label="Close menu"
-            >
-              <Icon name="close" />
-            </button>
-          </div>
-
-          <div className="phd-drawer-body">
-            <form className="phd-drawer-search" onSubmit={handleSearchSubmit}>
-              <Icon name="search" />
-              <input
-                className="phd-input"
-                placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </form>
-
-            {/* ROOT: genders list only (no nav) */}
-            {drawerView === "root" && (
-              <div className="phd-drawer-list">
-                {genders.map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    className="phd-drawer-item"
-                    onClick={() => openGenderSubnav(g)}
-                  >
-                    <span className="phd-drawer-itemtext">{toLabel(g)}</span>
-                    <Icon name="chevronRight" />
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  className="phd-drawer-item"
-                  onClick={() => goProducts(`/products?page=1`)}
-                >
-                  <span className="phd-drawer-itemtext">All Products</span>
-                  <Icon name="chevronRight" />
-                </button>
-              </div>
-            )}
-
-            {/* SUB NAV: gender categories (links live here) */}
-            {drawerView === "gender" && (
-              <div className="phd-drawer-list">
-                <button
-                  type="button"
-                  className="phd-drawer-item"
-                  onClick={() =>
-                    goProducts(`/products?gender=${drawerGender}&page=1`)
-                  }
-                >
-                  <span className="phd-drawer-itemtext">View All</span>
-                  <Icon name="chevronRight" />
-                </button>
-
-                <button
-                  type="button"
-                  className="phd-drawer-item"
-                  onClick={() =>
-                    goProducts(
-                      `/products?gender=${drawerGender}&sort=newest&page=1`,
-                    )
-                  }
-                >
-                  <span className="phd-drawer-itemtext">New Arrivals</span>
-                  <Icon name="chevronRight" />
-                </button>
-
-                {drawerCategories.length ? (
-                  drawerCategories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      className="phd-drawer-item"
-                      onClick={() =>
-                        goProducts(
-                          `/products?gender=${drawerGender}&category=${encodeURIComponent(
-                            cat,
-                          )}&page=1`,
-                        )
-                      }
-                    >
-                      <span className="phd-drawer-itemtext">
-                        {toLabel(cat)}
-                      </span>
-                      <Icon name="chevronRight" />
-                    </button>
-                  ))
-                ) : (
-                  <div className="phd-drawer-empty">No categories yet</div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="phd-drawer-backdrop"
-          onClick={closeDrawer}
-          aria-label="Close drawer"
-        />
-      </div>
+      <SideNav
+        isOpen={isSideNavOpen}
+        onClose={closeSideNav}
+        navData={navData}
+        onNavigate={goProducts}
+        stack={sideStack}
+        setStack={setSideStack}
+      />
     </header>
   );
 };
