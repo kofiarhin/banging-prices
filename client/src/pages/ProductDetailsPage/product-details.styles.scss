@@ -152,16 +152,51 @@ $text-muted: rgba(255, 255, 255, 0.58);
   );
 }
 
-/* ✅ FULL-WIDTH LOOK, MINIMAL PADDING */
+/* ✅ DEFAULT (desktop/tablet): contained + minimal padding */
 .pd-main-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 6px; /* was 18px */
+  padding: 6px;
   display: block;
   user-select: none;
+}
+
+/* ✅ MOBILE ONLY: full-bleed like ASOS */
+@media (max-width: 767.98px) {
+  .pd-container {
+    padding: 0;
+  }
+
+  .pd-layout {
+    padding: 0;
+  }
+
+  .pd-main.pd-main-carousel {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    aspect-ratio: 1 / 1.25;
+  }
+
+  .pd-main-img {
+    object-fit: cover;
+    padding: 0;
+  }
+
+  .pd-carousel-btn.is-prev {
+    left: 8px;
+  }
+
+  .pd-carousel-btn.is-next {
+    right: 8px;
+  }
+
+  .pd-dots {
+    bottom: 10px;
+  }
 }
 
 .pd-media-discount {
@@ -716,7 +751,7 @@ $text-muted: rgba(255, 255, 255, 0.58);
 
   /* keep it minimal even on tablet/desktop */
   .pd-main-img {
-    padding: 8px; /* was 22px */
+    padding: 8px;
   }
 }
 
