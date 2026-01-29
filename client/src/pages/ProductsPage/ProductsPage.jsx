@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./products.styles.scss";
@@ -12,259 +12,95 @@ const fetchProducts = async (params) => {
   return res.json();
 };
 
-const fetchCategories = async (gender) => {
-  const res = await fetch(
-    `${API_URL}/api/products/categories?gender=${gender}`,
-  );
-  if (!res.ok) throw new Error("Network error");
-  return res.json();
-};
-
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const [toolbarHidden, setToolbarHidden] = useState(false);
-
-  const lastYRef = useRef(0);
-  const tickingRef = useRef(false);
-  const interactingRef = useRef(false);
-  const lastToggleAtRef = useRef(0);
-  const toolbarRef = useRef(null);
-
-  useEffect(() => {
-    lastYRef.current = window.scrollY || 0;
-
-    const onScroll = () => {
-      if (interactingRef.current) return;
-      if (toolbarRef.current?.contains(document.activeElement)) return;
-
-      const y = window.scrollY || 0;
-
-      if (y <= 12) {
-        if (toolbarHidden) setToolbarHidden(false);
-        lastYRef.current = y;
-        return;
-      }
-
-      if (tickingRef.current) return;
-
-      tickingRef.current = true;
-      window.requestAnimationFrame(() => {
-        const now = Date.now();
-        const delta = y - lastYRef.current;
-
-        if (now - lastToggleAtRef.current < 180) {
-          lastYRef.current = y;
-          tickingRef.current = false;
-          return;
-        }
-
-        if (delta > 14 && !toolbarHidden) {
-          setToolbarHidden(true);
-          lastToggleAtRef.current = now;
-        }
-
-        if (delta < -10 && toolbarHidden) {
-          setToolbarHidden(false);
-          lastToggleAtRef.current = now;
-        }
-
-        lastYRef.current = y;
-        tickingRef.current = false;
-      });
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [toolbarHidden]);
-
   const params = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
   );
 
-  const search = params.get("search") || "";
-  const gender = params.get("gender") || "";
-  const category = params.get("category") || "";
+  const category = params.get("category") || "HOODIES-SWEATSHIRTS";
   const sort = params.get("sort") || "newest";
-  const page = Number(params.get("page") || 1);
-
-  const { data: catData } = useQuery({
-    queryKey: ["categories", gender],
-    queryFn: () => fetchCategories(gender),
-  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["products", search, gender, category, sort, page],
-    queryFn: () =>
-      fetchProducts({
-        search,
-        gender,
-        category,
-        sort,
-        page,
-        limit: 24,
-      }),
+    queryKey: ["products", location.search],
+    queryFn: () => fetchProducts(Object.fromEntries(params)),
     keepPreviousData: true,
   });
 
   const setParam = (updates) => {
     const next = new URLSearchParams(location.search);
-
     Object.entries(updates).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === "") next.delete(k);
-      else next.set(k, String(v));
+      v ? next.set(k, String(v)) : next.delete(k);
     });
-
     navigate(`/products?${next.toString()}`);
   };
 
-  const categories = catData?.categories || [];
   const items = data?.items || [];
-  const totalItems = data?.pagination?.total || 0;
-
-  const lockToolbarInteraction = () => {
-    interactingRef.current = true;
-  };
-
-  const unlockToolbarInteraction = () => {
-    window.setTimeout(() => {
-      interactingRef.current = false;
-    }, 120);
-  };
 
   return (
     <main className="pp-products">
-      <section
-        ref={toolbarRef}
-        className={`pp-toolbar ${toolbarHidden ? "is-hidden" : ""}`}
-        onPointerDown={lockToolbarInteraction}
-        onPointerUp={unlockToolbarInteraction}
-        onPointerCancel={unlockToolbarInteraction}
-        onPointerLeave={unlockToolbarInteraction}
-      >
-        <div className="pp-container">
-          <div className="pp-toolbar-inner">
-            <div className="pp-genderbar">
-              {["", "men", "women", "kids"].map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className={`pp-genderbtn ${gender === g ? "is-active" : ""}`}
-                  onClick={() => setParam({ gender: g, category: "", page: 1 })}
-                >
-                  {g || "All"}
-                </button>
-              ))}
-            </div>
-
-            <div className="pp-catbar" aria-label="Categories">
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`pp-catbtn ${category === c ? "is-active" : ""}`}
-                  onClick={() =>
-                    setParam({ category: category === c ? "" : c, page: 1 })
-                  }
-                >
-                  {c.charAt(0).toUpperCase() + c.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pp-meta-row">
-            <span className="pp-results-count">{totalItems} Products</span>
-
+      <div className="pp-container">
+        <header className="pp-toolbar">
+          <h1 className="pp-category-title">{category}</h1>
+          <div className="pp-sort-wrapper">
+            <span className="pp-sort-label">Sort By:</span>
             <select
-              className="pp-sort-select"
+              className="pp-sort-dropdown"
               value={sort}
-              onChange={(e) => setParam({ sort: e.target.value, page: 1 })}
-              onFocus={lockToolbarInteraction}
-              onBlur={unlockToolbarInteraction}
+              onChange={(e) => setParam({ sort: e.target.value })}
             >
               <option value="newest">Newest</option>
-              <option value="discount-desc">Biggest Discount</option>
-              <option value="price-asc">Price: Low</option>
-              <option value="price-desc">Price: High</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
             </select>
           </div>
-        </div>
-      </section>
+        </header>
 
-      <div className="pp-container">
-        {isLoading ? (
-          <div className="pp-grid">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="pp-card-media skeleton"
-                style={{ height: "350px" }}
-              />
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="pp-grid">
-              {items.map((p) => (
-                <Link key={p._id} to={`/products/${p._id}`} className="pp-card">
-                  <div className="pp-card-media">
+        <div className="pp-grid">
+          {isLoading
+            ? [...Array(8)].map((_, i) => (
+                <div key={i} className="pp-item">
+                  <div className="pp-skeleton-media" />
+                  <div className="pp-skeleton-text" />
+                </div>
+              ))
+            : items.map((p) => (
+                <Link key={p._id} to={`/products/${p._id}`} className="pp-item">
+                  <div className="pp-image-wrap">
                     <img
                       src={p.image}
                       alt={p.title}
-                      className="pp-card-img"
+                      className="pp-image"
                       loading="lazy"
-                      draggable="false"
                     />
-                    {p.discountPercent > 0 && (
-                      <div className="pp-badge">-{p.discountPercent}%</div>
-                    )}
+                    <button
+                      className="pp-wishlist-btn"
+                      aria-label="Add to wishlist"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                    </button>
                   </div>
-
-                  <div className="pp-card-details">
-                    <span className="pp-card-store">{p.storeName}</span>
-                    <h3 className="pp-card-title">{p.title}</h3>
-
-                    <div className="pp-card-price">
-                      <span className="pp-card-now">
+                  <div className="pp-details">
+                    <h3 className="pp-product-title">{p.title}</h3>
+                    <div className="pp-price-row">
+                      <span className="pp-price">
                         {p.currency}
                         {p.price}
                       </span>
-
-                      {p.originalPrice && (
-                        <span className="pp-card-was">
-                          {p.currency}
-                          {p.originalPrice}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </Link>
               ))}
-            </div>
-
-            <div className="pp-pager">
-              <button
-                type="button"
-                disabled={page === 1}
-                className="pp-pager-btn"
-                onClick={() => setParam({ page: page - 1 })}
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                disabled={items.length < 24}
-                className="pp-pager-btn"
-                onClick={() => setParam({ page: page + 1 })}
-              >
-                Next
-              </button>
-            </div>
-          </>
-        )}
+        </div>
       </div>
     </main>
   );
