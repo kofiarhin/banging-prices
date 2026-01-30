@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import "./hero.styles.scss";
 
-const AUTOPLAY_MS = 2500; // ✅ was 5000
+const AUTOPLAY_MS = 2500;
 
 const Hero = () => {
   const scrollRef = useRef(null);
@@ -12,7 +12,6 @@ const Hero = () => {
   const [isPaused, setIsPaused] = useState(false);
 
   const navigate = useNavigate();
-
   const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const { data, isLoading } = useQuery({
@@ -97,6 +96,7 @@ const Hero = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slidesCount, isPaused]);
 
+  // ✅ keep ONLY tab-visibility pausing (no mouse/touch pause)
   useEffect(() => {
     const onVisibility = () => setIsPaused(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
@@ -115,14 +115,7 @@ const Hero = () => {
 
   return (
     <section className="hero-container">
-      <div
-        className="hero-scroll-track"
-        ref={scrollRef}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
-      >
+      <div className="hero-scroll-track" ref={scrollRef}>
         {data.carousel.slides.map((slide) => {
           const featured = slide?.items?.[0];
           if (!featured) return null;

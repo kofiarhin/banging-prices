@@ -3,6 +3,7 @@ $panel-dark: #161819;
 $text-bright: #ffffff;
 $text-muted: #8e8e8e;
 $border-muted: rgba(255, 255, 255, 0.08);
+$accent-red: #ff4b4b; // Urgent discount color
 
 .pp-products {
   background: $bg-dark;
@@ -50,34 +51,25 @@ $border-muted: rgba(255, 255, 255, 0.08);
   font-weight: 700;
   cursor: pointer;
   outline: none;
-
   option {
     background: $bg-dark;
   }
 }
 
-/* Grid Configuration */
 .pp-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-}
-
-@media (min-width: 768px) {
-  .pp-grid {
+  @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
   }
-}
-
-@media (min-width: 1100px) {
-  .pp-grid {
+  @media (min-width: 1100px) {
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
   }
 }
 
-/* Item Styling */
 .pp-item {
   text-decoration: none;
   color: inherit;
@@ -87,17 +79,29 @@ $border-muted: rgba(255, 255, 255, 0.08);
 
 .pp-image-wrap {
   position: relative;
-  /* Fixed Aspect Ratio: Height is always 1.25x the width */
   aspect-ratio: 4 / 5;
   background-color: $panel-dark;
   overflow: hidden;
   border-radius: 2px;
 }
 
+.pp-discount-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: $accent-red;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 4px 6px;
+  border-radius: 2px;
+  z-index: 2;
+  letter-spacing: 0.5px;
+}
+
 .pp-image {
   width: 100%;
   height: 100%;
-  /* Important: fills the 4:5 box regardless of image source size */
   object-fit: cover;
   transition: transform 0.4s ease;
 }
@@ -118,9 +122,8 @@ $border-muted: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  z-index: 2;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-
   svg {
     width: 14px;
     height: 14px;
@@ -130,29 +133,49 @@ $border-muted: rgba(255, 255, 255, 0.08);
 
 .pp-details {
   padding: 12px 0;
-  /* Ensures info height is consistent across cards */
-  min-height: 54px;
+  min-height: 75px;
+}
+
+.pp-store-name {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: $text-bright;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 2px;
 }
 
 .pp-product-title {
   font-size: 11px;
   font-weight: 400;
   color: $text-muted;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-
-  /* Text Truncation */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.pp-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .pp-price {
   font-size: 13px;
   font-weight: 800;
   color: $text-bright;
+}
+
+.pp-original-price {
+  font-size: 11px;
+  font-weight: 500;
+  color: $text-muted;
+  text-decoration: line-through;
 }
 
 /* Skeleton Loaders */

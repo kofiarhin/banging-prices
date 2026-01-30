@@ -1,618 +1,597 @@
-// server/scrappers/shein.scraper.js
+// server/scrapers/shein.scraper.js
 const { PlaywrightCrawler } = require("crawlee");
-const readline = require("readline");
-
 const { makeCanonicalKey } = require("../utils/canonical");
-const { parsePriceToNumber, calcDiscountPercent } = require("../utils/price");
-const { deriveCategory } = require("../utils/category");
-
-const STORE = "shein";
-const STORE_NAME = "SHEIN";
-const CURRENCY = "GBP";
 
 const DEFAULT_START_URLS = [
-  "https://www.shein.co.uk/sale/All-Sale-sc-0051884505.html",
+  {
+    url: "https://www.shein.co.uk/Women-Blouses-c-1733.html",
+    userData: { gender: "women", category: "blouses" },
+  },
 ];
 
-const uniq = (arr) => Array.from(new Set((arr || []).filter(Boolean)));
-const cleanText = (t) => (t || "").replace(/\s+/g, " ").trim();
+const LIST_READY_SEL =
+  'div.product-list-v2__container, div.product-list-v2__section, [aria-label="Product list"]';
 
-const toAbsUrl = (u) => {
-  const s = cleanText(u);
-  if (!s) return "";
-  if (s.startsWith("//")) return `https:${s}`;
-  if (s.startsWith("/")) return `https://www.shein.co.uk${s}`;
-  return s;
+const LIST_LINKS_SEL =
+  'a[href*="-p-"][href$=".html"], a.S-product-card__img-container[href*="-p-"][href$=".html"]';
+
+const PAGINATION_NEXT_HREF_SEL =
+  'a[aria-label*="Next"][href]:not([aria-disabled="true"])';
+
+const PAGINATION_NEXT_CLICK_SEL = [
+  'span[aria-label*="Next"]:not(.sui-pagination__btn-disabled)',
+  'button[aria-label*="Next"]:not([disabled])',
+  'span.sui-pagination__btn[aria-label*="Next"]:not(.sui-pagination__btn-disabled)',
+].join(",");
+
+const PDP_TITLE_SEL = "h1.product-intro__head-name, h1.title-line-camp, h1";
+const PDP_JSONLD_SEL = 'script[type="application/ld+json"]';
+const PDP_PRICE_SEL = "#productMainPriceId, #productPriceId, #priceContainer";
+
+const PDP_IMG_BEFORE_CROP_SEL = "[data-before-crop-src]";
+const PDP_IMG_FALLBACK_SEL =
+  "img[srcset], img[src], img[data-src], img[data-lazy]";
+
+const SIZE_ITEM_SEL = "div.product-intro__size-radio";
+const OUT_OF_STOCK_TEXT_RE = /out of stock|sold out|unavailable/i;
+
+const SHEIN_IMG_HOST_RE = /1webstatic\.com/i;
+const SHEIN_RISK_RE = /\/risk\/challenge/i;
+
+const toNumber = (val) => {
+  if (val == null) return null;
+  const n = Number(String(val).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : null;
 };
 
-const isRiskUrl = (u) => {
-  const s = (u || "").toLowerCase();
-  return (
-    s.includes("/risk/") || s.includes("challenge") || s.includes("captcha")
-  );
-};
-
-// (A) lower concurrency + (B) throttle with jitter
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const politeDelay = async (label) => {
-  if (label === "LIST") await sleep(rand(700, 1500));
-  if (label === "DETAIL") await sleep(rand(1100, 2600));
-};
-
-// ----- Manual captcha pause helpers -----
-const waitForEnter = (prompt) =>
-  new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question(prompt, () => {
-      rl.close();
-      resolve();
-    });
-  });
-
-const looksLikeCaptcha = async (page) => {
-  // URL-based
-  if (isRiskUrl(page.url())) return true;
-
-  // Text-based (SHEIN challenge modals often have this)
-  try {
-    const modalText = page.locator("text=Please select the following graphics");
-    if (await modalText.count()) return true;
-  } catch {}
-
-  return false;
-};
-
-const bringCaptchaIntoView = async (page) => {
-  // Make it easier to see a bottom-positioned captcha
-  try {
-    await page.setViewportSize({ width: 1400, height: 900 });
-  } catch {}
-
-  try {
-    // Zoom out a bit so bottom modal is visible
-    await page.evaluate(() => {
-      document.documentElement.style.scrollBehavior = "auto";
-      document.body.style.zoom = "0.85";
-    });
-  } catch {}
-
-  try {
-    // Scroll down to where these challenge modals often sit
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  } catch {}
-
-  await page.waitForTimeout(500);
-};
-
-const pauseForManualCaptchaSolve = async ({
-  page,
-  request,
-  debug,
-  maxWaitMs = 10 * 60 * 1000,
-}) => {
-  const isCaptcha = await looksLikeCaptcha(page);
-  if (!isCaptcha) return false;
-
-  if (debug) {
-    console.log("\n⚠️  CAPTCHA/CHALLENGE DETECTED");
-    console.log("   URL:", page.url());
-    console.log("   Request:", request.url);
-    console.log("   The browser is OPEN (headed). Solve the captcha there.");
-    console.log(
-      "   DO NOT press CTRL+C (it closes the browser and Crawlee will reclaim the request).\n"
-    );
-  }
-
-  await bringCaptchaIntoView(page);
-
-  const start = Date.now();
-
-  const autoDetect = (async () => {
-    while (Date.now() - start < maxWaitMs) {
-      await page.waitForTimeout(1000);
-
-      // If challenge is gone, continue
-      const stillCaptcha = await looksLikeCaptcha(page);
-      if (!stillCaptcha) return "AUTO_DETECTED_RESOLVED";
-
-      // Sometimes after solve, it redirects but needs a moment
-      // Keep scrolling occasionally to keep modal visible
-      await bringCaptchaIntoView(page);
-    }
-    return "AUTO_DETECT_TIMEOUT";
-  })();
-
-  const manual = waitForEnter(
-    "✅ After solving the captcha in the browser, press ENTER here to continue...\n"
-  );
-
-  const winner = await Promise.race([autoDetect, manual]);
-
-  // If user pressed Enter but challenge still there, give a short extra grace period
-  if (winner === undefined) {
-    const stillCaptcha = await looksLikeCaptcha(page);
-    if (stillCaptcha) {
-      if (debug)
-        console.log(
-          "Still on challenge page — waiting a bit more for redirect..."
-        );
-      const extraStart = Date.now();
-      while (Date.now() - extraStart < 30_000) {
-        await page.waitForTimeout(1000);
-        if (!(await looksLikeCaptcha(page))) break;
-      }
-    }
-  }
-
-  if (debug) console.log("✅ Continuing crawl...\n");
-  return true;
-};
-
-// ----- existing parsing helpers -----
-const normalizeSizeToken = (t) => {
-  const s = cleanText(t);
+const absolutize = (u, base) => {
+  if (!u) return null;
+  const s = String(u).trim();
   if (!s) return null;
+  if (s.startsWith("//")) return `https:${s}`;
+  if (s.startsWith("http")) return s;
+  try {
+    return new URL(s, base).toString();
+  } catch {
+    return s;
+  }
+};
 
-  const upper = s.toUpperCase();
+const canonicalizeSheinPdpUrl = (rawUrl = "") => {
+  try {
+    const u = new URL(String(rawUrl));
+    u.hash = "";
+    u.search = "";
 
-  if (
-    upper === "SIZE" ||
-    upper.includes("SELECT SIZE") ||
-    upper.includes("PLEASE SELECT") ||
-    upper.includes("CHOOSE SIZE")
-  ) {
+    const m = u.pathname.match(/\/[^/]*-p-\d+\.html/i);
+    if (m && m[0]) u.pathname = m[0];
+
+    return u.toString();
+  } catch {
+    return String(rawUrl);
+  }
+};
+
+const pickLargestFromSrcset = (srcset = "") => {
+  const parts = String(srcset)
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  let bestUrl = null;
+  let bestW = -1;
+
+  for (const p of parts) {
+    const [url, wRaw] = p.split(/\s+/);
+    if (!url) continue;
+    const w = Number(String(wRaw || "").replace(/[^\d]/g, ""));
+    const score = Number.isFinite(w) ? w : 0;
+    if (score > bestW) {
+      bestW = score;
+      bestUrl = url;
+    }
+  }
+
+  return bestUrl || null;
+};
+
+const safeText = async (page, sel) => {
+  try {
+    const el = await page.$(sel);
+    if (!el) return null;
+    const t = await el.textContent();
+    return (t || "").replace(/\s+/g, " ").trim() || null;
+  } catch {
     return null;
   }
-
-  const alpha = new Set(["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"]);
-  if (alpha.has(upper)) return upper;
-
-  if (/^\d{1,3}$/.test(upper)) return upper;
-  if (/^ONE\s?SIZE$/i.test(upper)) return "ONE-SIZE";
-
-  // 500ML / 150ML / 1L / 12OZ
-  if (/^[0-9]{1,4}\s?(ML|L|OZ)$/i.test(upper)) return upper.replace(/\s+/g, "");
-
-  if (upper.length > 30) return null;
-  return upper;
 };
 
-const normalizeSizes = (sizesRaw) =>
-  uniq((sizesRaw || []).map(normalizeSizeToken)).filter(Boolean);
-
-const mapBreadcrumbToCategory = (crumbs = []) => {
-  const text = crumbs.join(" ").toLowerCase();
-
-  const rules = [
-    ["hoodies", ["hoodie", "hoody"]],
-    ["sweatshirts", ["sweatshirt"]],
-    ["jumpers", ["jumper", "knit", "cardigan"]],
-    ["coats-jackets", ["coat", "jacket", "blazer", "puffer", "parka"]],
-    ["dresses", ["dress"]],
-    ["tops", ["top", "bodysuit", "corset"]],
-    ["t-shirts", ["t-shirt", "tee"]],
-    ["shirts", ["shirt"]],
-    ["trousers", ["trouser", "pants", "cargo", "chino", "jogger"]],
-    ["jeans", ["jean", "denim"]],
-    ["skirts", ["skirt"]],
-    ["shorts", ["shorts"]],
-    [
-      "shoes",
-      ["shoe", "boot", "trainer", "sneaker", "loafer", "sandal", "heel"],
-    ],
-    ["bags", ["bag", "handbag", "tote"]],
-    [
-      "accessories",
-      ["accessories", "belt", "hat", "cap", "scarf", "jewellery", "jewelry"],
-    ],
-    ["home-living", ["home", "living", "kitchen", "bathroom", "decor"]],
-    ["beauty", ["beauty", "makeup", "skincare"]],
-  ];
-
-  for (const [category, keys] of rules) {
-    if (keys.some((k) => text.includes(k))) return category;
+const safeInnerText = async (page, sel) => {
+  try {
+    const el = await page.$(sel);
+    if (!el) return null;
+    const t = await el.innerText();
+    return (t || "").replace(/\s+/g, " ").trim() || null;
+  } catch {
+    return null;
   }
+};
+
+const isPdpUrl = (rawUrl = "") => {
+  try {
+    const u = new URL(String(rawUrl));
+    return /-p-\d+\.html/i.test(u.pathname);
+  } catch {
+    return /-p-\d+\.html/i.test(String(rawUrl));
+  }
+};
+
+const extractListLinks = async (page, baseUrl) => {
+  await page
+    .waitForSelector(LIST_READY_SEL, { timeout: 25000 })
+    .catch(() => {});
+  await page
+    .waitForSelector(LIST_LINKS_SEL, { timeout: 25000 })
+    .catch(() => {});
+
+  const hrefs = await page
+    .$$eval(LIST_LINKS_SEL, (as) =>
+      Array.from(
+        new Set(
+          (as || [])
+            .map((a) => (a.getAttribute("href") || "").trim())
+            .filter(Boolean),
+        ),
+      ),
+    )
+    .catch(() => []);
+
+  return hrefs
+    .map((h) => canonicalizeSheinPdpUrl(absolutize(h, baseUrl)))
+    .filter(Boolean);
+};
+
+const tryGetNextPageUrl = async (page, baseUrl) => {
+  try {
+    const href = await page.getAttribute(PAGINATION_NEXT_HREF_SEL, "href");
+    if (href) return absolutize(href, baseUrl);
+  } catch {}
+
+  try {
+    const u = new URL(String(baseUrl));
+    const cur = Number(u.searchParams.get("page") || "1");
+    const next = cur + 1;
+    u.searchParams.set("page", String(next));
+    return u.toString();
+  } catch {}
+
   return null;
 };
 
-const clickCookiesIfPresent = async (page) => {
-  const candidates = [
-    'button:has-text("Accept")',
-    'button:has-text("Accept All")',
-    'button:has-text("I agree")',
-    'button:has-text("Agree")',
-    '[id*="accept" i]',
-    '[class*="accept" i] button',
-    '[aria-label*="accept" i]',
-  ];
+const clickNextAndGetUrl = async (page) => {
+  const before = page.url();
 
-  for (const sel of candidates) {
-    try {
-      const el = await page.$(sel);
-      if (el) {
-        await el.click({ timeout: 1500 });
-        await page.waitForTimeout(400);
-        return;
-      }
-    } catch {}
+  try {
+    const btn = await page.$(PAGINATION_NEXT_CLICK_SEL);
+    if (!btn) return null;
+
+    await Promise.allSettled([
+      page.waitForLoadState("networkidle", { timeout: 20000 }),
+      btn.click({ timeout: 8000 }),
+    ]);
+
+    await page.waitForTimeout(600);
+
+    const after = page.url();
+    if (after && after !== before) return after;
+    return null;
+  } catch {
+    return null;
   }
 };
 
-const closePopupsIfPresent = async (page) => {
-  const candidates = [
-    '[aria-label*="close" i]',
-    'button:has-text("Close")',
-    'button:has-text("No thanks")',
-    'button:has-text("Not now")',
-    'button:has-text("Later")',
-    ".c-modal__close, .modal__close, .close, .close-btn",
-  ];
+const extractFromJsonLd = async (page) => {
+  const out = { price: null, currency: null, originalPrice: null };
 
-  for (const sel of candidates) {
-    try {
-      const el = await page.$(sel);
-      if (el) {
-        await el.click({ timeout: 1200 });
-        await page.waitForTimeout(250);
-        return;
-      }
-    } catch {}
-  }
-};
-
-const blockHeavyResources = async (page) => {
-  await page.route("**/*", (route) => {
-    const r = route.request();
-    const type = r.resourceType();
-    const url = r.url().toLowerCase();
-
-    // keep scripts + xhr/fetch so app works
-    if (
-      type === "script" ||
-      type === "xhr" ||
-      type === "fetch" ||
-      type === "document"
-    ) {
-      return route.continue();
-    }
-
-    // cut memory + bandwidth
-    if (["image", "media", "font", "stylesheet"].includes(type))
-      return route.abort();
-    if (url.includes("doubleclick") || url.includes("google-analytics"))
-      return route.abort();
-
-    return route.continue();
-  });
-};
-
-const scrollToLoadMore = async ({ page, productSelector, maxScrolls = 8 }) => {
-  let lastCount = 0;
-
-  for (let i = 0; i < maxScrolls; i++) {
-    const count = await page.locator(productSelector).count();
-    if (count > 0 && count === lastCount) break;
-    lastCount = count;
-
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(900);
-  }
-};
-
-const extractDetail = async ({ page }) => {
-  await page.waitForTimeout(900);
-
-  const raw = await page.evaluate(() => {
-    const clean = (t) => (t || "").replace(/\s+/g, " ").trim();
-    const abs = (u) => {
-      const s = clean(u);
-      if (!s) return "";
-      if (s.startsWith("//")) return `https:${s}`;
-      if (s.startsWith("/")) return `https://www.shein.co.uk${s}`;
-      return s;
-    };
-
-    const title =
-      clean(document.querySelector("h1")?.textContent) ||
-      clean(
-        document
-          .querySelector('meta[property="og:title"]')
-          ?.getAttribute("content")
-      );
-
-    const allText = clean(document.body?.innerText || "");
-
-    const priceText =
-      clean(
-        document.querySelector('[class*="product-intro__price" i]')?.textContent
-      ) ||
-      clean(document.querySelector('[class*="price" i]')?.textContent) ||
-      clean(
-        document
-          .querySelector('meta[property="product:price:amount"]')
-          ?.getAttribute("content")
-      ) ||
-      "";
-
-    const originalText =
-      clean(document.querySelector('[class*="del" i]')?.textContent) ||
-      clean(document.querySelector('[class*="original" i]')?.textContent) ||
-      "";
-
-    const thumbUrls = Array.from(
-      document.querySelectorAll("[data-before-crop-src]")
-    )
-      .map((el) => abs(el.getAttribute("data-before-crop-src")))
-      .filter(Boolean);
-
-    const ogImage = abs(
-      document
-        .querySelector('meta[property="og:image"]')
-        ?.getAttribute("content")
+  try {
+    const blocks = await page.$$eval(PDP_JSONLD_SEL, (els) =>
+      els
+        .map((e) => (e.textContent || "").trim())
+        .filter(Boolean)
+        .slice(0, 10),
     );
-    const images = [ogImage, ...thumbUrls].filter(Boolean);
-    const image = images[0] || "";
 
-    const crumbs = Array.from(
-      document.querySelectorAll(
-        'nav[aria-label*="breadcrumb" i] a, [class*="bread" i] a, [class*="crumb" i] a'
-      )
-    )
-      .map((a) => clean(a.textContent))
-      .filter(Boolean)
-      .slice(0, 12);
+    for (const raw of blocks) {
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        continue;
+      }
 
-    let color =
-      clean(
-        document.querySelector('[class*="color" i] [class*="selected" i]')
-          ?.textContent
-      ) ||
-      clean(
-        document.querySelector('[class*="colour" i] [class*="selected" i]')
-          ?.textContent
-      ) ||
-      "";
+      const nodes = Array.isArray(data) ? data : [data];
 
-    if (!color) {
-      const m = allText.match(/COLOU?R\s*:\s*([A-Z0-9][A-Z0-9 \-]+)/i);
-      color = m ? clean(m[1]) : "";
+      for (const node of nodes) {
+        if (!node || typeof node !== "object") continue;
+
+        const offers = node.offers;
+        const offerArr = Array.isArray(offers)
+          ? offers
+          : offers
+            ? [offers]
+            : [];
+
+        for (const o of offerArr) {
+          if (!o || typeof o !== "object") continue;
+
+          const p = toNumber(o.price ?? o.priceSpecification?.price ?? null);
+          const c = o.priceCurrency || null;
+
+          if (p != null && p > 0 && out.price == null) out.price = p;
+          if (c && !out.currency) out.currency = c;
+
+          const high = toNumber(o.highPrice ?? null);
+          const low = toNumber(o.lowPrice ?? null);
+
+          if (high != null && high > 0 && out.originalPrice == null) {
+            if (out.price != null && high > out.price) out.originalPrice = high;
+          } else if (low != null && low > 0 && out.originalPrice == null) {
+            if (out.price != null && low > out.price) out.originalPrice = low;
+          }
+        }
+      }
+
+      if (out.price != null && out.currency) break;
     }
+  } catch {}
 
-    // sizes (robust)
-    const sizeCandidates = [];
-    const push = (v) => {
-      const t = clean(v);
-      if (!t) return;
-      if (/^size$/i.test(t)) return;
-      if (/select size/i.test(t)) return;
-      sizeCandidates.push(t);
-    };
+  return out;
+};
 
-    document
-      .querySelectorAll(
-        ".product-intro__size-choose .size-radio, [class*='size-choose' i] .size-radio"
-      )
-      .forEach((el) => {
-        push(el.getAttribute("data-attr_value_name"));
-        push(el.getAttribute("data-attr_value"));
-        push(el.getAttribute("aria-label"));
-        push(el.querySelector("p")?.textContent);
-        push(el.textContent);
-      });
+const extractImages = async (page, baseUrl) => {
+  const crop = await page
+    .$$eval(PDP_IMG_BEFORE_CROP_SEL, (els) =>
+      (els || [])
+        .map((el) => (el.getAttribute("data-before-crop-src") || "").trim())
+        .filter(Boolean),
+    )
+    .catch(() => []);
 
-    document
-      .querySelectorAll("[data-attr_value_name]")
-      .forEach((el) => push(el.getAttribute("data-attr_value_name")));
-    document
-      .querySelectorAll("[data-attr_value]")
-      .forEach((el) => push(el.getAttribute("data-attr_value")));
+  const fallback = await page
+    .$$eval(PDP_IMG_FALLBACK_SEL, (imgs) =>
+      (imgs || [])
+        .map((img) => {
+          const cls = (img.getAttribute("class") || "").toLowerCase();
+          if (cls.includes("locate-label")) return null;
 
-    document
-      .querySelectorAll(
-        ".product-intro__size-radio-inner, [class*='size-radio-inner' i], [class*='size-radio' i] p"
-      )
-      .forEach((el) => push(el.textContent));
+          const srcset = (img.getAttribute("srcset") || "").trim();
+          const src = (img.getAttribute("src") || "").trim();
+          const dataSrc = (img.getAttribute("data-src") || "").trim();
+          const dataLazy = (img.getAttribute("data-lazy") || "").trim();
 
-    const sizesRaw = Array.from(new Set(sizeCandidates)).filter(Boolean);
+          return { srcset, src, dataSrc, dataLazy };
+        })
+        .filter(Boolean),
+    )
+    .catch(() => []);
 
-    const inStock = !/out of stock|sold out/i.test(allText);
+  const expanded = [];
+  for (const u of crop) expanded.push(u);
+
+  for (const x of fallback) {
+    if (x.srcset) {
+      const picked = pickLargestFromSrcset(x.srcset);
+      if (picked) expanded.push(picked);
+    }
+    if (x.src) expanded.push(x.src);
+    if (x.dataSrc) expanded.push(x.dataSrc);
+    if (x.dataLazy) expanded.push(x.dataLazy);
+  }
+
+  const abs = expanded.map((u) => absolutize(u, baseUrl)).filter(Boolean);
+  const filtered = abs.filter((u) => SHEIN_IMG_HOST_RE.test(String(u)));
+
+  return Array.from(new Set(filtered));
+};
+
+const extractSizes = async (page) => {
+  try {
+    await page.waitForTimeout(300);
+
+    const res = await page.evaluate(
+      ({ sel }) => {
+        const clean = (t) => (t || "").replace(/\s+/g, " ").trim();
+        const nodes = Array.from(document.querySelectorAll(sel));
+
+        const items = nodes.map((n) => {
+          const aria = clean(n.getAttribute("aria-label"));
+          const txt = clean(n.textContent);
+
+          const disabled =
+            n.getAttribute("aria-disabled") === "true" ||
+            n.getAttribute("disabled") != null ||
+            (n.className || "").toLowerCase().includes("disabled");
+
+          return { label: aria || txt || null, disabled };
+        });
+
+        const sizesRaw = items.map((x) => x.label).filter(Boolean);
+        const sizes = items
+          .filter((x) => !x.disabled)
+          .map((x) => x.label)
+          .filter(Boolean);
+
+        return { sizesRaw, sizes };
+      },
+      { sel: SIZE_ITEM_SEL },
+    );
+
+    const sizesRaw = Array.isArray(res?.sizesRaw) ? res.sizesRaw : [];
+    const sizes = Array.isArray(res?.sizes) ? res.sizes : [];
 
     return {
-      title,
-      priceText,
-      originalText,
-      productUrl: location.href,
-      image,
-      images,
-      crumbs,
-      color,
       sizesRaw,
-      inStock,
+      sizes,
+      hasSizes: sizesRaw.length > 0,
+      inStock: sizes.length > 0,
     };
-  });
-
-  const price = parsePriceToNumber(raw.priceText);
-  const originalPrice = parsePriceToNumber(raw.originalText);
-  const discountPercent = calcDiscountPercent({ price, originalPrice });
-
-  return {
-    title: raw.title,
-    price,
-    originalPrice,
-    discountPercent,
-    image: toAbsUrl(raw.image),
-    images: (raw.images || []).map(toAbsUrl).filter(Boolean),
-    productUrl: raw.productUrl,
-    crumbs: raw.crumbs || [],
-    colorsRaw: raw.color ? [raw.color] : [],
-    sizesRaw: raw.sizesRaw || [],
-    inStock: !!raw.inStock,
-  };
+  } catch {
+    return { sizesRaw: [], sizes: [], hasSizes: false, inStock: false };
+  }
 };
 
-const runSheinScraper = async ({
-  startUrls = DEFAULT_START_URLS,
-  maxRequestsPerCrawl = 120,
-  maxProducts = 80,
-  debug = true,
+const inferInStockFallback = async (page) => {
+  try {
+    const txt = await page.textContent("body").catch(() => "");
+    if (OUT_OF_STOCK_TEXT_RE.test(String(txt || ""))) return false;
+    return true;
+  } catch {
+    return true;
+  }
+};
+
+const extractDomPrice = async (page) => {
+  const t = await safeInnerText(page, PDP_PRICE_SEL);
+  const price = toNumber(t);
+  let currency = null;
+
+  const s = String(t || "");
+  if (s.includes("£")) currency = "GBP";
+  else if (s.includes("$")) currency = "USD";
+  else if (s.includes("€")) currency = "EUR";
+
+  return { price, currency };
+};
+
+const runSheinCrawl = async ({
+  startUrls = [],
+  maxListPages = 1,
+  maxProducts = 0,
+  debug = false,
 } = {}) => {
   const results = [];
-  const now = new Date().toISOString();
-  const saleUrl = startUrls[0];
 
   const crawler = new PlaywrightCrawler({
-    maxRequestsPerCrawl,
-
-    // ✅ allow time for manual captcha solve
-    requestHandlerTimeoutSecs: 10 * 60,
-
-    // A) lower concurrency
     maxConcurrency: 1,
+    requestHandlerTimeoutSecs: 180,
+    navigationTimeoutSecs: 60,
+    maxRequestRetries: 2,
 
-    // ✅ headed
     launchContext: {
       launchOptions: {
-        headless: false,
-        args: ["--start-maximized"],
+        headless: true,
+        timeout: 60000,
+        args: [
+          "--no-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--disable-blink-features=AutomationControlled",
+        ],
       },
     },
 
-    // ✅ set viewport here (fixes your browserNewContextOptions error)
+    browserPoolOptions: { maxOpenPagesPerBrowser: 1 },
+
     preNavigationHooks: [
       async ({ page }) => {
-        await page.setViewportSize({ width: 1400, height: 900 });
-        await blockHeavyResources(page);
+        page.setDefaultTimeout(60000);
+        page.setDefaultNavigationTimeout(60000);
+
+        await page.setExtraHTTPHeaders({
+          "accept-language": "en-GB,en;q=0.9",
+        });
+
+        await page.setViewportSize({ width: 1366, height: 768 });
+
+        await page.route("**/*", async (route) => {
+          const type = route.request().resourceType();
+          if (type === "media" || type === "font") return route.abort();
+          return route.continue();
+        });
       },
     ],
 
     async requestHandler({ page, request, enqueueLinks }) {
-      await politeDelay(request.label);
+      const label = (request.label || "LIST").toUpperCase();
+      const effectiveLabel = isPdpUrl(request.url) ? "DETAIL" : label;
 
-      // ✅ if challenge appears, pause + let user solve, then continue
-      await pauseForManualCaptchaSolve({ page, request, debug });
+      // block obvious captcha/risk pages
+      if (SHEIN_RISK_RE.test(page.url()) || SHEIN_RISK_RE.test(request.url)) {
+        if (debug) console.log("🛑 SHEIN RISK/CAPTCHA:", request.url);
+        return;
+      }
 
-      await clickCookiesIfPresent(page);
-      await closePopupsIfPresent(page);
+      if (effectiveLabel === "LIST") {
+        const currentPage = Number(request.userData?.page || 1);
+        if (currentPage > Number(maxListPages || 1)) return;
 
-      // ✅ if challenge pops after clicks, pause again
-      await pauseForManualCaptchaSolve({ page, request, debug });
+        const links = await extractListLinks(page, request.url);
 
-      if (request.label === "LIST") {
-        const productSelector =
-          "a.S-product-card__img-container, a[class*='product-card__img-container'], a[href*='-p-']";
+        let canonicalLinks = links
+          .map((l) => canonicalizeSheinPdpUrl(l))
+          .filter(Boolean);
 
-        await page.waitForTimeout(1200);
-
-        // If list page becomes a challenge mid-run, pause there too
-        await pauseForManualCaptchaSolve({ page, request, debug });
-
-        await scrollToLoadMore({ page, productSelector, maxScrolls: 8 });
+        if (Number(maxProducts || 0) > 0) {
+          canonicalLinks = canonicalLinks.slice(0, Number(maxProducts));
+        }
 
         await enqueueLinks({
-          selector: productSelector,
+          urls: canonicalLinks,
           label: "DETAIL",
+          userData: request.userData || {},
           transformRequestFunction: (req) => {
-            const url = toAbsUrl(req.url);
-            if (!url) return null;
-            return { url, label: "DETAIL" };
+            const canon = canonicalizeSheinPdpUrl(req.url);
+            return { ...req, url: canon, uniqueKey: canon };
           },
         });
 
         if (debug) {
-          const count = await page.locator(productSelector).count();
-          console.log(`Found product cards ✅ (${count})`);
+          console.log(
+            "🟦 SHEIN LIST extracted:",
+            links.length,
+            "canonical:",
+            canonicalLinks.length,
+            "page:",
+            currentPage,
+          );
         }
+
+        if (currentPage < Number(maxListPages || 1)) {
+          let nextUrl = await tryGetNextPageUrl(page, request.url);
+
+          if (!nextUrl || nextUrl === request.url) {
+            const clickedUrl = await clickNextAndGetUrl(page);
+            if (clickedUrl) nextUrl = clickedUrl;
+          }
+
+          if (nextUrl && nextUrl !== request.url) {
+            await enqueueLinks({
+              urls: [nextUrl],
+              label: "LIST",
+              userData: {
+                ...(request.userData || {}),
+                baseUrl: request.userData?.baseUrl || request.url,
+                page: currentPage + 1,
+              },
+              transformRequestFunction: (req) => {
+                const u = req.url;
+                return { ...req, url: u, uniqueKey: u };
+              },
+            });
+
+            if (debug) console.log("➡️ SHEIN LIST next:", nextUrl);
+          }
+        }
+
         return;
       }
 
-      if (request.label === "DETAIL") {
-        if (results.length >= maxProducts) return;
-
-        // If it redirected to challenge, we already paused above.
-        // Continue with extraction when page is normal again.
-        await pauseForManualCaptchaSolve({ page, request, debug });
-
-        const detail = await extractDetail({ page });
-
-        if (
-          !detail.title ||
-          typeof detail.price !== "number" ||
-          !detail.image
-        ) {
-          if (debug)
-            console.log("DETAIL SKIP ❌", detail.productUrl || request.url);
-          return;
-        }
-
-        const canonicalKey = makeCanonicalKey({
-          store: STORE,
-          productUrl: detail.productUrl,
-        });
-
-        const category =
-          deriveCategory({
-            title: detail.title,
-            productUrl: detail.productUrl,
-          }) || mapBreadcrumbToCategory(detail.crumbs);
-
-        const colors = uniq(detail.colorsRaw)
-          .map((c) => cleanText(c))
-          .filter(Boolean)
-          .filter((c) => c.length <= 30);
-
-        const sizesRaw = uniq(detail.sizesRaw);
-        const sizes = normalizeSizes(sizesRaw);
-
-        const product = {
-          canonicalKey,
-          store: STORE,
-          storeName: STORE_NAME,
-          title: detail.title,
-          price: detail.price,
-          currency: CURRENCY,
-          originalPrice: detail.originalPrice || null,
-          discountPercent: detail.discountPercent ?? null,
-          image: detail.image,
-          images: uniq(
-            detail.images && detail.images.length
-              ? detail.images
-              : [detail.image]
-          ),
-          productUrl: detail.productUrl,
-          saleUrl,
-          category,
-          gender: null,
-          colors,
-          sizesRaw,
-          sizes: sizes.length ? sizes : sizesRaw,
-          inStock: detail.inStock,
-          status: "active",
-          lastSeenAt: now,
-        };
-
-        console.log(product);
-        results.push(product);
-
-        if (debug)
-          console.log("DETAIL ✅", detail.title, "| sizes:", product.sizes);
+      // DETAIL
+      try {
+        await page.waitForSelector(PDP_TITLE_SEL, { timeout: 25000 });
+      } catch {
+        if (debug) console.log("❌ SHEIN DETAIL wait failed:", request.url);
+        return;
       }
+
+      if (SHEIN_RISK_RE.test(page.url())) {
+        if (debug) console.log("🛑 SHEIN RISK/CAPTCHA (detail):", page.url());
+        return;
+      }
+
+      const productUrl = canonicalizeSheinPdpUrl(page.url());
+      const title = (await safeText(page, PDP_TITLE_SEL)) || null;
+
+      const jsonld = await extractFromJsonLd(page);
+      const domPrice = await extractDomPrice(page);
+
+      const price = domPrice.price ?? jsonld.price ?? null;
+      const currency = String(
+        domPrice.currency || jsonld.currency || "GBP",
+      ).toUpperCase();
+
+      const images = await extractImages(page, productUrl);
+      const image = images[0] || null;
+
+      const sizes = await extractSizes(page);
+      const inStock = sizes.hasSizes
+        ? sizes.inStock
+        : await inferInStockFallback(page);
+
+      const store = "shein";
+      const storeName = "SHEIN";
+
+      // ✅ do NOT touch canonical key logic
+      const canonicalKey = makeCanonicalKey({ store, productUrl });
+
+      const originalPrice = jsonld.originalPrice ?? null;
+      const discountPercent =
+        originalPrice && price && originalPrice > price
+          ? Math.round(((originalPrice - price) / originalPrice) * 100)
+          : null;
+
+      const doc = {
+        canonicalKey,
+        store,
+        storeName,
+        title,
+        price,
+        currency,
+        originalPrice,
+        discountPercent,
+        image,
+        images,
+        productUrl,
+        saleUrl: request.userData?.baseUrl || null,
+        category: request.userData?.category || null,
+        gender: request.userData?.gender || null,
+        colors: [],
+        sizesRaw: sizes.sizesRaw,
+        sizes: sizes.sizes,
+        inStock,
+        status: "active",
+        lastSeenAt: new Date(),
+      };
+
+      if (debug) {
+        console.log("🟩 SHEIN PRODUCT_DOC_REQUIRED", {
+          title: doc.title,
+          price: doc.price,
+          currency: doc.currency,
+          inStock: doc.inStock,
+          image: doc.image,
+          images0: doc.images?.[0] || null,
+          sizes0: doc.sizes?.[0] || null,
+          sizesCount: doc.sizes?.length || 0,
+          productUrl: doc.productUrl,
+        });
+      }
+
+      results.push(doc);
     },
   });
 
-  await crawler.run(
-    startUrls.map((url) => ({
+  const finalStartUrls = (startUrls || []).length
+    ? startUrls
+    : DEFAULT_START_URLS;
+
+  const seeds = finalStartUrls.filter(Boolean).map((u) => {
+    const url = typeof u === "string" ? u : u.url;
+    const userData = typeof u === "string" ? {} : u.userData || {};
+    return {
       url,
       label: "LIST",
-    }))
-  );
+      userData: { ...userData, baseUrl: url, page: 1 },
+      uniqueKey: url,
+    };
+  });
+
+  await crawler.run(seeds);
 
   const map = new Map();
   for (const p of results) map.set(p.canonicalKey, p);
+
   return Array.from(map.values());
 };
 
-module.exports = { runSheinScraper, runSheinCrawl: runSheinScraper };
+module.exports = { runSheinCrawl };

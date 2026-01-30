@@ -20,7 +20,7 @@ const ProductsPage = () => {
     [location.search],
   );
 
-  const category = params.get("category") || "HOODIES-SWEATSHIRTS";
+  const category = params.get("category") || "NEW IN";
   const sort = params.get("sort") || "newest";
 
   const { data, isLoading } = useQuery({
@@ -69,15 +69,24 @@ const ProductsPage = () => {
             : items.map((p) => (
                 <Link key={p._id} to={`/products/${p._id}`} className="pp-item">
                   <div className="pp-image-wrap">
+                    {/* Discount Badge */}
+                    {p.discountPercent > 0 && (
+                      <div className="pp-discount-badge">
+                        -{p.discountPercent}%
+                      </div>
+                    )}
+
                     <img
                       src={p.image}
                       alt={p.title}
                       className="pp-image"
                       loading="lazy"
                     />
+
                     <button
                       className="pp-wishlist-btn"
                       aria-label="Add to wishlist"
+                      onClick={(e) => e.preventDefault()}
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -89,13 +98,22 @@ const ProductsPage = () => {
                       </svg>
                     </button>
                   </div>
+
                   <div className="pp-details">
+                    <span className="pp-store-name">{p.storeName}</span>
                     <h3 className="pp-product-title">{p.title}</h3>
                     <div className="pp-price-row">
                       <span className="pp-price">
                         {p.currency}
                         {p.price}
                       </span>
+                      {/* Original Price Strikethrough */}
+                      {p.originalPrice > p.price && (
+                        <span className="pp-original-price">
+                          {p.currency}
+                          {p.originalPrice}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

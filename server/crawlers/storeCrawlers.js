@@ -8,17 +8,23 @@ const Product = require("../models/product.model");
 
 const { makeCanonicalKey } = require("../utils/canonical");
 
+// ✅ JD Sports crawler (RUN FIRST)
+const { runJdSportsCrawl } = require("../scrappers/jdsports.scraper");
+
+// ✅ Footasylum crawler
+const { runFootasylumCrawl } = require("../scrappers/footasylum.scraper");
+
+// ✅ River Island crawler
+const { runRiverIslandCrawl } = require("../scrappers/riverisland.scraper");
+
+// ✅ NIKE crawler
+const { runNikeCrawl } = require("../scrappers/nike.scraper");
+
 // ✅ Boohoo crawler
 const { runBoohooCrawl } = require("../scrappers/boohoo.scraper");
 
 // ✅ ASOS crawler
 const { runAsosCrawl } = require("../scrappers/asos.scraper");
-
-// ✅ NIKE crawler
-const { runNikeCrawl } = require("../scrappers/nike.scraper");
-
-// ✅ River Island crawler
-const { runRiverIslandCrawl } = require("../scrappers/riverisland.scraper");
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI;
@@ -43,10 +49,12 @@ const guessCurrency = (raw) => {
 
 const inferStoreFromUrl = (url = "") => {
   const u = String(url).toLowerCase();
+  if (u.includes("jdsports.co.uk")) return "jdsports";
   if (u.includes("boohooman.com")) return "boohooman";
   if (u.includes("asos.com")) return "asos";
   if (u.includes("nike.com")) return "nike";
   if (u.includes("riverisland.com")) return "riverisland";
+  if (u.includes("footasylum.com")) return "footasylum";
   return null;
 };
 
@@ -81,7 +89,11 @@ const normalize = (raw = {}) => {
         ? "GBP"
         : store === "riverisland"
           ? "GBP"
-          : null);
+          : store === "footasylum"
+            ? "GBP"
+            : store === "jdsports"
+              ? "GBP"
+              : null);
 
   const images = Array.isArray(raw.images) ? raw.images.filter(Boolean) : [];
   const image = raw.image || images[0] || null;
@@ -100,7 +112,11 @@ const normalize = (raw = {}) => {
             ? "Nike"
             : store === "riverisland"
               ? "River Island"
-              : "Unknown"),
+              : store === "footasylum"
+                ? "Footasylum"
+                : store === "jdsports"
+                  ? "JD Sports"
+                  : "Unknown"),
     title: raw.title || raw.name || null,
     price,
     currency,
@@ -190,7 +206,116 @@ const upsertProducts = async (products, label = "STORE") => {
 const run = async () => {
   await connectDB();
 
-  // ---------- RIVER ISLAND (FIRST) ----------
+  // ---------- JD SPORTS (FIRST) ----------
+  const jdSportsProducts = await runJdSportsCrawl({
+    startUrls: [
+      {
+        url: "https://www.jdsports.co.uk/women/womens-footwear/trainers/",
+        userData: { gender: "women", category: "trainers" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/men/mens-footwear/trainers/",
+        userData: { gender: "men", category: "trainers" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/kids/kids-footwear/trainers/",
+        userData: { gender: "kids", category: "trainers" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/women/womens-footwear/running-shoes/",
+        userData: { gender: "women", category: "running-shoes" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/men/mens-footwear/running-shoes/",
+        userData: { gender: "men", category: "running-shoes" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/women/womens-footwear/gym-shoes/",
+        userData: { gender: "women", category: "gym-shoes" },
+      },
+      {
+        url: "https://www.jdsports.co.uk/men/mens-footwear/gym-shoes/",
+        userData: { gender: "men", category: "gym-shoes" },
+      },
+    ],
+    maxListPages: 2,
+    debug: true,
+  });
+
+  await upsertProducts(jdSportsProducts, "JD_SPORTS");
+
+  // ---------- FOOTASYLUM ----------
+  const footasylumProducts = await runFootasylumCrawl({
+    startUrls: [
+      // ----- MEN -----
+      {
+        url: "https://www.footasylum.com/mens/mens-clothing/jackets-coats/",
+        userData: { gender: "men", category: "jackets-coats" },
+      },
+      {
+        url: "https://www.footasylum.com/mens/mens-clothing/hoodies/",
+        userData: { gender: "men", category: "hoodies" },
+      },
+      {
+        url: "https://www.footasylum.com/mens/mens-clothing/tracksuits/",
+        userData: { gender: "men", category: "tracksuits" },
+      },
+      {
+        url: "https://www.footasylum.com/mens/mens-clothing/jog-track-pants/",
+        userData: { gender: "men", category: "jog-track-pants" },
+      },
+      {
+        url: "https://www.footasylum.com/mens/mens-footwear/trainers/",
+        userData: { gender: "men", category: "trainers" },
+      },
+
+      // ----- WOMEN -----
+      {
+        url: "https://www.footasylum.com/womens/womens-clothing/jackets-coats/",
+        userData: { gender: "women", category: "jackets-coats" },
+      },
+      {
+        url: "https://www.footasylum.com/womens/womens-clothing/hoodies/",
+        userData: { gender: "women", category: "hoodies" },
+      },
+      {
+        url: "https://www.footasylum.com/womens/womens-clothing/tracksuits/",
+        userData: { gender: "women", category: "tracksuits" },
+      },
+      {
+        url: "https://www.footasylum.com/womens/womens-clothing/activewear/",
+        userData: { gender: "women", category: "activewear" },
+      },
+      {
+        url: "https://www.footasylum.com/womens/womens-footwear/trainers/",
+        userData: { gender: "women", category: "trainers" },
+      },
+      {
+        url: "https://www.footasylum.com/womens/womens-clothing/tops/",
+        userData: { gender: "women", category: "tops" },
+      },
+
+      // ----- KIDS (POWER SEGMENTS ONLY) -----
+      {
+        url: "https://www.footasylum.com/kids/kids-footwear/trainers/",
+        userData: { gender: "kids", category: "trainers" },
+      },
+      {
+        url: "https://www.footasylum.com/kids/kids-clothing/jackets-coats/",
+        userData: { gender: "kids", category: "jackets-coats" },
+      },
+      {
+        url: "https://www.footasylum.com/kids/kids-clothing/hoodies/",
+        userData: { gender: "kids", category: "hoodies" },
+      },
+    ],
+    maxListPages: 2,
+    debug: true,
+  });
+
+  await upsertProducts(footasylumProducts, "FOOTASYLUM");
+
+  // ---------- RIVER ISLAND ----------
   const riverIslandProducts = await runRiverIslandCrawl({
     startUrls: [
       // women
