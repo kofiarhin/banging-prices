@@ -1,24 +1,26 @@
-// playground.js
 require("dotenv").config();
-
-const {
-  runMarksAndSpencerCrawl,
-} = require("./server/scrappers/marksandspencer.scraper");
+const { runJdSportsCrawl } = require("./server/scrappers/jdsports.scraper");
 
 const run = async () => {
-  const products = await runMarksAndSpencerCrawl({
-    startUrls: [
-      {
-        url: "https://www.marksandspencer.com/l/women/jeans",
-        userData: { gender: "women", category: "jeans" },
-      },
-    ],
-    maxListPages: 1,
+  const startUrls = [
+    {
+      url: "https://www.jdsports.co.uk/women/womens-footwear/trainers/",
+      userData: { gender: "women", category: "trainers" },
+    },
+  ];
+
+  const products = await runJdSportsCrawl({
+    startUrls,
+    maxListPages: 1, // bump this up to crawl more pages
+    maxProducts: 10, // 0 = no cap
     debug: true,
   });
 
-  console.log("✅ M&S products:", products.length);
-  console.log(products.slice(0, 3));
+  console.log("✅ JD products:", products.length);
+  console.log(products.slice(0, 2));
 };
 
-run().catch(console.error);
+run().catch((e) => {
+  console.error("❌ JD crawl failed:", e);
+  process.exit(1);
+});

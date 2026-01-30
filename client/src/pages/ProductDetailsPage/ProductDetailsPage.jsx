@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RedirectToSignIn, SignedIn, useAuth } from "@clerk/clerk-react";
+import { RedirectToSignIn, useAuth } from "@clerk/clerk-react";
 import "./product-details.styles.scss";
 import useSaveMutation from "../../hooks/useSaveMutation";
 import useSavedProductsQuery from "../../hooks/useSavedProductsQuery";
@@ -65,6 +65,64 @@ const createAlert = async ({ token, payload }) => {
   return data;
 };
 
+const normalizeSizes = (p) => {
+  const raw =
+    p?.sizes ??
+    p?.availableSizes ??
+    p?.sizeOptions ??
+    p?.size ??
+    p?.variants?.sizes ??
+    p?.variants ??
+    [];
+
+  // Common shapes supported:
+  // - ["S","M","L"]
+  // - "S,M,L"
+  // - [{ label: "M", inStock: true }]
+  // - [{ size: "M" }, ...]
+  // - [{ name: "M" }, ...]
+  // - [{ value: "M" }, ...]
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((v) => ({ label: v, inStock: true }));
+  }
+
+  if (Array.isArray(raw)) {
+    if (raw.length === 0) return [];
+    if (typeof raw[0] === "string") {
+      return raw
+        .map((s) => String(s).trim())
+        .filter(Boolean)
+        .map((v) => ({ label: v, inStock: true }));
+    }
+    if (typeof raw[0] === "object" && raw[0] !== null) {
+      return raw
+        .map((x) => {
+          const label =
+            x?.label ?? x?.size ?? x?.name ?? x?.value ?? x?.title ?? "";
+          if (!label) return null;
+
+          const inStock =
+            typeof x?.inStock === "boolean"
+              ? x.inStock
+              : typeof x?.available === "boolean"
+                ? x.available
+                : typeof x?.isAvailable === "boolean"
+                  ? x.isAvailable
+                  : true;
+
+          return { label: String(label).trim(), inStock };
+        })
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+};
+
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -84,7 +142,6 @@ const ProductDetailsPage = () => {
 
   const [token, setToken] = useState("");
 
-  // Track if we should show sign-in redirect
   const [shouldRedirectToSignIn, setShouldRedirectToSignIn] = useState(false);
 
   const startXRef = useRef(null);
@@ -134,13 +191,16 @@ const ProductDetailsPage = () => {
     setAlertSaved(false);
     setAlertSaving(false);
     setAlertError("");
-    setShouldRedirectToSignIn(false); // reset on product change
+    setShouldRedirectToSignIn(false);
   }, [p?._id]);
 
   const gallery = useMemo(() => {
     if (!p) return [];
     return Array.from(new Set([p.image, ...(p.images || [])])).filter(Boolean);
   }, [p]);
+
+  const sizes = useMemo(() => normalizeSizes(p), [p]);
+  const hasSizes = (sizes || []).length > 0;
 
   const activeImageUrl = gallery[activeIdx] || p?.image;
   const canCarousel = (gallery || []).length > 1;
@@ -266,9 +326,6 @@ const ProductDetailsPage = () => {
     );
   };
 
-  // ────────────────────────────────────────────────
-  //    Early return for sign-in redirect
-  // ────────────────────────────────────────────────
   if (shouldRedirectToSignIn) {
     return <RedirectToSignIn />;
   }
@@ -464,6 +521,29 @@ const ProductDetailsPage = () => {
                     #{(p._id || "").slice(-6)}
                   </span>
                 </div>
+              </div>
+
+              <div className="pd-sizes">
+                <div className="pd-sizes-head">
+                  <span className="pd-sizes-label">Sizes</span>
+                  {!hasSizes ? (
+                    <span className="pd-sizes-muted">Not listed</span>
+                  ) : null}
+                </div>
+
+                {hasSizes ? (
+                  <div className="pd-sizes-grid" aria-label="Available sizes">
+                    {sizes.slice(0, 18).map((s, idx) => (
+                      <span
+                        key={`${s.label}-${idx}`}
+                        className={`pd-size-chip ${s.inStock ? "" : "is-unavailable"}`}
+                        title={s.inStock ? "Available" : "Unavailable"}
+                      >
+                        {s.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
 
