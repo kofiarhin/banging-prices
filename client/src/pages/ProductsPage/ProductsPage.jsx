@@ -20,6 +20,13 @@ const fetchStores = async (params) => {
   return res.json();
 };
 
+const fetchGenders = async (params) => {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_URL}/api/products/genders?${qs}`);
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+};
+
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,25 +36,32 @@ const ProductsPage = () => {
     [location.search],
   );
 
-  // ✅ IMPORTANT: treat NEW IN as display only (no category param sent)
+  // ✅ NEW IN: display only (do not send category when empty)
   const categoryParam = params.get("category") || "";
   const categoryLabel = categoryParam || "NEW IN";
 
   const sort = params.get("sort") || "newest";
   const store = params.get("store") || "all";
+  const gender = params.get("gender") || "all";
   const search = params.get("search") || "";
-  const gender = params.get("gender") || "";
 
-  // ✅ base query drives STORE DROPDOWN (never store/sort/page)
-  // ✅ locked behavior: gender affects store dropdown
-  // ✅ NEW IN: don't send category at all
+  // ✅ Store facet base: category/search + selected gender
   const baseStoreParams = useMemo(() => {
     const next = {};
-    if (gender) next.gender = gender;
+    if (gender && gender !== "all") next.gender = gender;
     if (categoryParam) next.category = categoryParam;
     if (search) next.search = search;
     return next;
   }, [gender, categoryParam, search]);
+
+  // ✅ Gender facet base: category/search + selected store
+  const baseGenderParams = useMemo(() => {
+    const next = {};
+    if (store && store !== "all") next.store = store;
+    if (categoryParam) next.category = categoryParam;
+    if (search) next.search = search;
+    return next;
+  }, [store, categoryParam, search]);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["products", location.search],
@@ -61,6 +75,12 @@ const ProductsPage = () => {
     staleTime: 60_000,
   });
 
+  const { data: gendersData, isLoading: gendersLoading } = useQuery({
+    queryKey: ["genders", baseGenderParams],
+    queryFn: () => fetchGenders(baseGenderParams),
+    staleTime: 60_000,
+  });
+
   const setParam = (updates) => {
     const next = new URLSearchParams(location.search);
 
@@ -68,14 +88,15 @@ const ProductsPage = () => {
       v ? next.set(k, String(v)) : next.delete(k);
     });
 
-    // ✅ reset store + page when base browsing context changes
-    if ("gender" in updates || "category" in updates || "search" in updates) {
+    // ✅ base context change -> reset both facets + page
+    if ("category" in updates || "search" in updates) {
       next.delete("store");
+      next.delete("gender");
       next.delete("page");
     }
 
-    // ✅ reset page when store changes
-    if ("store" in updates) {
+    // ✅ facet changes -> reset page only
+    if ("store" in updates || "gender" in updates) {
       next.delete("page");
     }
 
@@ -86,13 +107,19 @@ const ProductsPage = () => {
 
   const storeOptions = useMemo(() => {
     const list = Array.isArray(storesData?.stores) ? storesData.stores : [];
-
     if (store && store !== "all" && !list.some((s) => s.value === store)) {
       return [{ value: store, label: store, count: 0 }, ...list];
     }
-
     return list;
   }, [storesData, store]);
+
+  const genderOptions = useMemo(() => {
+    const list = Array.isArray(gendersData?.genders) ? gendersData.genders : [];
+    if (gender && gender !== "all" && !list.some((g) => g.value === gender)) {
+      return [{ value: gender, label: gender, count: 0 }, ...list];
+    }
+    return list;
+  }, [gendersData, gender]);
 
   return (
     <main className="pp-products">
@@ -101,6 +128,30 @@ const ProductsPage = () => {
           <h1 className="pp-category-title">{categoryLabel}</h1>
 
           <div className="pp-controls">
+            <div className="pp-filter-wrapper">
+              <span className="pp-filter-label">Gender:</span>
+              <select
+                className="pp-filter-dropdown"
+                value={gender}
+                disabled={gendersLoading}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setParam({ gender: v === "all" ? "" : v });
+                }}
+              >
+                <option value="all">
+                  {gendersLoading ? "Loading Genders..." : "All Genders"}
+                </option>
+
+                {genderOptions.map((g) => (
+                  <option key={g.value} value={g.value}>
+                    {g.label}
+                    {g.count ? ` (${g.count})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="pp-filter-wrapper">
               <span className="pp-filter-label">Store:</span>
               <select
@@ -149,7 +200,7 @@ const ProductsPage = () => {
             <div className="pp-empty-state">
               <p className="pp-empty-title">No products found.</p>
               <p className="pp-empty-sub">
-                Try changing store, search, or category.
+                Try changing store, gender, search, or category.
               </p>
             </div>
           ) : (

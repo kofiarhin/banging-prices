@@ -46,11 +46,25 @@ const buildCategoryMatch = (categoryRaw) => {
 
   const aliases = CATEGORY_ALIASES[c] || [c];
 
-  // exact match across aliases (case-insensitive)
-  // NOTE: your DB stores slugs like "running-shoes", "trainers"
   return {
     $or: aliases.map((val) => ({ category: makeExactRegex(val) })),
   };
+};
+
+const buildStoreMatch = (storeRaw) => {
+  const s = String(storeRaw || "").trim();
+  if (!s) return null;
+
+  const sRe = makeExactRegex(s);
+  return { $or: [{ store: sRe }, { storeName: sRe }] };
+};
+
+const buildGenderMatch = (genderRaw) => {
+  const g = String(genderRaw || "")
+    .trim()
+    .toLowerCase();
+  if (!g) return null;
+  return { gender: makeExactRegex(g) };
 };
 
 const getStores = async (req, res) => {
@@ -59,11 +73,9 @@ const getStores = async (req, res) => {
 
     const and = [];
 
-    // ✅ gender is part of BASE QUERY (you locked this behavior)
-    if (gender) {
-      const g = String(gender).trim().toLowerCase();
-      if (g) and.push({ gender: makeExactRegex(g) });
-    }
+    // ✅ gender is part of BASE QUERY
+    const genderMatch = buildGenderMatch(gender);
+    if (genderMatch) and.push(genderMatch);
 
     // ✅ category base query (canonical aliases)
     const categoryMatch = buildCategoryMatch(category);
@@ -77,8 +89,6 @@ const getStores = async (req, res) => {
 
     const rows = await Product.aggregate([
       { $match: match },
-
-      // normalize grouping key + label
       {
         $project: {
           value: {
@@ -91,9 +101,7 @@ const getStores = async (req, res) => {
           },
         },
       },
-
       { $match: { value: { $ne: "" }, label: { $ne: "" } } },
-
       {
         $group: {
           _id: "$value",
@@ -116,6 +124,60 @@ const getStores = async (req, res) => {
   }
 };
 
+// ✅ NEW: genders facet endpoint (behaves like stores facet)
+const getGenders = async (req, res) => {
+  try {
+    const { category, search, store } = req.query;
+
+    const and = [];
+
+    // ✅ store is part of BASE QUERY for genders
+    const storeMatch = buildStoreMatch(store);
+    if (storeMatch) and.push(storeMatch);
+
+    // ✅ category base query (canonical aliases)
+    const categoryMatch = buildCategoryMatch(category);
+    if (categoryMatch) and.push(categoryMatch);
+
+    // ✅ optional search also part of base query
+    const searchOr = buildSearchOr(search);
+    if (searchOr) and.push(searchOr);
+
+    const match = and.length ? { $and: and } : {};
+
+    const rows = await Product.aggregate([
+      { $match: match },
+      {
+        $project: {
+          value: {
+            $toLower: { $trim: { input: { $ifNull: ["$gender", ""] } } },
+          },
+        },
+      },
+      { $match: { value: { $ne: "" } } },
+      { $group: { _id: "$value", count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const labelMap = {
+      men: "Men",
+      women: "Women",
+      kids: "Kids",
+      unisex: "Unisex",
+    };
+
+    res.json({
+      genders: rows.map((r) => ({
+        value: r._id,
+        label: labelMap[r._id] || r._id,
+        count: r.count,
+      })),
+    });
+  } catch (error) {
+    res.status(400).json({ message: "something went wrong" });
+  }
+};
+
 // ✅ UPDATED: supports ?gender=men (and keeps ?store=... working). Can use both.
 const getCategories = async (req, res) => {
   try {
@@ -123,23 +185,11 @@ const getCategories = async (req, res) => {
 
     const and = [];
 
-    // optional store filter (exact, case-insensitive)
-    if (store) {
-      const s = String(store).trim();
-      if (s) {
-        const sRe = makeExactRegex(s);
-        and.push({ $or: [{ store: sRe }, { storeName: sRe }] });
-      }
-    }
+    const storeMatch = buildStoreMatch(store);
+    if (storeMatch) and.push(storeMatch);
 
-    // optional gender filter (exact, case-insensitive)
-    if (gender) {
-      const g = String(gender).trim().toLowerCase();
-      if (g) {
-        const gRe = makeExactRegex(g);
-        and.push({ gender: gRe });
-      }
-    }
+    const genderMatch = buildGenderMatch(gender);
+    if (genderMatch) and.push(genderMatch);
 
     const match = and.length ? { $and: and } : {};
 
@@ -178,18 +228,15 @@ const getProducts = async (req, res) => {
       status,
       page = 1,
       limit = 50,
-      sort = "newest", // newest | oldest | price-asc | price-desc | discount-desc | store-asc | store-desc
+      sort = "newest",
     } = req.query;
 
     const and = [];
 
     if (status) and.push({ status });
 
-    // ✅ gender filter (exact, case-insensitive)
-    if (gender) {
-      const g = String(gender).trim().toLowerCase();
-      if (g) and.push({ gender: makeExactRegex(g) });
-    }
+    const genderMatch = buildGenderMatch(gender);
+    if (genderMatch) and.push(genderMatch);
 
     if (inStock === "true") and.push({ inStock: true });
     if (inStock === "false") and.push({ inStock: false });
@@ -201,16 +248,9 @@ const getProducts = async (req, res) => {
       and.push({ price });
     }
 
-    // store filter (exact, case-insensitive)
-    if (store) {
-      const s = String(store).trim();
-      if (s) {
-        const sRe = makeExactRegex(s);
-        and.push({ $or: [{ store: sRe }, { storeName: sRe }] });
-      }
-    }
+    const storeMatch = buildStoreMatch(store);
+    if (storeMatch) and.push(storeMatch);
 
-    // ✅ category filter (canonical aliases)
     const categoryMatch = buildCategoryMatch(category);
     if (categoryMatch) and.push(categoryMatch);
 
@@ -300,6 +340,7 @@ const deleteProduct = async (req, res) => {
 
 module.exports = {
   getStores,
+  getGenders,
   getCategories,
   getProducts,
   getProductById,

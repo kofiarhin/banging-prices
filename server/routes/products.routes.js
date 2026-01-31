@@ -4,6 +4,7 @@ const Save = require("../models/save.product.model");
 
 const {
   getStores,
+  getGenders,
   getCategories,
   getProducts,
   getProductById,
@@ -15,6 +16,7 @@ const {
 const router = express.Router();
 
 router.get("/stores", getStores);
+router.get("/genders", getGenders);
 
 // ✅ now supports: /categories?store=asos  OR  /categories?gender=men  OR both
 router.get("/categories", getCategories);
