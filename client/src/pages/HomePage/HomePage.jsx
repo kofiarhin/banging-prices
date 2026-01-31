@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useHomeQuery } from "../../hooks/useHomeQuery";
 
 import Hero from "../../components/home/Hero/Hero";
-// import HowItWorks from "../../components/home/HowItWorks/HowItWorks";
 import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
