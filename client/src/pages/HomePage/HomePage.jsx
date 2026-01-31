@@ -8,6 +8,8 @@ import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
 
+import Spinner from "../../components/Spinner/Spinner";
+
 import "./home-page.styles.scss";
 
 const HomePage = () => {
@@ -53,9 +55,7 @@ const HomePage = () => {
           sections={sections}
           isLoading={isLoading}
           isError={isError}
-          loadingUI={
-            <div className="pp-home-loading">Loading live market feed…</div>
-          }
+          loadingUI={<Spinner label="Loading live market feed…" size="md" />}
           errorUI={
             <div className="pp-home-error">Failed to load home feed.</div>
           }
