@@ -24,35 +24,89 @@ const buildSearchOr = (qRaw) => {
   };
 };
 
+/**
+ * Canonical category aliases
+ * - keeps your DB unchanged
+ * - makes category=trainers include nike categories too
+ */
+const CATEGORY_ALIASES = {
+  trainers: ["trainers", "running-shoes", "lifestyle-shoes"],
+  // add more later if needed:
+  // joggers: ["joggers", "jog-track-pants"],
+};
+
+const buildCategoryMatch = (categoryRaw) => {
+  const c = String(categoryRaw || "")
+    .trim()
+    .toLowerCase();
+  if (!c) return null;
+
+  const aliases = CATEGORY_ALIASES[c] || [c];
+
+  // exact match across aliases (case-insensitive)
+  // NOTE: your DB stores slugs like "running-shoes", "trainers"
+  return {
+    $or: aliases.map((val) => ({ category: makeExactRegex(val) })),
+  };
+};
+
 const getStores = async (req, res) => {
   try {
-    const { category } = req.query;
+    const { category, search, gender } = req.query;
 
     const and = [];
 
-    // optional category filter (contains, case-insensitive)
-    if (category) {
-      const c = String(category).trim();
-      if (c) and.push({ category: makeContainsRegex(c) });
+    // ✅ gender is part of BASE QUERY (you locked this behavior)
+    if (gender) {
+      const g = String(gender).trim().toLowerCase();
+      if (g) and.push({ gender: makeExactRegex(g) });
     }
+
+    // ✅ category base query (canonical aliases)
+    const categoryMatch = buildCategoryMatch(category);
+    if (categoryMatch) and.push(categoryMatch);
+
+    // ✅ optional search also part of base query
+    const searchOr = buildSearchOr(search);
+    if (searchOr) and.push(searchOr);
 
     const match = and.length ? { $and: and } : {};
 
     const rows = await Product.aggregate([
       { $match: match },
+
+      // normalize grouping key + label
       {
         $project: {
-          value: { $ifNull: ["$store", ""] },
-          label: { $trim: { input: { $ifNull: ["$storeName", "$store"] } } },
+          value: {
+            $toLower: {
+              $trim: { input: { $ifNull: ["$store", ""] } },
+            },
+          },
+          label: {
+            $trim: { input: { $ifNull: ["$storeName", "$store"] } },
+          },
         },
       },
+
       { $match: { value: { $ne: "" }, label: { $ne: "" } } },
-      { $group: { _id: "$value", label: { $first: "$label" } } },
+
+      {
+        $group: {
+          _id: "$value",
+          label: { $first: "$label" },
+          count: { $sum: 1 },
+        },
+      },
       { $sort: { label: 1 } },
     ]);
 
     res.json({
-      stores: rows.map((r) => ({ value: r._id, label: r.label })),
+      stores: rows.map((r) => ({
+        value: r._id,
+        label: r.label,
+        count: r.count,
+      })),
     });
   } catch (error) {
     res.status(400).json({ message: "something went wrong" });
@@ -127,7 +181,12 @@ const getProducts = async (req, res) => {
     const and = [];
 
     if (status) and.push({ status });
-    if (gender) and.push({ gender });
+
+    // ✅ gender filter (exact, case-insensitive)
+    if (gender) {
+      const g = String(gender).trim().toLowerCase();
+      if (g) and.push({ gender: makeExactRegex(g) });
+    }
 
     if (inStock === "true") and.push({ inStock: true });
     if (inStock === "false") and.push({ inStock: false });
@@ -148,11 +207,9 @@ const getProducts = async (req, res) => {
       }
     }
 
-    // category filter (contains, case-insensitive)
-    if (category) {
-      const c = String(category).trim();
-      if (c) and.push({ category: makeContainsRegex(c) });
-    }
+    // ✅ category filter (canonical aliases)
+    const categoryMatch = buildCategoryMatch(category);
+    if (categoryMatch) and.push(categoryMatch);
 
     const searchOr = buildSearchOr(search);
     if (searchOr) and.push(searchOr);

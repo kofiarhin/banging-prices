@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Spinner from "../../components/Spinner/Spinner"; // ✅ pages/ProductsPage -> src/components
+import Spinner from "../../components/Spinner/Spinner";
 import "./products.styles.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -13,9 +13,17 @@ const fetchProducts = async (params) => {
   return res.json();
 };
 
+const fetchStores = async (params) => {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_URL}/api/products/stores?${qs}`);
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+};
+
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
   const params = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
@@ -23,39 +31,109 @@ const ProductsPage = () => {
 
   const category = params.get("category") || "NEW IN";
   const sort = params.get("sort") || "newest";
+  const store = params.get("store") || "all";
+  const search = params.get("search") || "";
+  const gender = params.get("gender") || "";
 
-  const { data, isLoading } = useQuery({
+  // ✅ base query drives STORE DROPDOWN (never store/sort/page)
+  // ✅ locked behavior: gender affects store dropdown
+  const baseStoreParams = useMemo(() => {
+    const next = {};
+    if (gender) next.gender = gender;
+    if (category) next.category = category;
+    if (search) next.search = search;
+    return next;
+  }, [gender, category, search]);
+
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["products", location.search],
     queryFn: () => fetchProducts(Object.fromEntries(params)),
     keepPreviousData: true,
   });
 
+  const { data: storesData, isLoading: storesLoading } = useQuery({
+    queryKey: ["stores", baseStoreParams],
+    queryFn: () => fetchStores(baseStoreParams),
+    staleTime: 60_000,
+  });
+
   const setParam = (updates) => {
     const next = new URLSearchParams(location.search);
+
     Object.entries(updates).forEach(([k, v]) => {
       v ? next.set(k, String(v)) : next.delete(k);
     });
+
+    // ✅ reset store + page when base browsing context changes
+    if ("gender" in updates || "category" in updates || "search" in updates) {
+      next.delete("store");
+      next.delete("page");
+    }
+
+    // ✅ reset page when store changes
+    if ("store" in updates) {
+      next.delete("page");
+    }
+
     navigate(`/products?${next.toString()}`);
   };
 
   const items = data?.items || [];
+
+  const storeOptions = useMemo(() => {
+    const list = Array.isArray(storesData?.stores) ? storesData.stores : [];
+
+    // keep selected store visible even if it has 0 in current base query (edge case)
+    if (store && store !== "all" && !list.some((s) => s.value === store)) {
+      return [{ value: store, label: store, count: 0 }, ...list];
+    }
+
+    return list;
+  }, [storesData, store]);
 
   return (
     <main className="pp-products">
       <div className="pp-container">
         <header className="pp-toolbar">
           <h1 className="pp-category-title">{category}</h1>
-          <div className="pp-sort-wrapper">
-            <span className="pp-sort-label">Sort By:</span>
-            <select
-              className="pp-sort-dropdown"
-              value={sort}
-              onChange={(e) => setParam({ sort: e.target.value })}
-            >
-              <option value="newest">Newest</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-            </select>
+
+          <div className="pp-controls">
+            <div className="pp-filter-wrapper">
+              <span className="pp-filter-label">Store:</span>
+              <select
+                className="pp-filter-dropdown"
+                value={store}
+                disabled={storesLoading}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setParam({ store: v === "all" ? "" : v });
+                }}
+              >
+                <option value="all">
+                  {storesLoading ? "Loading Stores..." : "All Stores"}
+                </option>
+
+                {storeOptions.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                    {s.count ? ` (${s.count})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="pp-sort-wrapper">
+              <span className="pp-sort-label">Sort By:</span>
+              <select
+                className="pp-sort-dropdown"
+                value={sort}
+                onChange={(e) => setParam({ sort: e.target.value })}
+              >
+                <option value="newest">Newest</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+              </select>
+            </div>
           </div>
         </header>
 
@@ -63,6 +141,13 @@ const ProductsPage = () => {
           {isLoading ? (
             <div className="pp-spinner-wrap">
               <Spinner label="Intercepting Live Drops..." fullscreen={false} />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="pp-empty-state">
+              <p className="pp-empty-title">No products found.</p>
+              <p className="pp-empty-sub">
+                Try changing store, search, or category.
+              </p>
             </div>
           ) : (
             items.map((p) => (
@@ -117,6 +202,10 @@ const ProductsPage = () => {
             ))
           )}
         </div>
+
+        {isFetching && !isLoading ? (
+          <div className="pp-updating-hint">Updating…</div>
+        ) : null}
       </div>
     </main>
   );
