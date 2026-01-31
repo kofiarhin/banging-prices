@@ -16,13 +16,11 @@ const Spinner = ({
         .join(" ")}
     >
       <div className="bp-radar-container">
-        {/* The Scanning Radar Background */}
         <div className="bp-radar-circle">
           <div className="bp-radar-sweep"></div>
           <div className="bp-radar-grid"></div>
         </div>
 
-        {/* The Branded Centerpiece */}
         <div className="bp-target-lock">
           <div className="corner top-left"></div>
           <div className="corner top-right"></div>
@@ -33,7 +31,6 @@ const Spinner = ({
           <div className="bp-scan-bar"></div>
         </div>
 
-        {/* Status Feed */}
         <div className="bp-radar-status">
           <div className="bp-status-line">
             <span className="bp-code">ID: 0x4F2</span>

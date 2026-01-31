@@ -1,16 +1,15 @@
 .bp-radar-system {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
   overflow: hidden;
   font-family: "Inter", sans-serif;
-
-  &.is-fullscreen {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-  }
+  z-index: 99999;
 }
 
 .bp-radar-container {
@@ -18,10 +17,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 40px;
 }
 
-// Giant Radar Sweep Logic
 .bp-radar-circle {
   position: absolute;
   width: 600px;
@@ -65,7 +64,6 @@
   }
 }
 
-// Target Lock Box
 .bp-target-lock {
   position: relative;
   padding: 20px 40px;
@@ -114,7 +112,6 @@
   }
 }
 
-// Vertical Scan Bar
 .bp-scan-bar {
   position: absolute;
   left: 0;
@@ -125,7 +122,6 @@
   animation: bp-scan-v 2.5s ease-in-out infinite;
 }
 
-// Status & Progress
 .bp-radar-status {
   z-index: 10;
   width: 240px;
@@ -155,7 +151,6 @@
   }
 }
 
-/* Animations */
 @keyframes bp-radar-spin {
   to {
     transform: rotate(360deg);
@@ -194,12 +189,12 @@
   }
 }
 
-// Mobile Adjustments
 @media (max-width: 768px) {
   .bp-radar-circle {
     width: 300px;
     height: 300px;
   }
+
   .bp-logo {
     font-size: 1.2rem !important;
     letter-spacing: 4px !important;

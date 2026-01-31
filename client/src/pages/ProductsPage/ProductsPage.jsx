@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import Spinner from "../../components/Spinner/Spinner"; // ✅ pages/ProductsPage -> src/components
 import "./products.styles.scss";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -59,65 +60,62 @@ const ProductsPage = () => {
         </header>
 
         <div className="pp-grid">
-          {isLoading
-            ? [...Array(8)].map((_, i) => (
-                <div key={i} className="pp-item">
-                  <div className="pp-skeleton-media" />
-                  <div className="pp-skeleton-text" />
-                </div>
-              ))
-            : items.map((p) => (
-                <Link key={p._id} to={`/products/${p._id}`} className="pp-item">
-                  <div className="pp-image-wrap">
-                    {/* Discount Badge */}
-                    {p.discountPercent > 0 && (
-                      <div className="pp-discount-badge">
-                        -{p.discountPercent}%
-                      </div>
-                    )}
-
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="pp-image"
-                      loading="lazy"
-                    />
-
-                    <button
-                      className="pp-wishlist-btn"
-                      aria-label="Add to wishlist"
-                      onClick={(e) => e.preventDefault()}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <div className="pp-details">
-                    <span className="pp-store-name">{p.storeName}</span>
-                    <h3 className="pp-product-title">{p.title}</h3>
-                    <div className="pp-price-row">
-                      <span className="pp-price">
-                        {p.currency}
-                        {p.price}
-                      </span>
-                      {/* Original Price Strikethrough */}
-                      {p.originalPrice > p.price && (
-                        <span className="pp-original-price">
-                          {p.currency}
-                          {p.originalPrice}
-                        </span>
-                      )}
+          {isLoading ? (
+            <div className="pp-spinner-wrap">
+              <Spinner label="Intercepting Live Drops..." fullscreen={false} />
+            </div>
+          ) : (
+            items.map((p) => (
+              <Link key={p._id} to={`/products/${p._id}`} className="pp-item">
+                <div className="pp-image-wrap">
+                  {p.discountPercent > 0 && (
+                    <div className="pp-discount-badge">
+                      -{p.discountPercent}%
                     </div>
+                  )}
+
+                  <img
+                    src={p.image}
+                    alt={p.title}
+                    className="pp-image"
+                    loading="lazy"
+                  />
+
+                  <button
+                    className="pp-wishlist-btn"
+                    aria-label="Add to wishlist"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="pp-details">
+                  <span className="pp-store-name">{p.storeName}</span>
+                  <h3 className="pp-product-title">{p.title}</h3>
+                  <div className="pp-price-row">
+                    <span className="pp-price">
+                      {p.currency}
+                      {p.price}
+                    </span>
+                    {p.originalPrice > p.price && (
+                      <span className="pp-original-price">
+                        {p.currency}
+                        {p.originalPrice}
+                      </span>
+                    )}
                   </div>
-                </Link>
-              ))}
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </main>
