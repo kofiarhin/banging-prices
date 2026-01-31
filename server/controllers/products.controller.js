@@ -41,6 +41,9 @@ const buildCategoryMatch = (categoryRaw) => {
     .toLowerCase();
   if (!c) return null;
 
+  // ✅ NEW IN is a UI label, not a real DB category
+  if (c === "new in" || c === "new-in" || c === "newin") return null;
+
   const aliases = CATEGORY_ALIASES[c] || [c];
 
   // exact match across aliases (case-insensitive)

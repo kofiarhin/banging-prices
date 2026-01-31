@@ -29,7 +29,10 @@ const ProductsPage = () => {
     [location.search],
   );
 
-  const category = params.get("category") || "NEW IN";
+  // ✅ IMPORTANT: treat NEW IN as display only (no category param sent)
+  const categoryParam = params.get("category") || "";
+  const categoryLabel = categoryParam || "NEW IN";
+
   const sort = params.get("sort") || "newest";
   const store = params.get("store") || "all";
   const search = params.get("search") || "";
@@ -37,13 +40,14 @@ const ProductsPage = () => {
 
   // ✅ base query drives STORE DROPDOWN (never store/sort/page)
   // ✅ locked behavior: gender affects store dropdown
+  // ✅ NEW IN: don't send category at all
   const baseStoreParams = useMemo(() => {
     const next = {};
     if (gender) next.gender = gender;
-    if (category) next.category = category;
+    if (categoryParam) next.category = categoryParam;
     if (search) next.search = search;
     return next;
-  }, [gender, category, search]);
+  }, [gender, categoryParam, search]);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["products", location.search],
@@ -83,7 +87,6 @@ const ProductsPage = () => {
   const storeOptions = useMemo(() => {
     const list = Array.isArray(storesData?.stores) ? storesData.stores : [];
 
-    // keep selected store visible even if it has 0 in current base query (edge case)
     if (store && store !== "all" && !list.some((s) => s.value === store)) {
       return [{ value: store, label: store, count: 0 }, ...list];
     }
@@ -95,7 +98,7 @@ const ProductsPage = () => {
     <main className="pp-products">
       <div className="pp-container">
         <header className="pp-toolbar">
-          <h1 className="pp-category-title">{category}</h1>
+          <h1 className="pp-category-title">{categoryLabel}</h1>
 
           <div className="pp-controls">
             <div className="pp-filter-wrapper">
