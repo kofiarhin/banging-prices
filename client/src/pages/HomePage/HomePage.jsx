@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useHomeQuery } from "../../hooks/useHomeQuery";
 
 import Hero from "../../components/home/Hero/Hero";
+import HeroHeadline from "../../components/home/HeroHeadline/HeroHeadline";
 // import HowItWorks from "../../components/home/HowItWorks/HowItWorks";
 import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
@@ -38,6 +39,12 @@ const HomePage = () => {
     <div className="pp-home">
       <div className="pp-container">
         <section className="pp-home-hero">
+          <HeroHeadline
+            title="Discover the biggest price drops"
+            subtitle="Refresh your wardrobe for less."
+            align="left"
+          />
+
           <Hero
             q={q}
             setQ={setQ}
