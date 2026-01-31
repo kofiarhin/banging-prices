@@ -1,0 +1,207 @@
+.bp-radar-system {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+
+  &.is-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+  }
+}
+
+.bp-radar-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+// Giant Radar Sweep Logic
+.bp-radar-circle {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  .bp-radar-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(
+        circle,
+        transparent 30%,
+        rgba(255, 255, 255, 0.02) 31%,
+        transparent 32%
+      ),
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      40px 40px,
+      40px 40px;
+    border-radius: 50%;
+  }
+
+  .bp-radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 80%,
+      rgba(255, 255, 255, 0.2) 100%
+    );
+    animation: bp-radar-spin 2s linear infinite;
+  }
+}
+
+// Target Lock Box
+.bp-target-lock {
+  position: relative;
+  padding: 20px 40px;
+  z-index: 10;
+
+  .bp-logo {
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 12px;
+    margin: 0;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  }
+
+  .corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #fff;
+    animation: bp-bracket-pulse 1s ease-in-out infinite alternate;
+
+    &.top-left {
+      top: 0;
+      left: 0;
+      border-right: 0;
+      border-bottom: 0;
+    }
+    &.top-right {
+      top: 0;
+      right: 0;
+      border-left: 0;
+      border-bottom: 0;
+    }
+    &.bottom-left {
+      bottom: 0;
+      left: 0;
+      border-right: 0;
+      border-top: 0;
+    }
+    &.bottom-right {
+      bottom: 0;
+      right: 0;
+      border-left: 0;
+      border-top: 0;
+    }
+  }
+}
+
+// Vertical Scan Bar
+.bp-scan-bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 20px #fff;
+  animation: bp-scan-v 2.5s ease-in-out infinite;
+}
+
+// Status & Progress
+.bp-radar-status {
+  z-index: 10;
+  width: 240px;
+
+  .bp-status-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-family: monospace;
+    font-size: 10px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .bp-loading-bar {
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+
+    .bp-loading-fill {
+      height: 100%;
+      width: 40%;
+      background: #fff;
+      animation: bp-fill-swipe 1.5s infinite linear;
+    }
+  }
+}
+
+/* Animations */
+@keyframes bp-radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bp-scan-v {
+  0%,
+  100% {
+    top: 0%;
+    opacity: 0;
+  }
+  50% {
+    top: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes bp-bracket-pulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes bp-fill-swipe {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+// Mobile Adjustments
+@media (max-width: 768px) {
+  .bp-radar-circle {
+    width: 300px;
+    height: 300px;
+  }
+  .bp-logo {
+    font-size: 1.2rem !important;
+    letter-spacing: 4px !important;
+  }
+}
