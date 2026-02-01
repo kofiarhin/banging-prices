@@ -5,6 +5,7 @@ import { useHomeQuery } from "../../hooks/useHomeQuery";
 import Hero from "../../components/home/Hero/Hero";
 import HeroHeadline from "../../components/home/HeroHeadline/HeroHeadline";
 import Stats from "../../components/home/Stats/Stats";
+import EditorsPickBanner from "../../components/home/EditorsPickBanner/EditorsPickBanner";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
 
@@ -116,11 +117,16 @@ const HomePage = () => {
     return Array.from(cats.values()).slice(0, 18);
   }, [data, slides]);
 
+  const editorsPickImage = useMemo(() => {
+    const first = slides?.[0];
+    const firstItem = first?.items?.[0];
+    return firstItem?.image || "";
+  }, [slides]);
+
   return (
     <div className="pp-home">
       <div className="pp-container">
         <section className="pp-home-hero">
-          {/* ✅ MERGED HERO + STATS */}
           <HeroHeadline
             title="The biggest price drops, tracked in real time"
             subtitle="Live price tracking across thousands of products."
@@ -154,6 +160,17 @@ const HomePage = () => {
           emptyUI={<div className="pp-home-empty">No sections available.</div>}
           getItemKey={(p) => p?._id}
           renderItem={(p) => <ProductCard product={p} />}
+        />
+
+        {/* ✅ moved to bottom */}
+        <EditorsPickBanner
+          kicker="EDITOR'S PICK"
+          title="This week’s steals: Jackets"
+          subtitle="Oversized, winter-ready pieces with verified drops."
+          ctaLabel="View deals →"
+          to="/products?category=jackets&sort=discount-desc&page=1"
+          imageUrl={editorsPickImage}
+          align="left"
         />
       </div>
     </div>

@@ -1,8 +1,8 @@
 import "./spinner.styles.scss";
 
 const Spinner = ({
-  label = "SYNCING PRICE INTEL",
-  sub = "DO NOT CLOSE • LIVE OPS ACTIVE",
+  label = "SYNCING",
+  sub = "PRICE INTEL",
   fullscreen = true,
   className = "",
 }) => {
@@ -23,31 +23,20 @@ const Spinner = ({
 
       <div className="bp-cod-spinner__hud">
         <div className="bp-cod-spinner__frame" aria-hidden="true" />
-        <div className="bp-cod-spinner__sweep" aria-hidden="true" />
         <div className="bp-cod-spinner__noise" aria-hidden="true" />
+        <div className="bp-cod-spinner__vignette" aria-hidden="true" />
 
         <div className="bp-cod-spinner__content">
           <div className="bp-cod-spinner__title" data-text={label}>
             {label}
           </div>
 
-          <div className="bp-cod-spinner__row">
-            <div className="bp-cod-spinner__pill">
-              <span className="bp-cod-spinner__dot" />
-              LIVE
-            </div>
-            <div className="bp-cod-spinner__sub">{sub}</div>
-          </div>
+          <div className="bp-cod-spinner__sub">{sub}</div>
 
-          <div className="bp-cod-spinner__bar" aria-hidden="true">
-            <div className="bp-cod-spinner__bar-fill" />
-          </div>
-
-          <div className="bp-cod-spinner__hint">
-            HOLD STEADY — INTERCEPTING DROPS
-            <span className="bp-cod-spinner__dots" aria-hidden="true">
-              ...
-            </span>
+          <div className="bp-cod-spinner__meter" aria-hidden="true">
+            <div className="bp-cod-spinner__meter-track" />
+            <div className="bp-cod-spinner__meter-sweep" />
+            <div className="bp-cod-spinner__meter-ticks" />
           </div>
         </div>
       </div>
