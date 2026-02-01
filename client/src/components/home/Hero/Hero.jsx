@@ -42,7 +42,6 @@ const Hero = () => {
       "";
 
     const category = slugify(rawCategory);
-
     return category
       ? `/products?category=${encodeURIComponent(category)}`
       : "/products";
@@ -50,7 +49,6 @@ const Hero = () => {
 
   const scrollToIndex = (index) => {
     if (!scrollRef.current || !slidesCount) return;
-
     const targetIndex = (index + slidesCount) % slidesCount;
     const width = scrollRef.current.offsetWidth;
 
@@ -76,15 +74,12 @@ const Hero = () => {
     timerRef.current = setInterval(() => {
       setCurrentIndex((prev) => {
         const next = (prev + 1) % slidesCount;
-
         if (scrollRef.current) {
-          const width = scrollRef.current.offsetWidth;
           scrollRef.current.scrollTo({
-            left: width * next,
+            left: scrollRef.current.offsetWidth * next,
             behavior: "smooth",
           });
         }
-
         return next;
       });
     }, AUTOPLAY_MS);
@@ -96,22 +91,14 @@ const Hero = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slidesCount, isPaused]);
 
-  // ✅ keep ONLY tab-visibility pausing (no mouse/touch pause)
   useEffect(() => {
     const onVisibility = () => setIsPaused(document.hidden);
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  useEffect(() => {
-    const onResize = () => scrollToIndex(currentIndex);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, slidesCount]);
-
   if (isLoading || !data)
-    return <div className="hero-skeleton">Scanning for drops...</div>;
+    return <div className="hero-skeleton">Scanning for drops…</div>;
 
   return (
     <section className="hero-container">
@@ -127,49 +114,48 @@ const Hero = () => {
               key={slide.key}
               to={href}
               className="hero-slide"
-              onClick={() => stopAutoplay()}
-              aria-label={`View category: ${
-                slide?.label || featured?.category || "Products"
-              }`}
+              onClick={stopAutoplay}
             >
               <div
                 className="slide-image"
                 style={{ backgroundImage: `url(${featured.image})` }}
               />
-              <div className="slide-overlay">
-                <div className="content-box">
-                  <span className="drop-badge">
-                    {featured.discountPercent}% OFF — {featured.storeName}
-                  </span>
 
-                  <h2 className="display-title">
-                    {slide.label}
-                    <br />
-                    <span className="sub-accent">
-                      {String(featured.title || "")
-                        .split(" ")
-                        .slice(0, 2)
-                        .join(" ")}
+              {/* FULL-WIDTH OVERLAY */}
+              <div className="hero-overlay">
+                <div className="hero-overlay-inner">
+                  <div className="content-box">
+                    <span className="drop-badge">
+                      {featured.discountPercent}% OFF — {featured.storeName}
                     </span>
-                  </h2>
 
-                  <div className="action-row">
-                    <button
-                      type="button"
-                      className="buy-btn"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        stopAutoplay();
-                        navigate(href);
-                      }}
-                    >
-                      VIEW CATEGORY — {slide.label}
-                    </button>
+                    <h2 className="display-title">
+                      {slide.label}
+                      <span className="sub-accent">
+                        {String(featured.title || "")
+                          .split(" ")
+                          .slice(0, 2)
+                          .join(" ")}
+                      </span>
+                    </h2>
 
-                    <span className="market-price">
-                      RRP £{featured.originalPrice}
-                    </span>
+                    <div className="action-row">
+                      <button
+                        type="button"
+                        className="buy-btn"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate(href);
+                        }}
+                      >
+                        View category
+                      </button>
+
+                      <span className="market-price">
+                        RRP £{featured.originalPrice}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -179,7 +165,7 @@ const Hero = () => {
       </div>
 
       <div className="system-pill">
-        <span className="pulse-dot"></span>
+        <span className="pulse-dot" />
         <p>
           {Number(data?.system?.assetsTracked || 0).toLocaleString()} ASSETS
           TRACKED
@@ -189,42 +175,17 @@ const Hero = () => {
       <div className="nav-controls">
         <button
           type="button"
-          onClick={() => {
-            setIsPaused(true);
-            scrollToIndex(currentIndex - 1);
-            setTimeout(() => setIsPaused(false), 400);
-          }}
           className="ctrl-btn"
-          aria-label="Previous slide"
+          onClick={() => scrollToIndex(currentIndex - 1)}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+          ‹
         </button>
-
         <button
           type="button"
-          onClick={() => {
-            setIsPaused(true);
-            scrollToIndex(currentIndex + 1);
-            setTimeout(() => setIsPaused(false), 400);
-          }}
           className="ctrl-btn"
-          aria-label="Next slide"
+          onClick={() => scrollToIndex(currentIndex + 1)}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
+          ›
         </button>
       </div>
     </section>

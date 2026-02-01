@@ -4,7 +4,6 @@ import { useHomeQuery } from "../../hooks/useHomeQuery";
 
 import Hero from "../../components/home/Hero/Hero";
 import HeroHeadline from "../../components/home/HeroHeadline/HeroHeadline";
-// import HowItWorks from "../../components/home/HowItWorks/HowItWorks";
 import Stats from "../../components/home/Stats/Stats";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
@@ -60,11 +59,8 @@ const HomePage = () => {
     navigate(`/products?search=${encodeURIComponent(query)}&page=1`);
   };
 
-  // ✅ ALWAYS dynamic: derive categories from homepage data (sections/products),
-  // with a secondary dynamic fallback to carousel category routes.
   const tickerItems = useMemo(() => {
     const cats = new Map();
-
     const rawSections = Array.isArray(data?.sections) ? data.sections : [];
 
     rawSections.forEach((sec) => {
@@ -101,8 +97,7 @@ const HomePage = () => {
       });
     });
 
-    // Secondary dynamic fallback: use carousel links that already contain category=
-    if (!cats.size && slides && slides.length) {
+    if (!cats.size && slides?.length) {
       slides
         .map((s) => ({ label: s?.label, to: safeTo(s?.to) }))
         .filter((x) => x.label && x.to && hasCategory(x.to))
@@ -125,14 +120,17 @@ const HomePage = () => {
     <div className="pp-home">
       <div className="pp-container">
         <section className="pp-home-hero">
+          {/* ✅ MERGED HERO + STATS */}
           <HeroHeadline
-            title="Discover the biggest price drops"
-            subtitle="Refresh your wardrobe for less."
+            title="The biggest price drops, tracked in real time"
+            subtitle="Live price tracking across thousands of products."
             align="left"
-            tickerLabel="WHAT'S HOT RIGHT NOW"
+            tickerLabel="TRENDING NOW"
             tickerItems={tickerItems}
-            tickerSpeed={26}
-          />
+            tickerSpeed={32}
+          >
+            <Stats system={system} />
+          </HeroHeadline>
 
           <Hero
             q={q}
@@ -144,8 +142,6 @@ const HomePage = () => {
             system={system}
           />
         </section>
-
-        <Stats system={system} />
 
         <Sections
           sections={sections}
