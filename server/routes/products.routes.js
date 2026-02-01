@@ -14,9 +14,10 @@ const {
 
 const router = express.Router();
 
+// ✅ filters + counts supported via query (gender/category/search/etc)
 router.get("/stores", getStores);
 
-// ✅ now supports: /categories?store=asos  OR  /categories?gender=men  OR both
+// ✅ supports query (store/gender/search/min/max/etc) and returns available categories
 router.get("/categories", getCategories);
 
 router.get("/", getProducts);

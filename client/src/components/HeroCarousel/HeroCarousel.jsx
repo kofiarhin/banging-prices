@@ -22,13 +22,35 @@ const clampIndex = (i, len) => {
   return mod < 0 ? mod + len : mod;
 };
 
+// ✅ Ensure links always resolve to valid internal routes
+const safeInternalTo = (rawTo) => {
+  const s = String(rawTo || "").trim();
+
+  if (!s) return "/products?page=1";
+
+  // if backend accidentally sends a full URL, we DO NOT use it in <Link />
+  if (/^https?:\/\//i.test(s)) return "/products?page=1";
+
+  // already a valid internal route
+  if (s.startsWith("/")) return s;
+
+  // query-only passed (e.g. "?category=hoodies&page=1")
+  if (s.startsWith("?")) return `/products${s}`;
+
+  // relative path like "products?page=1"
+  if (s.startsWith("products")) return `/${s}`;
+
+  // fallback
+  return `/products?search=${encodeURIComponent(s)}&page=1`;
+};
+
 const HeroCarousel = ({ slides = [], autoMs = 4500 }) => {
   const safeSlides = useMemo(
     () => (Array.isArray(slides) ? slides : []),
     [slides],
   );
-  const len = safeSlides.length;
 
+  const len = safeSlides.length;
   const [active, setActive] = useState(0);
   const pausedRef = useRef(false);
 
@@ -50,7 +72,10 @@ const HeroCarousel = ({ slides = [], autoMs = 4500 }) => {
 
   const current = safeSlides[clampIndex(active, len)];
   const title = current?.label || "Live feed";
-  const to = current?.to || "/products?page=1";
+
+  // ✅ always valid internal route
+  const to = safeInternalTo(current?.to);
+
   const items = Array.isArray(current?.items) ? current.items.slice(0, 4) : [];
 
   return (
@@ -112,46 +137,51 @@ const HeroCarousel = ({ slides = [], autoMs = 4500 }) => {
       <div className="pp-hero-carousel-body">
         <div className="pp-hero-slide is-active">
           <div className="pp-hero-slide-grid">
-            {items.map((p) => (
-              <Link
-                key={p._id}
-                to={`/products/${p._id}`}
-                className="pp-hero-mini-card"
-              >
-                <div className="pp-hero-mini-media">
-                  {p.discountPercent ? (
-                    <div className="pp-hero-mini-badge">
-                      -{p.discountPercent}%
-                    </div>
-                  ) : null}
+            {items.map((p) => {
+              const id = p?._id;
+              const productTo = id ? `/products/${id}` : "/products?page=1";
 
-                  <img
-                    src={p.image}
-                    alt={p.title}
-                    loading="lazy"
-                    draggable="false"
-                  />
-                </div>
-
-                <div className="pp-hero-mini-meta">
-                  <div className="pp-hero-mini-store">
-                    {p.storeName || p.store}
-                  </div>
-                  <div className="pp-hero-mini-title">{p.title}</div>
-
-                  <div className="pp-hero-mini-price">
-                    <div className="pp-hero-mini-now">
-                      {fmtCurrency(p.currency, p.price)}
-                    </div>
-                    {p.originalPrice ? (
-                      <div className="pp-hero-mini-was">
-                        {fmtCurrency(p.currency, p.originalPrice)}
+              return (
+                <Link
+                  key={id || p?.canonicalKey || p?.productUrl || Math.random()}
+                  to={productTo}
+                  className="pp-hero-mini-card"
+                >
+                  <div className="pp-hero-mini-media">
+                    {p?.discountPercent ? (
+                      <div className="pp-hero-mini-badge">
+                        -{p.discountPercent}%
                       </div>
                     ) : null}
+
+                    <img
+                      src={p?.image}
+                      alt={p?.title || "Product"}
+                      loading="lazy"
+                      draggable="false"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+
+                  <div className="pp-hero-mini-meta">
+                    <div className="pp-hero-mini-store">
+                      {p?.storeName || p?.store}
+                    </div>
+                    <div className="pp-hero-mini-title">{p?.title}</div>
+
+                    <div className="pp-hero-mini-price">
+                      <div className="pp-hero-mini-now">
+                        {fmtCurrency(p?.currency, p?.price)}
+                      </div>
+                      {p?.originalPrice ? (
+                        <div className="pp-hero-mini-was">
+                          {fmtCurrency(p?.currency, p?.originalPrice)}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
