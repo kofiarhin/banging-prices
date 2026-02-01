@@ -26,33 +26,66 @@ const HeroHeadline = ({
 
   const items = useMemo(() => {
     const arr = Array.isArray(tickerItems) ? tickerItems : [];
+
+    const makeTo = (obj) => {
+      const qs = new URLSearchParams();
+      qs.set("page", "1");
+
+      if (obj.sort) qs.set("sort", obj.sort);
+      if (obj.search) qs.set("search", obj.search);
+      if (obj.q) qs.set("q", obj.q);
+
+      if (obj.gender) qs.set("gender", obj.gender);
+      if (obj.category) qs.set("category", obj.category);
+      if (obj.store) qs.set("store", obj.store);
+
+      return `/products?${qs.toString()}`;
+    };
+
     return arr
       .filter(Boolean)
       .map((x, idx) => {
+        // string = search term
         if (typeof x === "string") {
           return {
             id: `s-${idx}`,
             label: x,
-            to: `/products?search=${encodeURIComponent(x)}&page=1`,
+            to: makeTo({ search: x }),
           };
         }
 
         const label = x.label || x.title || x.text || "";
-        const to =
-          x.to ||
-          x.href ||
-          (x.category
-            ? `/products?category=${encodeURIComponent(x.category)}&page=1`
-            : label
-              ? `/products?search=${encodeURIComponent(label)}&page=1`
-              : null);
 
-        return {
-          id: x.id || x._id || x.key || `i-${idx}`,
-          label,
-          to,
-        };
+        // if user provided explicit to/href, keep it as-is
+        if (x.to || x.href) {
+          return {
+            id: x.id || x._id || x.key || `i-${idx}`,
+            label,
+            to: x.to || x.href,
+          };
+        }
+
+        // category links default to biggest discount
+        if (x.category) {
+          return {
+            id: x.id || x._id || x.key || `i-${idx}`,
+            label: label || x.category,
+            to: makeTo({ category: x.category, sort: "discount-desc" }),
+          };
+        }
+
+        // fallback: label as search
+        if (label) {
+          return {
+            id: x.id || x._id || x.key || `i-${idx}`,
+            label,
+            to: makeTo({ search: label }),
+          };
+        }
+
+        return null;
       })
+      .filter(Boolean)
       .filter((x) => x.label && x.to)
       .slice(0, 18);
   }, [tickerItems]);

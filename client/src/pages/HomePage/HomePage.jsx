@@ -60,53 +60,66 @@ const HomePage = () => {
     navigate(`/products?search=${encodeURIComponent(query)}&page=1`);
   };
 
+  // ✅ ALWAYS dynamic: derive categories from homepage data (sections/products),
+  // with a secondary dynamic fallback to carousel category routes.
   const tickerItems = useMemo(() => {
-    // Prefer API slides if they contain category routes; otherwise fallback.
-    if (slides && slides.length) {
-      const mapped = slides
-        .map((s) => ({
-          label: s.label,
-          to: safeTo(s.to),
-        }))
-        .filter((x) => x.label && x.to);
+    const cats = new Map();
 
-      const categoryOnes = mapped.filter((x) => hasCategory(x.to));
-      if (categoryOnes.length) {
-        return categoryOnes.map((x) => ({
-          label: x.label,
-          to: withDefaults(x.to),
-        }));
-      }
+    const rawSections = Array.isArray(data?.sections) ? data.sections : [];
+
+    rawSections.forEach((sec) => {
+      const items = Array.isArray(sec?.items)
+        ? sec.items
+        : Array.isArray(sec?.products)
+          ? sec.products
+          : [];
+
+      items.forEach((p) => {
+        const label =
+          p?.categoryLabel ||
+          p?.categoryName ||
+          p?.categoryTitle ||
+          p?.category ||
+          p?.categorySlug ||
+          "";
+
+        const slug = p?.categorySlug || p?.category || "";
+
+        const cleanLabel = String(label || "").trim();
+        const cleanSlug = String(slug || "").trim();
+
+        if (!cleanLabel || !cleanSlug) return;
+
+        if (!cats.has(cleanSlug)) {
+          cats.set(cleanSlug, {
+            label: cleanLabel,
+            to: `/products?category=${encodeURIComponent(
+              cleanSlug,
+            )}&sort=discount-desc&page=1`,
+          });
+        }
+      });
+    });
+
+    // Secondary dynamic fallback: use carousel links that already contain category=
+    if (!cats.size && slides && slides.length) {
+      slides
+        .map((s) => ({ label: s?.label, to: safeTo(s?.to) }))
+        .filter((x) => x.label && x.to && hasCategory(x.to))
+        .forEach((x) => {
+          const to = withDefaults(x.to);
+          const match = to.match(/[?&]category=([^&]+)/);
+          const slug = match?.[1];
+          if (!slug) return;
+
+          if (!cats.has(slug)) {
+            cats.set(slug, { label: x.label, to });
+          }
+        });
     }
 
-    // Fallback: category-first links (best for "hot right now")
-    return [
-      {
-        label: "Hoodies",
-        to: "/products?category=hoodies-sweatshirts&sort=discount-desc&page=1",
-      },
-      {
-        label: "Coats & Jackets",
-        to: "/products?category=coats-and-jackets&sort=discount-desc&page=1",
-      },
-      {
-        label: "Trainers",
-        to: "/products?category=trainers&sort=discount-desc&page=1",
-      },
-      {
-        label: "Jeans",
-        to: "/products?category=jeans&sort=discount-desc&page=1",
-      },
-      {
-        label: "T-Shirts",
-        to: "/products?category=t-shirts-vests&sort=discount-desc&page=1",
-      },
-      {
-        label: "Bags",
-        to: "/products?category=bags&sort=discount-desc&page=1",
-      },
-    ];
-  }, [slides]);
+    return Array.from(cats.values()).slice(0, 18);
+  }, [data, slides]);
 
   return (
     <div className="pp-home">

@@ -498,6 +498,25 @@ $text-muted: rgba(255, 255, 255, 0.58);
   opacity: 0.75;
 }
 
+/* ✅ “+N more / Show less” chip */
+.pd-size-chip.pd-size-more {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.pd-size-chip.pd-size-more:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.pd-size-chip.pd-size-more:active {
+  transform: scale(0.98);
+}
+
 .pd-cta {
   display: grid;
   grid-template-columns: 1fr 1fr;

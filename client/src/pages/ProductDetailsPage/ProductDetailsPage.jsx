@@ -75,13 +75,6 @@ const normalizeSizes = (p) => {
     p?.variants ??
     [];
 
-  // Common shapes supported:
-  // - ["S","M","L"]
-  // - "S,M,L"
-  // - [{ label: "M", inStock: true }]
-  // - [{ size: "M" }, ...]
-  // - [{ name: "M" }, ...]
-  // - [{ value: "M" }, ...]
   if (typeof raw === "string") {
     return raw
       .split(",")
@@ -144,6 +137,9 @@ const ProductDetailsPage = () => {
 
   const [shouldRedirectToSignIn, setShouldRedirectToSignIn] = useState(false);
 
+  // ✅ sizes collapse/expand
+  const [sizesExpanded, setSizesExpanded] = useState(false);
+
   const startXRef = useRef(null);
   const isDraggingRef = useRef(false);
 
@@ -192,6 +188,9 @@ const ProductDetailsPage = () => {
     setAlertSaving(false);
     setAlertError("");
     setShouldRedirectToSignIn(false);
+
+    // ✅ reset sizes UI per product
+    setSizesExpanded(false);
   }, [p?._id]);
 
   const gallery = useMemo(() => {
@@ -201,6 +200,19 @@ const ProductDetailsPage = () => {
 
   const sizes = useMemo(() => normalizeSizes(p), [p]);
   const hasSizes = (sizes || []).length > 0;
+
+  // ✅ Option A: collapse + “+N more”
+  const SIZE_LIMIT = 12;
+  const sizesToRender = useMemo(() => {
+    if (!hasSizes) return [];
+    if (sizesExpanded) return sizes;
+    return sizes.slice(0, SIZE_LIMIT);
+  }, [sizes, hasSizes, sizesExpanded]);
+
+  const remainingCount = useMemo(() => {
+    if (!hasSizes) return 0;
+    return Math.max(0, sizes.length - SIZE_LIMIT);
+  }, [sizes, hasSizes]);
 
   const activeImageUrl = gallery[activeIdx] || p?.image;
   const canCarousel = (gallery || []).length > 1;
@@ -533,7 +545,7 @@ const ProductDetailsPage = () => {
 
                 {hasSizes ? (
                   <div className="pd-sizes-grid" aria-label="Available sizes">
-                    {sizes.slice(0, 18).map((s, idx) => (
+                    {sizesToRender.slice(0, 200).map((s, idx) => (
                       <span
                         key={`${s.label}-${idx}`}
                         className={`pd-size-chip ${s.inStock ? "" : "is-unavailable"}`}
@@ -542,6 +554,30 @@ const ProductDetailsPage = () => {
                         {s.label}
                       </span>
                     ))}
+
+                    {!sizesExpanded && remainingCount > 0 ? (
+                      <button
+                        className="pd-size-chip pd-size-more"
+                        type="button"
+                        onClick={() => setSizesExpanded(true)}
+                        aria-label={`Show ${remainingCount} more sizes`}
+                        title="Show all sizes"
+                      >
+                        +{remainingCount} more
+                      </button>
+                    ) : null}
+
+                    {sizesExpanded && sizes.length > SIZE_LIMIT ? (
+                      <button
+                        className="pd-size-chip pd-size-more"
+                        type="button"
+                        onClick={() => setSizesExpanded(false)}
+                        aria-label="Collapse sizes"
+                        title="Show fewer sizes"
+                      >
+                        Show less
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
