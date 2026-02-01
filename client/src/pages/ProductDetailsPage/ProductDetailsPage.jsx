@@ -116,6 +116,16 @@ const normalizeSizes = (p) => {
   return [];
 };
 
+const IMG_FALLBACK =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+      <rect width="100%" height="100%" fill="#0b0b0b"/>
+      <path d="M80 270l70-80 60 70 55-60 75 90H80z" fill="#1a1a1a"/>
+      <circle cx="140" cy="140" r="28" fill="#1a1a1a"/>
+    </svg>`,
+  );
+
 const ProductDetailsPage = () => {
   const { id } = useParams();
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -134,11 +144,10 @@ const ProductDetailsPage = () => {
   const [alertError, setAlertError] = useState("");
 
   const [token, setToken] = useState("");
-
   const [shouldRedirectToSignIn, setShouldRedirectToSignIn] = useState(false);
 
-  // ✅ sizes collapse/expand
   const [sizesExpanded, setSizesExpanded] = useState(false);
+  const [thumbsExpanded, setThumbsExpanded] = useState(false);
 
   const startXRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -189,19 +198,47 @@ const ProductDetailsPage = () => {
     setAlertError("");
     setShouldRedirectToSignIn(false);
 
-    // ✅ reset sizes UI per product
     setSizesExpanded(false);
+    setThumbsExpanded(false);
   }, [p?._id]);
 
   const gallery = useMemo(() => {
     if (!p) return [];
-    return Array.from(new Set([p.image, ...(p.images || [])])).filter(Boolean);
+    const hero = p.image ? String(p.image).trim() : "";
+    const rest = Array.isArray(p.images) ? p.images : [];
+    const seen = new Set();
+    const out = [];
+
+    if (hero) {
+      seen.add(hero);
+      out.push(hero);
+    }
+
+    for (const url of rest) {
+      const u = (url || "").toString().trim();
+      if (!u) continue;
+      if (seen.has(u)) continue;
+      seen.add(u);
+      out.push(u);
+    }
+
+    return out;
   }, [p]);
+
+  useEffect(() => {
+    if (!gallery.length) {
+      setActiveIdx(0);
+      return;
+    }
+    setActiveIdx((prev) => {
+      const next = Math.min(prev, gallery.length - 1);
+      return next < 0 ? 0 : next;
+    });
+  }, [gallery.length]);
 
   const sizes = useMemo(() => normalizeSizes(p), [p]);
   const hasSizes = (sizes || []).length > 0;
 
-  // ✅ Option A: collapse + “+N more”
   const SIZE_LIMIT = 12;
   const sizesToRender = useMemo(() => {
     if (!hasSizes) return [];
@@ -216,6 +253,26 @@ const ProductDetailsPage = () => {
 
   const activeImageUrl = gallery[activeIdx] || p?.image;
   const canCarousel = (gallery || []).length > 1;
+
+  const THUMB_LIMIT = 5;
+  const THUMB_RENDER_CAP = 20;
+
+  const showThumbToggle = gallery.length > THUMB_LIMIT;
+  const thumbsRemaining = Math.max(0, gallery.length - THUMB_LIMIT);
+
+  const visibleThumbs = useMemo(() => {
+    if (!gallery.length) return [];
+    const base = thumbsExpanded ? gallery : gallery.slice(0, THUMB_LIMIT);
+    return base.slice(0, THUMB_RENDER_CAP);
+  }, [gallery, thumbsExpanded]);
+
+  const toggleThumbs = () => {
+    setThumbsExpanded((v) => {
+      const next = !v;
+      if (!next && activeIdx >= THUMB_LIMIT) setActiveIdx(0);
+      return next;
+    });
+  };
 
   const goPrev = () => {
     if (!canCarousel) return;
@@ -338,9 +395,7 @@ const ProductDetailsPage = () => {
     );
   };
 
-  if (shouldRedirectToSignIn) {
-    return <RedirectToSignIn />;
-  }
+  if (shouldRedirectToSignIn) return <RedirectToSignIn />;
 
   if (isLoading) return <div className="pd-state">Syncing PricePulse...</div>;
   if (isError) return <div className="pd-state">{error.message}</div>;
@@ -399,6 +454,53 @@ const ProductDetailsPage = () => {
         <div className="pd-layout">
           <section className="pd-media" aria-label="Product media">
             <div className="pd-media-grid">
+              {gallery.length > 1 && (
+                <aside className="pd-thumbs" aria-label="Product thumbnails">
+                  <div className="pd-thumbs-list">
+                    {visibleThumbs.map((url, idx) => {
+                      const targetIdx = idx;
+                      return (
+                        <button
+                          key={`thumb-${url}-${idx}`}
+                          className={`pd-thumb ${targetIdx === activeIdx ? "is-active" : ""}`}
+                          onClick={() => setActiveIdx(targetIdx)}
+                          type="button"
+                          aria-label={`View image ${targetIdx + 1}`}
+                          title={`Image ${targetIdx + 1}`}
+                        >
+                          <img
+                            src={url}
+                            alt={`${p.title} thumbnail ${targetIdx + 1}`}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.src = IMG_FALLBACK;
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
+
+                    {showThumbToggle && (
+                      <button
+                        className="pd-thumb pd-thumb-toggle"
+                        type="button"
+                        onClick={toggleThumbs}
+                        aria-label={
+                          thumbsExpanded
+                            ? "Show fewer images"
+                            : `Show ${thumbsRemaining} more images`
+                        }
+                        title={thumbsExpanded ? "Show less" : "Show more"}
+                      >
+                        {thumbsExpanded
+                          ? "Show less"
+                          : `+${thumbsRemaining} more`}
+                      </button>
+                    )}
+                  </div>
+                </aside>
+              )}
+
               <div
                 className="pd-main pd-main-carousel"
                 tabIndex={0}
@@ -410,19 +512,15 @@ const ProductDetailsPage = () => {
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
               >
-                <div
-                  className="pd-main-bg"
-                  aria-hidden="true"
-                  style={{ backgroundImage: `url(${activeImageUrl})` }}
-                />
-                <div className="pd-main-overlay" aria-hidden="true" />
-
                 <img
                   className="pd-main-img"
                   src={activeImageUrl}
                   alt={p.title}
                   loading="eager"
                   draggable={false}
+                  onError={(e) => {
+                    e.currentTarget.src = IMG_FALLBACK;
+                  }}
                 />
 
                 {discount > 0 ? (
@@ -452,21 +550,59 @@ const ProductDetailsPage = () => {
                         chevron_right
                       </span>
                     </button>
-
-                    <div className="pd-dots" aria-label="Carousel navigation">
-                      {gallery.map((_, idx) => (
-                        <button
-                          key={`dot-${idx}`}
-                          className={`pd-dot ${idx === activeIdx ? "is-active" : ""}`}
-                          onClick={() => setActiveIdx(idx)}
-                          aria-label={`Go to image ${idx + 1}`}
-                          type="button"
-                        />
-                      ))}
-                    </div>
                   </>
                 ) : null}
               </div>
+
+              {gallery.length > 1 && (
+                <div
+                  className="pd-thumbs-mobile"
+                  aria-label="Product thumbnails (mobile)"
+                >
+                  <div className="pd-thumbs-mobile-row">
+                    {visibleThumbs.map((url, idx) => {
+                      const targetIdx = idx;
+                      return (
+                        <button
+                          key={`mthumb-${url}-${idx}`}
+                          className={`pd-mthumb ${targetIdx === activeIdx ? "is-active" : ""}`}
+                          onClick={() => setActiveIdx(targetIdx)}
+                          type="button"
+                          aria-label={`View image ${targetIdx + 1}`}
+                          title={`Image ${targetIdx + 1}`}
+                        >
+                          <img
+                            src={url}
+                            alt={`${p.title} thumbnail ${targetIdx + 1}`}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.src = IMG_FALLBACK;
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
+
+                    {showThumbToggle && (
+                      <button
+                        className="pd-mthumb pd-mthumb-toggle"
+                        type="button"
+                        onClick={toggleThumbs}
+                        aria-label={
+                          thumbsExpanded
+                            ? "Show fewer images"
+                            : `Show ${thumbsRemaining} more images`
+                        }
+                        title={thumbsExpanded ? "Show less" : "Show more"}
+                      >
+                        {thumbsExpanded
+                          ? "Show less"
+                          : `+${thumbsRemaining} more`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

@@ -18,7 +18,7 @@ $text-muted: rgba(255, 255, 255, 0.58);
 
 .pd-container {
   width: 100%;
-  max-width: 1240px;
+  max-width: 1380px; // ✅ wider container for large screens
   margin: 0 auto;
   padding: 0 18px;
 }
@@ -115,88 +115,135 @@ $text-muted: rgba(255, 255, 255, 0.58);
   gap: 12px;
 }
 
-/* ✅ CAROUSEL FRAME (background + contained image) */
+/* ✅ desktop thumbs + main stage */
+@media (min-width: 768px) {
+  .pd-media-grid {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+}
+
+/* ✅ thumbs rail */
+.pd-thumbs {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .pd-thumbs {
+    display: block;
+  }
+
+  .pd-thumbs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 2px;
+    max-height: calc(100vh - 180px);
+  }
+
+  .pd-thumb {
+    width: 96px;
+    height: 96px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      transform 0.15s ease,
+      border 0.15s ease,
+      background 0.15s ease,
+      opacity 0.15s ease;
+    opacity: 0.78;
+  }
+
+  .pd-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .pd-thumb:hover {
+    opacity: 0.92;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .pd-thumb:active {
+    transform: scale(0.98);
+  }
+
+  .pd-thumb.is-active {
+    opacity: 1;
+    border-color: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .pd-thumb.pd-thumb-toggle {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    opacity: 1;
+  }
+
+  .pd-thumb.pd-thumb-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* ✅ MAIN STAGE: full width, no padding, no rounding, no border */
 .pd-main.pd-main-carousel {
   width: 100%;
-  background: #0b0b0b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 3 / 4; // ✅ taller + visually larger
   position: relative;
   outline: none;
   touch-action: pan-y;
 }
 
+/* ✅ increase stage size on large screens */
+@media (min-width: 1024px) {
+  .pd-main.pd-main-carousel {
+    aspect-ratio: 2.85 / 4; // ✅ makes it appear bigger/wider in the layout
+    min-height: 640px; // ✅ guarantees a larger main image area
+  }
+}
+
+@media (min-width: 1280px) {
+  .pd-main.pd-main-carousel {
+    min-height: 720px; // ✅ bigger hero on big monitors
+  }
+}
+
 .pd-main.pd-main-carousel:focus {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: transparent;
 }
 
-.pd-main-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  filter: blur(18px);
-  transform: scale(1.12);
-  opacity: 0.45;
-}
-
-.pd-main-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 30% 20%,
-    rgba(255, 255, 255, 0.08),
-    rgba(0, 0, 0, 0.62)
-  );
-}
-
-/* ✅ DEFAULT (desktop/tablet): contained + minimal padding */
 .pd-main-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 6px;
+  object-fit: cover;
+  padding: 0;
   display: block;
   user-select: none;
-}
-
-/* ✅ MOBILE ONLY: full-bleed like ASOS */
-@media (max-width: 767.98px) {
-  .pd-container {
-    padding: 0;
-  }
-
-  .pd-layout {
-    padding: 0;
-  }
-
-  .pd-main.pd-main-carousel {
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    aspect-ratio: 1 / 1.25;
-  }
-
-  .pd-main-img {
-    object-fit: cover;
-    padding: 0;
-  }
-
-  .pd-carousel-btn.is-prev {
-    left: 8px;
-  }
-
-  .pd-carousel-btn.is-next {
-    right: 8px;
-  }
-
-  .pd-dots {
-    bottom: 10px;
-  }
 }
 
 .pd-media-discount {
@@ -213,7 +260,6 @@ $text-muted: rgba(255, 255, 255, 0.58);
   letter-spacing: 0.3px;
 }
 
-/* carousel buttons */
 .pd-carousel-btn {
   position: absolute;
   top: 50%;
@@ -252,44 +298,104 @@ $text-muted: rgba(255, 255, 255, 0.58);
   right: 10px;
 }
 
-/* dots */
-.pd-dots {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 7px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  z-index: 5;
+/* ✅ mobile full-bleed behavior */
+@media (max-width: 767.98px) {
+  .pd-container {
+    padding: 0;
+  }
+
+  .pd-layout {
+    padding: 0;
+  }
+
+  .pd-main.pd-main-carousel {
+    border-left: 0;
+    border-right: 0;
+    aspect-ratio: 1 / 1.25;
+  }
+
+  .pd-carousel-btn.is-prev {
+    left: 8px;
+  }
+
+  .pd-carousel-btn.is-next {
+    right: 8px;
+  }
 }
 
-.pd-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  border: 0;
-  padding: 0;
+/* mobile thumbs strip */
+.pd-thumbs-mobile {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .pd-thumbs-mobile {
+    display: none;
+  }
+}
+
+.pd-thumbs-mobile-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pd-mthumb {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.26);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     transform 0.15s ease,
-    background 0.15s ease;
+    border 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+  opacity: 0.8;
 }
 
-.pd-dot:hover {
-  background: rgba(255, 255, 255, 0.42);
+.pd-mthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.pd-dot.is-active {
-  background: rgba(255, 255, 255, 0.86);
-  transform: scale(1.15);
+.pd-mthumb:active {
+  transform: scale(0.98);
 }
 
+.pd-mthumb.is-active {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pd-mthumb.pd-mthumb-toggle {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+  padding: 0 10px;
+  width: auto;
+  min-width: 96px;
+}
+
+/* panel */
 .pd-panel {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -437,7 +543,6 @@ $text-muted: rgba(255, 255, 255, 0.58);
   white-space: nowrap;
 }
 
-/* ✅ SIZES */
 .pd-sizes {
   margin-top: 12px;
   padding-top: 12px;
@@ -498,7 +603,6 @@ $text-muted: rgba(255, 255, 255, 0.58);
   opacity: 0.75;
 }
 
-/* ✅ “+N more / Show less” chip */
 .pd-size-chip.pd-size-more {
   cursor: pointer;
   appearance: none;
@@ -765,12 +869,7 @@ $text-muted: rgba(255, 255, 255, 0.58);
   height: 54px;
 }
 
-.pd-prefix {
-  font-size: 12px;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.86);
-}
-
+.pd-prefix,
 .pd-suffix {
   font-size: 12px;
   font-weight: 900;
@@ -828,11 +927,6 @@ $text-muted: rgba(255, 255, 255, 0.58);
   .pd-similar-grid {
     grid-template-columns: repeat(4, 1fr);
   }
-
-  /* keep it minimal even on tablet/desktop */
-  .pd-main-img {
-    padding: 8px;
-  }
 }
 
 @media (min-width: 1024px) {
@@ -840,8 +934,9 @@ $text-muted: rgba(255, 255, 255, 0.58);
     padding-bottom: 0;
   }
 
+  /* ✅ give more space to media column */
   .pd-layout {
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: 1.25fr 0.75fr; // ✅ bigger left / smaller right
     align-items: start;
     gap: 22px;
     padding: 26px 0 20px;
