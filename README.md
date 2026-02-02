@@ -1,31 +1,94 @@
-# PricePulse
+# Banging Prices
 
-Track prices, catch drops, save money.
+A real-time fashion price intelligence platform.
 
-**Live**
+Banging Prices continuously crawls online retailers, normalises product data, and tracks **verified price drops** over time — surfacing only genuine discounts, not artificial markdowns or affiliate-driven noise.
 
-- Web: https://price-pulse-a8og.vercel.app
-- API: https://price-pulse-api-2bb24285c39b.herokuapp.com
+The system is designed to answer one question reliably:
+
+> What products have actually dropped in price right now?
+
+---
+
+## Core Features
+
+- Real-time price tracking across multiple retailers
+- Verified discount detection based on historical prices
+- Canonical product tracking (same item, same identity)
+- Category and gender-based browsing
+- Sorting by biggest price drop, newest, or price
+- Product tracking and alerts (price, percentage, stock)
+- Direct click-through to retailer product pages
+
+---
+
+## How It Works
+
+### 1. Retailer Crawlers
+
+- Each retailer is handled by a dedicated crawler
+- Crawlers target category- and gender-specific entry points
+- Pagination and depth are tightly controlled
+- Crawling is scheduled and repeatable
+
+---
+
+### 2. Product Normalisation
+
+All scraped data is converted into a single canonical format:
+
+- Product URL
+- Title
+- Current price
+- Original price
+- Currency
+- Images
+- Category
+- Gender
+- Stock status
+
+A **canonical key** uniquely identifies the same product across crawls, ensuring consistent tracking over time.
+
+---
+
+### 3. Price Drop Verification
+
+- Current prices are compared against previously stored values
+- Discount percentages are calculated dynamically
+- Only real reductions are surfaced
+- No client-side discount logic
+
+---
+
+### 4. Database Persistence
+
+- Products are upserted using their canonical key
+- Records update automatically when:
+  - Price changes
+  - Stock status changes
+  - Metadata changes
+- Each product is refreshed with a `lastSeenAt` timestamp
 
 ---
 
 ## Stack
 
 - **Client:** React (Vite) + SCSS
-- **Server:** Node.js + Express + MongoDB (Mongoose)
-- **Automation:** Playwright (scraping + smoke test)
+- **Server:** Node.js + Express
+- **Database:** MongoDB (Mongoose)
+- **Crawling:** Crawlee + Playwright
 
 ---
 
 ## Monorepo Structure
 
 ```txt
-price-pulse/
-  client/      # Vite app
+banging-prices/
+  client/      # Vite React app
   server/      # Express API
-  scripts/     # Playwright smoke test + scraping scripts
-  data/        # local data (optional)
-  storage/     # local storage (optional)
+  scripts/     # Crawlers and smoke tests
+  data/        # Optional local datasets
+  storage/     # Optional local storage
 ```
 
 ---
@@ -40,11 +103,13 @@ Create `client/.env`:
 VITE_API_URL=http://localhost:5000
 ```
 
-Production (Vercel):
+Production:
 
 ```bash
-VITE_API_URL=https://price-pulse-api-2bb24285c39b.herokuapp.com
+VITE_API_URL=https://api.your-domain.com
 ```
+
+---
 
 ### Server (Express)
 
@@ -52,135 +117,103 @@ Create `.env` in the project root:
 
 ```bash
 PORT=5000
-MONGO_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
-```
-
-**Production (Heroku Config Vars)**
-
-```bash
-heroku config:set MONGO_URI="mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority" -a <APP>
+MONGO_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>
 ```
 
 ---
 
-## Install + Run (Local)
+## Local Development
 
-### 1) Install deps
+### Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2) Start API (port 5000)
+### Start the API
 
 ```bash
 npm run server
 ```
 
-### 3) Start Client (port 4000)
+### Start the client
 
 ```bash
 npm run client
 ```
 
-Client: `http://localhost:4000`  
-API: `http://localhost:5000`
+- Client → http://localhost:4000
+- API → http://localhost:5000
 
 ---
 
-## API
+## API Overview
 
 ### Health
 
-- `GET /` — liveness
-- `GET /health` — readiness + DB state
+- `GET /`
+- `GET /health`
+
+---
 
 ### Products
 
-- `GET /api/products?search=&category=&sort=&page=&limit=`
-- `GET /api/products/:id`
-- `POST /api/products`
-- `PUT /api/products/:id`
-- `DELETE /api/products/:id`
+```http
+GET /api/products
+GET /api/products/:id
+```
 
-**Sort options**
+Query parameters:
 
-- `newest` (default)
-- `oldest`
-- `price-asc`
-- `price-desc`
-- `discount-desc`
+- `search`
+- `gender`
+- `category`
+- `sort`
+- `page`
+- `limit`
 
 ---
 
-## Deployment
+### Tracking
 
-## Vercel (Client)
-
-### SPA Refresh Fix (React Router)
-
-Client routes like `/products/:id` must rewrite to `index.html`.
-
-Create `client/vercel.json`:
+```http
+POST /api/track
+```
 
 ```json
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "productId": "product_id",
+  "type": "price | percent | stock",
+  "value": 25
 }
 ```
 
-Vercel project settings:
+---
 
-- **Root Directory:** `client`
+## Sorting Logic
 
-Set env var in Vercel:
-
-- `VITE_API_URL=https://price-pulse-api-2bb24285c39b.herokuapp.com`
+- `discount-desc` (default) – biggest verified drops first
+- `price-asc`
+- `price-desc`
+- `newest`
 
 ---
 
-## Heroku (Server + Playwright)
+## Design Principles
 
-### 1) Buildpacks
+- Scrape first, verify second
+- Canonical identity over raw listings
+- Server-side price logic only
+- No affiliate manipulation
+- No fake discounts
 
-```bash
-heroku buildpacks:clear -a <APP>
-heroku buildpacks:add --index 1 playwright-community/heroku-playwright-buildpack -a <APP>
-heroku buildpacks:add --index 2 heroku/nodejs -a <APP>
-```
-
-### 2) Config Vars
-
-```bash
-heroku config:set PLAYWRIGHT_BROWSERS_PATH=0 -a <APP>
-heroku config:set MONGO_URI="mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority" -a <APP>
-```
-
-### 3) Smoke Test
-
-```bash
-heroku run node scripts/playwright-smoke.js -a <APP>
-```
-
-### 4) Deploy
-
-```bash
-git push heroku main
-```
-
----
-
-## Scripts
-
-Playwright smoke test (local):
-
-```bash
-node scripts/playwright-smoke.js
-```
+If the price didn’t actually drop, it doesn’t appear.
 
 ---
 
 ## Notes
 
-- `.env` files are local-only. Use **Vercel Env Vars** + **Heroku Config Vars** in production.
-- If refresh returns 404 in production, confirm `client/vercel.json` exists and Vercel Root Directory is `client`.
+- Crawling is source-specific, not generic
+- `.env` files are never committed
+- Production uses platform environment variables only
+- Data accuracy is prioritised over volume
