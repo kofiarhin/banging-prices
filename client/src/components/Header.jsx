@@ -70,6 +70,14 @@ const Header = () => {
     fetchNav();
   }, []);
 
+  // ✅ sync header input with URL q (deep links / refresh)
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const q = sp.get("q") || "";
+    setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+
   useEffect(() => {
     setIsSideNavOpen(false);
     setSideStack(["root"]);
@@ -134,10 +142,23 @@ const Header = () => {
     setIsMobileSearch(false);
   };
 
+  // ✅ standardize: use q only
+  // ✅ preserve gender if already present in URL
+  // ✅ clear category/store on new search
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (!search.trim()) return;
-    goProducts(`/products?search=${encodeURIComponent(search.trim())}&page=1`);
+    const term = String(search || "").trim();
+    if (!term) return;
+
+    const sp = new URLSearchParams(location.search);
+    const gender = sp.get("gender") || "";
+
+    const next = new URLSearchParams();
+    if (gender) next.set("gender", gender);
+    next.set("q", term);
+    next.set("page", "1");
+
+    goProducts(`/products?${next.toString()}`);
   };
 
   const onMouseEnter = (gender) => {

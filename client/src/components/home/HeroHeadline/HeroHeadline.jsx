@@ -63,8 +63,8 @@ const HeroHeadline = ({
             {primaryCta.label}
           </Link>
 
-          <Link to={secondaryCta.to} className="hero-cta secondary">
-            {secondaryCta.label}
+          <Link to={"/login"} className="hero-cta secondary">
+            Join Now
           </Link>
         </div>
 

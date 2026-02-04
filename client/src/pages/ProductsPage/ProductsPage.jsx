@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./products.styles.scss";
@@ -65,39 +65,60 @@ const getPageNumbers = (current, total) => {
   return out;
 };
 
+const toCategorySlugFromQuery = (qRaw) => {
+  const q = String(qRaw || "")
+    .trim()
+    .toLowerCase();
+  if (!q) return "";
+  return q
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+};
+
 const ProductsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const lastResolvedQ = useRef("");
 
   const params = useMemo(
     () => new URLSearchParams(location.search),
     [location.search],
   );
 
-  const rawCategory = params.get("category") || "";
-  const rawSearch = params.get("search") || params.get("q") || "";
+  // ✅ standardize: q is the only search param (support legacy search/q just in case)
+  const q = params.get("q") || params.get("search") || "";
   const sort = params.get("sort") || "newest";
 
   const gender = params.get("gender") || "";
-  const category = rawCategory;
+  const category = params.get("category") || "";
   const store = params.get("store") || "";
   const page = Number(params.get("page") || 1);
 
-  const pageTitle = rawSearch
-    ? `SEARCH: ${String(rawSearch).trim().toUpperCase()}`
-    : titleFromCategory(rawCategory);
+  const pageTitle = q
+    ? `SEARCH: ${String(q).trim().toUpperCase()}`
+    : titleFromCategory(category);
 
   const setParam = (updates) => {
     const next = new URLSearchParams(location.search);
 
+    // if legacy 'search' exists, normalize away from it
+    if (next.has("search") && !next.has("q")) {
+      next.set("q", next.get("search") || "");
+    }
+    next.delete("search");
+
     Object.entries(updates).forEach(([k, v]) => {
-      v === 0 ? next.set(k, "0") : v ? next.set(k, String(v)) : next.delete(k);
+      if (v === 0) return next.set(k, "0");
+      if (v === null || v === undefined || v === "") return next.delete(k);
+      next.set(k, String(v));
     });
 
     navigate(`/products?${next.toString()}`);
   };
 
-  // ✅ FLOW: gender -> category -> store
+  // ✅ FLOW: gender -> category -> store (while preserving q)
   const handleGender = (nextGender) => {
     setParam({
       gender: nextGender,
@@ -125,22 +146,26 @@ const ProductsPage = () => {
   const apiParams = useMemo(() => {
     const obj = Object.fromEntries(params);
 
+    // normalize legacy
     if (obj.search && !obj.q) obj.q = obj.search;
+    delete obj.search;
+
     if (!obj.page) obj.page = "1";
     if (!obj.sort) obj.sort = "newest";
-    if (!obj.limit) obj.limit = "24"; // ✅ pick a nice page size
+    if (!obj.limit) obj.limit = "24";
 
     return obj;
   }, [params]);
 
-  // ✅ categories depend on gender (+ search), NOT category/store
+  // ✅ categories should load when gender OR search is active
+  // include store so categories can reflect store filter if chosen
   const categoriesParams = useMemo(() => {
     const obj = Object.fromEntries(params);
 
     if (obj.search && !obj.q) obj.q = obj.search;
+    delete obj.search;
 
-    delete obj.category;
-    delete obj.store;
+    delete obj.category; // endpoint returns available categories
     delete obj.page;
     delete obj.limit;
     delete obj.sort;
@@ -148,11 +173,12 @@ const ProductsPage = () => {
     return obj;
   }, [params]);
 
-  // ✅ stores depend on gender + category (+ search), NOT store
+  // ✅ stores depend on gender + category (+ q), not store
   const storesParams = useMemo(() => {
     const obj = Object.fromEntries(params);
 
     if (obj.search && !obj.q) obj.q = obj.search;
+    delete obj.search;
 
     delete obj.store;
     delete obj.page;
@@ -172,14 +198,14 @@ const ProductsPage = () => {
     queryKey: ["categories", categoriesParams],
     queryFn: () => fetchCategories(categoriesParams),
     keepPreviousData: true,
-    enabled: Boolean(gender),
+    enabled: Boolean(gender || q),
   });
 
   const { data: storesData } = useQuery({
     queryKey: ["stores", storesParams],
     queryFn: () => fetchStores(storesParams),
     keepPreviousData: true,
-    enabled: Boolean(gender && category),
+    enabled: Boolean(category),
   });
 
   const items = data?.items || [];
@@ -202,6 +228,53 @@ const ProductsPage = () => {
   };
 
   const pageNums = getPageNumbers(currentPage, totalPages);
+
+  // ✅ auto-set category when q strongly matches a category value
+  useEffect(() => {
+    const term = String(q || "").trim();
+    if (!term) {
+      lastResolvedQ.current = "";
+      return;
+    }
+
+    if (category) return;
+
+    // prevent loops / re-resolves for same q
+    if (lastResolvedQ.current === term) return;
+
+    const run = async () => {
+      try {
+        // resolve within current context (gender optional)
+        const qs = new URLSearchParams();
+        qs.set("q", term);
+        if (gender) qs.set("gender", gender);
+
+        const data = await fetchJson(
+          `${API_URL}/api/products/categories?${qs}`,
+        );
+        const list = data?.categories || [];
+
+        const wanted = toCategorySlugFromQuery(term);
+        if (!wanted) return;
+
+        const exists = list.some(
+          (c) => String(c?.value || "").toLowerCase() === wanted,
+        );
+
+        if (exists) {
+          lastResolvedQ.current = term;
+          setParam({ category: wanted, page: 1 });
+        } else {
+          lastResolvedQ.current = term;
+        }
+      } catch (e) {
+        lastResolvedQ.current = term;
+      }
+    };
+
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, gender, category]);
 
   return (
     <main className="pp-products">
@@ -231,12 +304,12 @@ const ProductsPage = () => {
                   className="pp-filter-dropdown"
                   value={category}
                   onChange={(e) => handleCategory(e.target.value)}
-                  disabled={!gender}
+                  disabled={!(gender || q)}
                 >
                   <option value="">
-                    {gender
+                    {gender || q
                       ? `ALL CATEGORIES${categoriesTotal ? ` (${categoriesTotal})` : ""}`
-                      : "SELECT GENDER FIRST"}
+                      : "SEARCH OR SELECT GENDER FIRST"}
                   </option>
 
                   {categories.map((c) => (
@@ -254,10 +327,10 @@ const ProductsPage = () => {
                   className="pp-filter-dropdown"
                   value={store}
                   onChange={(e) => handleStore(e.target.value)}
-                  disabled={!gender || !category}
+                  disabled={!category}
                 >
                   <option value="">
-                    {gender && category
+                    {category
                       ? `ALL STORES${storesTotal ? ` (${storesTotal})` : ""}`
                       : "SELECT CATEGORY FIRST"}
                   </option>
