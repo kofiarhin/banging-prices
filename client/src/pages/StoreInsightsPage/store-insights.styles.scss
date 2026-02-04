@@ -1,0 +1,91 @@
+.si-page {
+  min-height: 100vh;
+  padding: 32px 20px 60px;
+  background: #070707;
+  color: #fff;
+}
+
+.si-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.si-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.si-title {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.si-sub {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.si-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.si-card {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 16px;
+}
+
+.si-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.si-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.si-metric {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+.si-metric-value {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.si-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.si-foot {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.si-state {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.75);
+}

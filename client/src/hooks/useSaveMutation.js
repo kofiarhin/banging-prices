@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const saveItem = async ({ id, token }) => {
+const saveItem = async ({ id, token, collectionId }) => {
   if (!token) throw new Error("Unauthorized (missing token)");
 
   const res = await fetch(`${API_URL}/api/products/save`, {
@@ -11,7 +11,7 @@ const saveItem = async ({ id, token }) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ id, collectionId }),
   });
 
   const payload = await res.json().catch(() => ({}));

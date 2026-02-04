@@ -6,6 +6,7 @@ const { clerkMiddleware } = require("@clerk/express");
 const productsRoutes = require("./routes/products.routes");
 const authRoutes = require("./routes/authRoutes");
 const alertsRoutes = require("./routes/alerts.routes");
+const collectionsRoutes = require("./routes/collections.routes");
 
 // ✅ ADD THIS
 const homeRoutes = require("./routes/home.routes");
@@ -43,6 +44,7 @@ app.get("/health", (req, res) => {
 app.use("/api/products", productsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/alerts", alertsRoutes);
+app.use("/api/collections", collectionsRoutes);
 
 // ✅ ADD THIS (public, no auth)
 app.use("/api/home", homeRoutes);

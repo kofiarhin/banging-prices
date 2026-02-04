@@ -17,6 +17,8 @@ import SavedProductsPage from "./pages/SavedProductsPage/SavedProductsPage.jsx";
 import PostLogin from "./pages/PostLogin/PostLogin.jsx";
 
 import TrackedAlertsPage from "./pages/tracked-alerts/TrackedAlertsPage.jsx";
+import StoreInsightsPage from "./pages/StoreInsightsPage/StoreInsightsPage.jsx";
+import CollectionSharePage from "./pages/CollectionSharePage/CollectionSharePage.jsx";
 
 const Protected = ({ children }) => {
   return (
@@ -115,6 +117,9 @@ const App = () => {
             </Protected>
           }
         />
+
+        <Route path="/insights" element={<StoreInsightsPage />} />
+        <Route path="/collections/:shareId" element={<CollectionSharePage />} />
 
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:id" element={<ProductDetailsPage />} />

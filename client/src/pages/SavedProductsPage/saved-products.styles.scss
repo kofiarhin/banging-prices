@@ -28,6 +28,89 @@
   opacity: 0.5;
 }
 
+.saved-controls {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.saved-collections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.saved-chip.is-active {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.saved-chip-secondary {
+  border-style: dashed;
+}
+
+.saved-new-collection {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.saved-input {
+  min-width: 220px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.saved-btn {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saved-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.saved-group-title {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saved-share {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.saved-group-grid {
+  display: grid;
+  gap: 20px;
+}
+
 .saved-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -154,6 +237,28 @@
   flex-wrap: wrap;
 }
 
+.saved-move {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.saved-move-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+}
+
+.saved-select {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
 .saved-chip {
   padding: 4px 10px;
   border-radius: 999px;
@@ -176,6 +281,10 @@
 
 @media (min-width: 768px) {
   .saved-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .saved-group-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -201,5 +310,9 @@
     right: 14px;
     width: 42px;
     height: 42px;
+  }
+
+  .saved-group-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

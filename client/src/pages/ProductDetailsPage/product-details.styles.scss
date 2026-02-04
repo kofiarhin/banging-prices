@@ -507,6 +507,23 @@ $text-muted: rgba(255, 255, 255, 0.58);
   color: $text-muted;
 }
 
+.pd-deal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pd-deal-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .pd-meta-inline {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -626,6 +643,23 @@ $text-muted: rgba(255, 255, 255, 0.58);
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 14px;
+}
+
+.pd-save-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pd-select {
+  min-width: 180px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
 }
 
 .pd-btn {

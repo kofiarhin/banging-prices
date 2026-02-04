@@ -1,4 +1,5 @@
 const Product = require("../models/product.model");
+const PriceHistory = require("../models/pricehistory.model");
 
 const escapeRegex = (s = "") =>
   String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -10,6 +11,28 @@ const normalizeSlug = (v) =>
   String(v || "")
     .trim()
     .toLowerCase();
+
+const computeDealScore = (product) => {
+  const discount = Number(product?.discountPercent || 0);
+  const seenAt = product?.lastSeenAt ? new Date(product.lastSeenAt) : null;
+  const hoursSince = seenAt
+    ? (Date.now() - seenAt.getTime()) / 36e5
+    : null;
+
+  let freshnessBonus = 0;
+  if (hoursSince != null) {
+    if (hoursSince <= 24) freshnessBonus = 10;
+    else if (hoursSince <= 72) freshnessBonus = 5;
+  }
+
+  const score = Math.min(100, Math.max(0, Math.round(discount * 1.2 + freshnessBonus)));
+  return score;
+};
+
+const enrichProduct = (product) => ({
+  ...product,
+  dealScore: computeDealScore(product),
+});
 
 // ✅ category aliasing (expand anytime you discover new variants)
 const CATEGORY_ALIASES = {
@@ -204,7 +227,7 @@ const getProducts = async (req, res) => {
       const total = totalRow?.[0]?.total || 0;
 
       return res.json({
-        items: rows,
+        items: rows.map(enrichProduct),
         pagination: {
           total,
           page: pageNum,
@@ -224,12 +247,16 @@ const getProducts = async (req, res) => {
       sortObj = { storeName: -1, store: -1, createdAt: -1 };
 
     const [items, total] = await Promise.all([
-      Product.find(query).sort(sortObj).skip(skip).limit(limitNum),
+      Product.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
       Product.countDocuments(query),
     ]);
 
     res.json({
-      items,
+      items: items.map(enrichProduct),
       pagination: {
         total,
         page: pageNum,
@@ -244,11 +271,84 @@ const getProducts = async (req, res) => {
 
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+    res.json(enrichProduct(product));
   } catch (error) {
     res.status(400).json({ message: "invalid product id" });
+  }
+};
+
+const getProductHistory = async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const product = await Product.findById(req.params.id).lean();
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const daysNum = Number(days);
+    const safeDays = Number.isFinite(daysNum) && daysNum > 0 ? daysNum : 30;
+    const cutoff = new Date(Date.now() - safeDays * 24 * 60 * 60 * 1000);
+
+    const history = await PriceHistory.find({
+      canonicalKey: product.canonicalKey,
+      seenAt: { $gte: cutoff },
+    })
+      .sort({ seenAt: 1 })
+      .lean();
+
+    const prices = history.map((h) => h.price).filter((p) => Number.isFinite(p));
+    const minPrice = prices.length ? Math.min(...prices) : null;
+    const maxPrice = prices.length ? Math.max(...prices) : null;
+
+    res.json({
+      canonicalKey: product.canonicalKey,
+      currency: product.currency,
+      days: safeDays,
+      minPrice,
+      maxPrice,
+      history: history.map((h) => ({
+        price: h.price,
+        seenAt: h.seenAt,
+      })),
+    });
+  } catch (error) {
+    res.status(400).json({ message: "something went wrong" });
+  }
+};
+
+const getStoreInsights = async (req, res) => {
+  try {
+    const base = buildBaseMatch(req.query);
+
+    const rows = await Product.aggregate([
+      { $match: base },
+      {
+        $group: {
+          _id: { $ifNull: ["$store", "unknown"] },
+          storeName: { $first: "$storeName" },
+          count: { $sum: 1 },
+          inStock: {
+            $sum: { $cond: [{ $eq: ["$inStock", true] }, 1, 0] },
+          },
+          avgDiscount: { $avg: "$discountPercent" },
+          lastSeenAt: { $max: "$lastSeenAt" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    res.json({
+      stores: rows.map((r) => ({
+        store: r._id,
+        storeName: r.storeName || r._id,
+        count: r.count,
+        inStock: r.inStock,
+        avgDiscount: r.avgDiscount ? Math.round(r.avgDiscount) : 0,
+        lastSeenAt: r.lastSeenAt,
+      })),
+    });
+  } catch (error) {
+    res.status(400).json({ message: "something went wrong" });
   }
 };
 
@@ -292,6 +392,8 @@ module.exports = {
   getCategories,
   getProducts,
   getProductById,
+  getProductHistory,
+  getStoreInsights,
   createProduct,
   updateProduct,
   deleteProduct,

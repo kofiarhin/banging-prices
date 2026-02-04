@@ -170,6 +170,29 @@ const DashboardPage = () => {
               </button>
             </div>
           </article>
+
+          <article className="bp-card">
+            <h2 className="bp-card-title">Insights</h2>
+
+            <div className="bp-metric">
+              <div className="bp-metric-num">Live</div>
+              <div className="bp-metric-label">Store performance</div>
+            </div>
+
+            <p className="bp-muted bp-small">
+              Track retailer drops, stock coverage, and discount velocity.
+            </p>
+
+            <div className="bp-card-footer">
+              <button
+                className="bp-btn bp-btn-ghost"
+                type="button"
+                onClick={() => navigate("/insights")}
+              >
+                View insights
+              </button>
+            </div>
+          </article>
         </section>
       </div>
     </main>

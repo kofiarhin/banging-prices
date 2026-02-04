@@ -38,6 +38,19 @@ const toLabel = (slug = "") =>
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
     .join(" ");
 
+const formatTimeAgo = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const ms = Date.now() - d.getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+};
+
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
 const getPageNumbers = (current, total) => {
@@ -430,6 +443,17 @@ const ProductsPage = () => {
                           {p.originalPrice}
                         </span>
                       )}
+                    </div>
+
+                    <div className="pp-meta-row">
+                      <span className="pp-meta-pill">
+                        Deal {p.dealScore || 0}
+                      </span>
+                      {p.lastSeenAt ? (
+                        <span className="pp-meta-pill">
+                          Seen {formatTimeAgo(p.lastSeenAt)}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </Link>

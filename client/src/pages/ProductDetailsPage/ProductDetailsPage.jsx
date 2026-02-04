@@ -5,6 +5,7 @@ import { RedirectToSignIn, useAuth } from "@clerk/clerk-react";
 import "./product-details.styles.scss";
 import useSaveMutation from "../../hooks/useSaveMutation";
 import useSavedProductsQuery from "../../hooks/useSavedProductsQuery";
+import useCollectionsQuery from "../../hooks/useCollectionsQuery";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -33,6 +34,12 @@ const fetchProductById = async (id) => {
   return res.json();
 };
 
+const fetchHistory = async (id) => {
+  const res = await fetch(`${API_URL}/api/products/${id}/history?days=30`);
+  if (!res.ok) throw new Error("Failed to fetch price history");
+  return res.json();
+};
+
 const fetchSimilar = async (p) => {
   const params = new URLSearchParams({
     status: "active",
@@ -43,6 +50,13 @@ const fetchSimilar = async (p) => {
 
   if (p?.category) params.set("category", p.category);
   if (p?.gender) params.set("gender", p.gender);
+  if (p?.price) {
+    const price = Number(p.price);
+    if (Number.isFinite(price)) {
+      params.set("minPrice", Math.max(0, Math.floor(price * 0.7)));
+      params.set("maxPrice", Math.ceil(price * 1.3));
+    }
+  }
 
   const res = await fetch(`${API_URL}/api/products?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch similar items");
@@ -145,6 +159,7 @@ const ProductDetailsPage = () => {
 
   const [token, setToken] = useState("");
   const [shouldRedirectToSignIn, setShouldRedirectToSignIn] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState("");
 
   const [sizesExpanded, setSizesExpanded] = useState(false);
   const [thumbsExpanded, setThumbsExpanded] = useState(false);
@@ -169,6 +184,12 @@ const ProductDetailsPage = () => {
     enabled: !!p?._id,
   });
 
+  const { data: historyData } = useQuery({
+    queryKey: ["history", id],
+    queryFn: () => fetchHistory(id),
+    enabled: !!id,
+  });
+
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       setToken("");
@@ -181,6 +202,7 @@ const ProductDetailsPage = () => {
   }, [isLoaded, isSignedIn, getToken]);
 
   const { data: savedList = [] } = useSavedProductsQuery(token);
+  const { data: collections = [] } = useCollectionsQuery(token);
 
   const isAlreadySaved = useMemo(() => {
     if (!id) return false;
@@ -197,6 +219,7 @@ const ProductDetailsPage = () => {
     setAlertSaving(false);
     setAlertError("");
     setShouldRedirectToSignIn(false);
+    setSelectedCollection("");
 
     setSizesExpanded(false);
     setThumbsExpanded(false);
@@ -386,7 +409,7 @@ const ProductDetailsPage = () => {
     }
 
     mutate(
-      { id, token: t },
+      { id, token: t, collectionId: selectedCollection || null },
       {
         onSuccess: () => {
           qc.invalidateQueries({ queryKey: ["saved-products"] });
@@ -409,6 +432,11 @@ const ProductDetailsPage = () => {
             100,
         )
       : p.discountPercent;
+
+  const historyMin = historyData?.minPrice;
+  const historyCurrency = historyData?.currency || p.currency;
+  const showHistoryMin =
+    historyMin !== null && Number.isFinite(Number(historyMin));
 
   return (
     <div className="pd-page">
@@ -648,6 +676,17 @@ const ProductDetailsPage = () => {
                 )}
               </div>
 
+              <div className="pd-deal-row">
+                <span className="pd-deal-pill">
+                  Deal Score {p.dealScore || 0}
+                </span>
+                {showHistoryMin ? (
+                  <span className="pd-deal-pill">
+                    30d low {formatMoney(historyCurrency, historyMin)}
+                  </span>
+                ) : null}
+              </div>
+
               <div className="pd-meta-inline">
                 <div className="pd-meta-pill">
                   <span className="pd-meta-pill-label">Category</span>
@@ -759,6 +798,31 @@ const ProductDetailsPage = () => {
               </button>
             </div>
 
+            {!isAlreadySaved && (
+              <div className="pd-save-row">
+                <select
+                  className="pd-select"
+                  value={selectedCollection}
+                  onChange={(e) => setSelectedCollection(e.target.value)}
+                >
+                  <option value="">Unsorted</option>
+                  {collections.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="pd-btn pd-btn-ghost"
+                  onClick={handleSave}
+                  disabled={!isLoaded || isPending}
+                  type="button"
+                >
+                  Save to Collection
+                </button>
+              </div>
+            )}
+
             <div className="pd-divider" />
           </aside>
         </div>
@@ -773,7 +837,12 @@ const ProductDetailsPage = () => {
 
           <div className="pd-similar-grid">
             {similarItems
-              .filter((x) => x._id !== p._id)
+              .filter(
+                (x) =>
+                  x._id !== p._id &&
+                  (!p.store || x.store !== p.store) &&
+                  (!p.storeName || x.storeName !== p.storeName),
+              )
               .slice(0, 4)
               .map((x) => (
                 <Link key={x._id} to={`/products/${x._id}`} className="pd-card">

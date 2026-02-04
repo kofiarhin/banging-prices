@@ -1,14 +1,49 @@
 const PriceAlert = require("../models/priceAlert.model");
 const Product = require("../models/product.model");
 const User = require("../models/user.model");
+const nodemailer = require("nodemailer");
 
-// swap this later for SendGrid/Nodemailer
+const getTransporter = (() => {
+  let transporter;
+  return () => {
+    if (transporter) return transporter;
+
+    const host = process.env.SMTP_HOST;
+    const port = Number(process.env.SMTP_PORT || 587);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !user || !pass) return null;
+
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+    });
+
+    return transporter;
+  };
+})();
+
 const sendAlert = async ({ to, subject, message }) => {
-  // ✅ fallback: console notify (so feature works end-to-end)
-  console.log("\n📣 ALERT EMAIL (mock)");
-  console.log("To:", to);
-  console.log("Subject:", subject);
-  console.log(message);
+  const transporter = getTransporter();
+  const from = process.env.SMTP_FROM || "alerts@bangingprices.com";
+
+  if (!transporter) {
+    console.log("\n📣 ALERT EMAIL (mock)");
+    console.log("To:", to);
+    console.log("Subject:", subject);
+    console.log(message);
+    return;
+  }
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject,
+    text: message,
+  });
 };
 
 const shouldTrigger = (alert, product) => {
