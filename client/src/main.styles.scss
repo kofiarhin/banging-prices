@@ -166,3 +166,30 @@ textarea {
     text-align: center;
   }
 }
+
+/* ---------- Route-level loading fallback ---------- */
+.app-route-fallback {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-route-fallback__spinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent);
+  animation: app-route-spin 0.8s linear infinite;
+}
+
+@keyframes app-route-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -205,6 +205,7 @@ const ProductsPage = () => {
     queryKey: ["products", apiParams],
     queryFn: () => fetchProducts(apiParams),
     keepPreviousData: true,
+    staleTime: 60 * 1000,
   });
 
   const { data: categoriesData } = useQuery({
@@ -212,6 +213,7 @@ const ProductsPage = () => {
     queryFn: () => fetchCategories(categoriesParams),
     keepPreviousData: true,
     enabled: Boolean(gender || q),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: storesData } = useQuery({
@@ -219,6 +221,7 @@ const ProductsPage = () => {
     queryFn: () => fetchStores(storesParams),
     keepPreviousData: true,
     enabled: Boolean(category),
+    staleTime: 5 * 60 * 1000,
   });
 
   const items = data?.items || [];
@@ -395,7 +398,7 @@ const ProductsPage = () => {
                   <div className="pp-skeleton-text" />
                 </div>
               ))
-            : items.map((p) => (
+            : items.map((p, index) => (
                 <Link key={p._id} to={`/products/${p._id}`} className="pp-item">
                   <div className="pp-image-wrap">
                     {p.discountPercent > 0 && (
@@ -408,7 +411,11 @@ const ProductsPage = () => {
                       src={p.image}
                       alt={p.title}
                       className="pp-image"
-                      loading="lazy"
+                      width="320"
+                      height="420"
+                      loading={index < 4 ? "eager" : "lazy"}
+                      fetchPriority={index < 2 ? "high" : "auto"}
+                      decoding="async"
                     />
 
                     <button

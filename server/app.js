@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 const mongoose = require("mongoose");
 const { clerkMiddleware } = require("@clerk/express");
 
@@ -16,6 +17,7 @@ const app = express();
 // setup middlewares
 app.use(clerkMiddleware());
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 
 console.log("we on it");

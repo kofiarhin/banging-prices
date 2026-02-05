@@ -25,7 +25,10 @@ const computeDealScore = (product) => {
     else if (hoursSince <= 72) freshnessBonus = 5;
   }
 
-  const score = Math.min(100, Math.max(0, Math.round(discount * 1.2 + freshnessBonus)));
+  const score = Math.min(
+    100,
+    Math.max(0, Math.round(discount * 1.2 + freshnessBonus)),
+  );
   return score;
 };
 
@@ -33,6 +36,30 @@ const enrichProduct = (product) => ({
   ...product,
   dealScore: computeDealScore(product),
 });
+
+const LIST_FIELDS =
+  "title price originalPrice discountPercent image storeName store currency lastSeenAt";
+
+const LIST_FIELDS_PROJECTION = {
+  title: 1,
+  price: 1,
+  originalPrice: 1,
+  discountPercent: 1,
+  image: 1,
+  storeName: 1,
+  store: 1,
+  currency: 1,
+  lastSeenAt: 1,
+  createdAt: 1,
+};
+
+const setListCache = (res) => {
+  res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+};
+
+const setFacetCache = (res) => {
+  res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+};
 
 // ✅ category aliasing (expand anytime you discover new variants)
 const CATEGORY_ALIASES = {
@@ -153,6 +180,7 @@ const getStores = async (req, res) => {
       { $sort: { label: 1 } },
     ]);
 
+    setFacetCache(res);
     res.json({
       stores: rows.map((r) => ({
         value: r._id,
@@ -188,6 +216,7 @@ const getCategories = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
+    setFacetCache(res);
     res.json({
       categories: rows.map((r) => ({ value: r._id, count: r.count })),
     });
@@ -198,12 +227,12 @@ const getCategories = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
-    const { page = 1, limit = 50, sort = "newest" } = req.query;
+    const { page = 1, limit = 24, sort = "newest" } = req.query;
 
     const query = buildBaseMatch(req.query);
 
     const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.min(200, Math.max(1, Number(limit) || 50));
+    const limitNum = Math.min(60, Math.max(1, Number(limit) || 24));
     const skip = (pageNum - 1) * limitNum;
 
     // ✅ discount-desc with nulls last
@@ -219,13 +248,14 @@ const getProducts = async (req, res) => {
           { $sort: { _discountSort: -1, createdAt: -1 } },
           { $skip: skip },
           { $limit: limitNum },
-          { $unset: "_discountSort" },
+          { $project: LIST_FIELDS_PROJECTION },
         ]),
         Product.aggregate([{ $match: query }, { $count: "total" }]),
       ]);
 
       const total = totalRow?.[0]?.total || 0;
 
+      setListCache(res);
       return res.json({
         items: rows.map(enrichProduct),
         pagination: {
@@ -248,6 +278,7 @@ const getProducts = async (req, res) => {
 
     const [items, total] = await Promise.all([
       Product.find(query)
+        .select(LIST_FIELDS)
         .sort(sortObj)
         .skip(skip)
         .limit(limitNum)
@@ -255,6 +286,7 @@ const getProducts = async (req, res) => {
       Product.countDocuments(query),
     ]);
 
+    setListCache(res);
     res.json({
       items: items.map(enrichProduct),
       pagination: {
