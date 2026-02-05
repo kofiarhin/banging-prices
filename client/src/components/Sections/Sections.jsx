@@ -31,6 +31,14 @@ const Sections = ({
         <div key={sec.id || sec.title} className="pp-section">
           <div className="pp-section-head">
             <div className="pp-section-titlewrap">
+              {sec.image ? (
+                <img
+                  className="pp-section-cover"
+                  src={sec.image}
+                  alt={sec.title || "Section"}
+                  loading="lazy"
+                />
+              ) : null}
               <h3 className="pp-section-title">{sec.title}</h3>
               {sec.subtitle ? (
                 <p className="pp-section-subtitle">{sec.subtitle}</p>

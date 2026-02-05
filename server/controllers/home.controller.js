@@ -165,13 +165,18 @@ const getHomeIntelligence = async (req, res) => {
     );
 
     const sections = querySpecs
-      .map((spec, i) => ({
-        id: spec.id,
-        title: spec.title,
-        subtitle: spec.subtitle,
-        seeAllUrl: spec.seeAllUrl,
-        items: sectionDocs[i].map(pickCardFields),
-      }))
+      .map((spec, i) => {
+        const items = sectionDocs[i].map(pickCardFields);
+
+        return {
+          id: spec.id,
+          title: spec.title,
+          subtitle: spec.subtitle,
+          seeAllUrl: spec.seeAllUrl,
+          image: items[0]?.image || "",
+          items,
+        };
+      })
       .filter((s) => s.items.length > 0);
 
     return res.json({
