@@ -28,6 +28,17 @@
   gap: 4px;
 }
 
+.pp-section-cover {
+  width: 100%;
+  max-width: 220px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  margin-bottom: 8px;
+  display: block;
+}
+
 .pp-section-title {
   margin: 0;
   font-size: 1.1rem;
@@ -78,4 +89,11 @@
 
 .pp-strip-item {
   flex: 0 0 auto;
+}
+
+@media (max-width: 700px) {
+  .pp-section-cover {
+    max-width: 170px;
+    height: 64px;
+  }
 }
