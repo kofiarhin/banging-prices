@@ -73,7 +73,8 @@ const buildHeroCarousel = async () => {
       return {
         key: s.key,
         label: s.label,
-        to: `/products?search=${encodeURIComponent(s.label)}&sort=discount-desc&page=1`,
+        // ✅ Standardized to `q` (was `search`)
+        to: `/products?q=${encodeURIComponent(s.label)}&sort=discount-desc&page=1`,
         items: items.map(pickCardFields),
       };
     }),
@@ -165,13 +166,17 @@ const getHomeIntelligence = async (req, res) => {
     );
 
     const sections = querySpecs
-      .map((spec, i) => ({
-        id: spec.id,
-        title: spec.title,
-        subtitle: spec.subtitle,
-        seeAllUrl: spec.seeAllUrl,
-        items: sectionDocs[i].map(pickCardFields),
-      }))
+      .map((spec, i) => {
+        const items = sectionDocs[i].map(pickCardFields);
+        return {
+          id: spec.id,
+          title: spec.title,
+          subtitle: spec.subtitle,
+          seeAllUrl: spec.seeAllUrl,
+          image: items[0]?.image || "",
+          items,
+        };
+      })
       .filter((s) => s.items.length > 0);
 
     return res.json({
@@ -181,9 +186,7 @@ const getHomeIntelligence = async (req, res) => {
         assetsTracked,
         lastScanSecondsAgo,
       },
-      carousel: {
-        slides: heroCarousel,
-      },
+      carousel: { slides: heroCarousel },
       sections,
     });
   } catch (err) {
@@ -207,6 +210,7 @@ const getNav = async (req, res) => {
 
     const [rawGenders, storesAgg, categoriesAgg] = await Promise.all([
       Product.distinct("gender"),
+
       Product.aggregate([
         {
           $project: {
@@ -227,6 +231,7 @@ const getNav = async (req, res) => {
         { $sort: { count: -1, label: 1 } },
         { $limit: storesLimit },
       ]),
+
       Product.aggregate([
         {
           $match: {
@@ -250,9 +255,7 @@ const getNav = async (req, res) => {
         {
           $group: {
             _id: "$_id.gender",
-            categories: {
-              $push: "$_id.category",
-            },
+            categories: { $push: "$_id.category" },
           },
         },
       ]),

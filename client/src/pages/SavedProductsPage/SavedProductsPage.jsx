@@ -13,24 +13,30 @@ const formatMoney = (currency, value) => {
   return `${currency}${n.toFixed(2)}`;
 };
 
+const normalize = (v) =>
+  String(v || "")
+    .toLowerCase()
+    .trim();
+
 const SavedProductsPage = () => {
   const { mutate, isPending } = useDeleteProduct();
   const { getToken, isLoaded, isSignedIn } = useAuth();
+
   const [data, setData] = useState([]);
   const [token, setToken] = useState("");
-  const [newCollection, setNewCollection] = useState("");
-  const [activeCollection, setActiveCollection] = useState("all");
 
-  const { data: collections = [], refetch: refetchCollections } =
-    useCollectionsQuery(token);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("recent"); // recent | price-asc | price-desc | instock
+
+  // keep query so existing hook remains usable (even if you hide UI)
+  useCollectionsQuery(token);
 
   const handleDelete = async (productId) => {
     if (!productId) return;
-
-    const token = await getToken();
+    const t = await getToken();
 
     mutate(
-      { productId, token },
+      { productId, token: t },
       {
         onSuccess: () => {
           setData((prev) =>
@@ -76,263 +82,160 @@ const SavedProductsPage = () => {
     getSavedProducts();
   }, [token]);
 
-  const grouped = useMemo(() => {
-    const map = new Map();
+  const filtered = useMemo(() => {
+    const q = normalize(search);
 
-    data.forEach((item) => {
-      const collectionId = item?.collectionId?._id || "unsorted";
-      const collectionName = item?.collectionId?.name || "Unsorted";
-      if (!map.has(collectionId)) {
-        map.set(collectionId, { name: collectionName, items: [] });
-      }
-      map.get(collectionId).items.push(item);
+    let list = data.filter((saveDoc) => {
+      const p = saveDoc?.productId;
+      if (!p) return false;
+
+      if (!q) return true;
+
+      const haystack = [p.title, p.storeName, p.currency, p.price]
+        .filter(Boolean)
+        .join(" ");
+
+      return normalize(haystack).includes(q);
     });
 
-    return [...map.entries()].map(([id, payload]) => ({
-      id,
-      name: payload.name,
-      items: payload.items,
-    }));
-  }, [data]);
-
-  const collectionMap = useMemo(() => {
-    const map = new Map();
-    collections.forEach((c) => {
-      map.set(c._id, c);
-    });
-    return map;
-  }, [collections]);
-
-  const visibleGroups =
-    activeCollection === "all"
-      ? grouped
-      : grouped.filter((g) => g.id === activeCollection);
-
-  const handleCreateCollection = async () => {
-    const name = String(newCollection || "").trim();
-    if (!name || !token) return;
-
-    const res = await fetch(`${API_URL}/api/collections`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name }),
-    });
-
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error(payload.message || "Failed to create collection");
-      return;
+    if (sortKey === "price-asc") {
+      list = list.slice().sort((a, b) => {
+        const ap = Number(a?.productId?.price);
+        const bp = Number(b?.productId?.price);
+        if (Number.isNaN(ap) && Number.isNaN(bp)) return 0;
+        if (Number.isNaN(ap)) return 1;
+        if (Number.isNaN(bp)) return -1;
+        return ap - bp;
+      });
     }
 
-    setNewCollection("");
-    refetchCollections();
-  };
-
-  const handleMoveCollection = async (saveId, collectionId) => {
-    if (!token || !saveId) return;
-
-    const res = await fetch(`${API_URL}/api/products/saved-item/${saveId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ collectionId }),
-    });
-
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error(payload.message || "Failed to update collection");
-      return;
+    if (sortKey === "price-desc") {
+      list = list.slice().sort((a, b) => {
+        const ap = Number(a?.productId?.price);
+        const bp = Number(b?.productId?.price);
+        if (Number.isNaN(ap) && Number.isNaN(bp)) return 0;
+        if (Number.isNaN(ap)) return 1;
+        if (Number.isNaN(bp)) return -1;
+        return bp - ap;
+      });
     }
 
-    setData((prev) =>
-      prev.map((item) =>
-        item._id === saveId ? payload.savedItem : item,
-      ),
-    );
-  };
+    if (sortKey === "instock") {
+      list = list.slice().sort((a, b) => {
+        const ai = a?.productId?.inStock ? 1 : 0;
+        const bi = b?.productId?.inStock ? 1 : 0;
+        return bi - ai;
+      });
+    }
+
+    return list; // recent keeps API order
+  }, [data, search, sortKey]);
 
   return (
     <main className="saved-page">
-      <header className="saved-header">
-        <h1 className="saved-title">Your Collection</h1>
-        <p className="saved-sub">{data.length} curated items found</p>
-      </header>
+      <div className="saved-top">
+        <div className="saved-head">
+          <h1 className="saved-title">Saved Items</h1>
+          <p className="saved-sub">{data.length} saved</p>
+        </div>
 
-      <section className="saved-controls">
-        <div className="saved-collections">
-          <button
-            className={`saved-chip ${activeCollection === "all" ? "is-active" : ""}`}
-            type="button"
-            onClick={() => setActiveCollection("all")}
-          >
-            All
-          </button>
-          {collections.map((c) => (
-            <button
-              key={c._id}
-              className={`saved-chip ${activeCollection === c._id ? "is-active" : ""}`}
-              type="button"
-              onClick={() => setActiveCollection(c._id)}
+        <div className="saved-toolbar">
+          <div className="saved-search">
+            <span className="saved-search-icon" aria-hidden="true">
+              ⌕
+            </span>
+            <input
+              className="saved-search-input"
+              placeholder="Search saved items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              type="text"
+            />
+          </div>
+
+          <div className="saved-filters">
+            <select
+              className="saved-select"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value)}
             >
-              {c.name} ({c.count || 0})
+              <option value="recent">Recently saved</option>
+              <option value="instock">In stock first</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+            </select>
+
+            <button
+              className="saved-ghost-btn"
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              Refresh
             </button>
-          ))}
-          <button
-            className="saved-chip saved-chip-secondary"
-            type="button"
-            onClick={() => {
-              if (token) refetchCollections();
-            }}
-          >
-            Refresh
-          </button>
+          </div>
         </div>
+      </div>
 
-        <div className="saved-new-collection">
-          <input
-            className="saved-input"
-            placeholder="New collection name"
-            value={newCollection}
-            onChange={(e) => setNewCollection(e.target.value)}
-            type="text"
-          />
-          <button
-            className="saved-btn"
-            type="button"
-            onClick={handleCreateCollection}
-          >
-            Create
-          </button>
-        </div>
-      </section>
+      <section className="saved-list">
+        {filtered.length === 0 ? (
+          <div className="saved-empty">
+            <p className="saved-empty-title">No saved items</p>
+            <p className="saved-empty-sub">
+              Save products to see them listed here.
+            </p>
+          </div>
+        ) : (
+          filtered.map((saveDoc) => {
+            const p = saveDoc?.productId;
+            if (!p) return null;
 
-      <div className="saved-grid">
-        {visibleGroups.map((group) => {
-          const collection = collectionMap.get(group.id);
-          const shareId = collection?.shareId;
+            return (
+              <Link
+                key={saveDoc._id}
+                to={`/products/${p._id}`}
+                className="saved-row"
+              >
+                <div className="saved-thumb">
+                  <img src={p.image} alt={p.title} loading="lazy" />
+                </div>
 
-          return (
-            <div key={group.id} className="saved-group">
-              <div className="saved-group-title">
-                <span>{group.name}</span>
-                {shareId ? (
+                <div className="saved-main">
+                  <div className="saved-row-title">{p.title}</div>
+                  <div className="saved-row-meta">
+                    <span className="saved-meta-pill">
+                      {p.storeName || "Retailer"}
+                    </span>
+                    <span
+                      className={`saved-meta-pill ${p.inStock ? "is-good" : "is-bad"}`}
+                    >
+                      {p.inStock ? "In stock" : "Out of stock"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="saved-right">
+                  <div className="saved-price">
+                    {formatMoney(p.currency || "£", p.price)}
+                  </div>
+
                   <button
-                    className="saved-share"
                     type="button"
+                    className="saved-danger-btn"
+                    disabled={isPending}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      const url = `${window.location.origin}/collections/${shareId}`;
-                      navigator.clipboard?.writeText(url);
+                      handleDelete(p._id);
                     }}
                   >
-                    Copy Share Link
+                    Remove
                   </button>
-                ) : null}
-              </div>
-              <div className="saved-group-grid">
-                {group.items.map((saveDoc) => {
-                  const p = saveDoc.productId;
-                  if (!p) return null;
-
-                  return (
-                    <Link
-                      key={saveDoc._id}
-                      to={`/products/${p._id}`}
-                      className="saved-card"
-                    >
-                      <button
-                        type="button"
-                        className="saved-delete"
-                        aria-label="Remove from saved"
-                        title="Remove"
-                        disabled={isPending}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDelete(p._id);
-                        }}
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          width="18"
-                          height="18"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fill="currentColor"
-                            d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 7h2v9h-2v-9zm4 0h2v9h-2v-9zM6 8h12l-1 13H7L6 8z"
-                          />
-                        </svg>
-                      </button>
-
-                      <div className="saved-card-img">
-                        <img src={p.image} alt={p.title} loading="lazy" />
-                        {!p.inStock && (
-                          <span className="sold-out-badge">Out of Stock</span>
-                        )}
-                      </div>
-
-                      <div className="saved-card-body">
-                        <span className="saved-card-price">
-                          {formatMoney(p.currency || "£", p.price)}
-                        </span>
-                        <h2 className="saved-card-title">{p.title}</h2>
-                        <div className="saved-card-meta">
-                          <span className="saved-chip">
-                            {p.storeName || "Retailer"}
-                          </span>
-                          <span
-                            className={`saved-chip ${p.inStock ? "is-good" : "is-bad"}`}
-                          >
-                            {p.inStock ? "Ready to buy" : "Sold out"}
-                          </span>
-                        </div>
-                        <div className="saved-move">
-                          <label
-                            className="saved-move-label"
-                            htmlFor={saveDoc._id}
-                          >
-                            Collection
-                          </label>
-                          <select
-                            id={saveDoc._id}
-                            className="saved-select"
-                            value={saveDoc?.collectionId?._id || ""}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              handleMoveCollection(
-                                saveDoc._id,
-                                e.target.value || null,
-                              );
-                            }}
-                          >
-                            <option value="">Unsorted</option>
-                            {collections.map((c) => (
-                              <option key={c._id} value={c._id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                </div>
+              </Link>
+            );
+          })
+        )}
+      </section>
     </main>
   );
 };

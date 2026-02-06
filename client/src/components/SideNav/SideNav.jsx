@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
+
 import "./sidenav.styles.scss";
 
 const Icon = ({ name }) => {
@@ -9,19 +10,22 @@ const Icon = ({ name }) => {
     chevronLeft: "M15 18l-6-6 6-6",
   };
 
+  const d = paths[name];
+  if (!d) return null;
+
   return (
     <svg
-      width="20"
-      height="20"
+      width="18"
+      height="18"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.25"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d={paths[name]} />
+      <path d={d} />
     </svg>
   );
 };
@@ -73,15 +77,22 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
 
   useEffect(() => {
     if (!isOpen) return;
+
     const onKey = (e) => {
       if (e.key === "Escape") {
         onClose();
         reset();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    closeBtnRef.current?.focus?.();
+  }, [isOpen]);
 
   return (
     <>
@@ -95,8 +106,7 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
 
       <aside
         className={`phd-sidenav ${isOpen ? "open" : ""}`}
-        role="dialog"
-        aria-modal="true"
+        aria-hidden={!isOpen}
       >
         <div className="phd-sidenav-top">
           <div className="phd-sidenav-top-left">
@@ -112,6 +122,7 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
             ) : (
               <div className="phd-sidenav-spacer" />
             )}
+
             <div className="phd-sidenav-title">{title}</div>
           </div>
 
@@ -130,70 +141,67 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
         </div>
 
         <div className="phd-sidenav-body">
-          {panelKey === "root" && (
-            <div className="phd-sidenav-list">
-              <button
-                className="phd-sidenav-item"
-                type="button"
-                onClick={() => go("/")}
-              >
-                Home
-              </button>
+          <div className="phd-sidenav-list">
+            {panelKey === "root" && (
+              <>
+                <button
+                  className="phd-sidenav-item"
+                  type="button"
+                  onClick={() => go("/")}
+                >
+                  Home
+                </button>
+                <button
+                  className="phd-sidenav-item"
+                  type="button"
+                  onClick={() => go("/products?page=1")}
+                >
+                  Products
+                </button>
 
-              <button
-                className="phd-sidenav-item"
-                type="button"
-                onClick={() => go("/products?page=1")}
-              >
-                Products
-              </button>
+                <button
+                  className="phd-sidenav-item has-next"
+                  type="button"
+                  onClick={() => push("men")}
+                >
+                  Men{" "}
+                  <span className="phd-sidenav-next">
+                    <Icon name="chevronRight" />
+                  </span>
+                </button>
+                <button
+                  className="phd-sidenav-item has-next"
+                  type="button"
+                  onClick={() => push("women")}
+                >
+                  Women{" "}
+                  <span className="phd-sidenav-next">
+                    <Icon name="chevronRight" />
+                  </span>
+                </button>
+                <button
+                  className="phd-sidenav-item has-next"
+                  type="button"
+                  onClick={() => push("kids")}
+                >
+                  Kids{" "}
+                  <span className="phd-sidenav-next">
+                    <Icon name="chevronRight" />
+                  </span>
+                </button>
+                <button
+                  className="phd-sidenav-item has-next"
+                  type="button"
+                  onClick={() => push("stores")}
+                >
+                  Stores{" "}
+                  <span className="phd-sidenav-next">
+                    <Icon name="chevronRight" />
+                  </span>
+                </button>
 
-              <button
-                className="phd-sidenav-item has-next"
-                type="button"
-                onClick={() => push("men")}
-              >
-                Men{" "}
-                <span className="phd-sidenav-next">
-                  <Icon name="chevronRight" />
-                </span>
-              </button>
-
-              <button
-                className="phd-sidenav-item has-next"
-                type="button"
-                onClick={() => push("women")}
-              >
-                Women{" "}
-                <span className="phd-sidenav-next">
-                  <Icon name="chevronRight" />
-                </span>
-              </button>
-
-              <button
-                className="phd-sidenav-item has-next"
-                type="button"
-                onClick={() => push("kids")}
-              >
-                Kids{" "}
-                <span className="phd-sidenav-next">
-                  <Icon name="chevronRight" />
-                </span>
-              </button>
-
-              <button
-                className="phd-sidenav-item has-next"
-                type="button"
-                onClick={() => push("stores")}
-              >
-                Stores{" "}
-                <span className="phd-sidenav-next">
-                  <Icon name="chevronRight" />
-                </span>
-              </button>
-
-              <SignedIn>
                 <div className="phd-sidenav-divider" />
+
                 <button
                   className="phd-sidenav-item"
                   type="button"
@@ -215,98 +223,97 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
                 >
                   Dashboard
                 </button>
-              </SignedIn>
 
-              <div className="phd-sidenav-divider" />
+                <div className="phd-sidenav-divider" />
 
-              <SignedOut>
+                <SignedOut>
+                  <button
+                    className="phd-sidenav-item"
+                    type="button"
+                    onClick={() => go("/login")}
+                  >
+                    Login
+                  </button>
+                  <button
+                    className="phd-sidenav-item"
+                    type="button"
+                    onClick={() => go("/register")}
+                  >
+                    Register
+                  </button>
+                </SignedOut>
+
+                <SignedIn>
+                  <div className="phd-sidenav-account">
+                    <div className="phd-sidenav-account-text">Account</div>
+                    <UserButton afterSignOutUrl="/" />
+                  </div>
+                </SignedIn>
+              </>
+            )}
+
+            {(panelKey === "men" ||
+              panelKey === "women" ||
+              panelKey === "kids") && (
+              <>
                 <button
                   className="phd-sidenav-item"
                   type="button"
-                  onClick={() => go("/login")}
+                  onClick={() => goGenderAll(panelKey)}
                 >
-                  Login
+                  View All
                 </button>
                 <button
                   className="phd-sidenav-item"
                   type="button"
-                  onClick={() => go("/register")}
+                  onClick={() => goGenderNewest(panelKey)}
                 >
-                  Register
+                  New Arrivals
                 </button>
-              </SignedOut>
 
-              <SignedIn>
-                <div className="phd-sidenav-account">
-                  <UserButton afterSignOutUrl="/" />
-                  <div className="phd-sidenav-account-text">Account</div>
-                </div>
-              </SignedIn>
-            </div>
-          )}
+                <div className="phd-sidenav-divider" />
 
-          {(panelKey === "men" ||
-            panelKey === "women" ||
-            panelKey === "kids") && (
-            <div className="phd-sidenav-list">
-              <button
-                className="phd-sidenav-item"
-                type="button"
-                onClick={() => goGenderAll(panelKey)}
-              >
-                View All
-              </button>
+                <div className="phd-sidenav-title">Categories</div>
 
-              <button
-                className="phd-sidenav-item"
-                type="button"
-                onClick={() => goGenderNewest(panelKey)}
-              >
-                New Arrivals
-              </button>
+                {(() => {
+                  const cats = topCategoriesByGender?.[panelKey] || [];
+                  if (!cats.length)
+                    return (
+                      <div className="phd-sidenav-empty">No categories yet</div>
+                    );
+                  return cats.map((cat) => (
+                    <button
+                      key={`${panelKey}-${cat}`}
+                      className="phd-sidenav-item"
+                      type="button"
+                      onClick={() => goGenderCategory(panelKey, cat)}
+                    >
+                      {toLabel(cat)}
+                    </button>
+                  ));
+                })()}
+              </>
+            )}
 
-              <div className="phd-sidenav-divider" />
-              <div className="phd-sidenav-section-title">Categories</div>
-
-              {(() => {
-                const cats = topCategoriesByGender?.[panelKey] || [];
-                if (!cats.length)
-                  return (
-                    <div className="phd-sidenav-empty">No categories yet</div>
-                  );
-
-                return cats.map((cat) => (
-                  <button
-                    key={`${panelKey}-${cat}`}
-                    className="phd-sidenav-item"
-                    type="button"
-                    onClick={() => goGenderCategory(panelKey, cat)}
-                  >
-                    {toLabel(cat)}
-                  </button>
-                ));
-              })()}
-            </div>
-          )}
-
-          {panelKey === "stores" && (
-            <div className="phd-sidenav-list">
-              {topStores.length ? (
-                topStores.map((s) => (
-                  <button
-                    key={s.key || s.value}
-                    className="phd-sidenav-item"
-                    type="button"
-                    onClick={() => goStore(s.value)}
-                  >
-                    {s.label}
-                  </button>
-                ))
-              ) : (
-                <div className="phd-sidenav-empty">No stores yet</div>
-              )}
-            </div>
-          )}
+            {panelKey === "stores" && (
+              <>
+                {topStores.length ? (
+                  topStores.map((s) => (
+                    <button
+                      key={s.value}
+                      className="phd-sidenav-item"
+                      type="button"
+                      onClick={() => goStore(s.value)}
+                    >
+                      {s.label}
+                    </button>
+                  ))
+                ) : (
+                  <div className="phd-sidenav-empty">No stores yet</div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </aside>
     </>

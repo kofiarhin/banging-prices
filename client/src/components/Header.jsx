@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
-import "./header.styles.scss";
 
+import "./header.styles.scss";
 import SideNav from "./SideNav/SideNav";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -12,6 +12,9 @@ const Icon = ({ name }) => {
     search: "M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z",
     menu: "M4 6h16M4 12h16M4 18h16",
   };
+
+  const d = paths[name];
+  if (!d) return null;
 
   return (
     <svg
@@ -24,9 +27,8 @@ const Icon = ({ name }) => {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      focusable="false"
     >
-      <path d={paths[name]} />
+      <path d={d} />
     </svg>
   );
 };
@@ -67,10 +69,11 @@ const Header = () => {
         });
       }
     };
+
     fetchNav();
   }, []);
 
-  // ✅ sync header input with URL q (deep links / refresh)
+  // sync header input with URL q (deep links / refresh)
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const q = sp.get("q") || "";
@@ -86,6 +89,7 @@ const Header = () => {
 
   useEffect(() => {
     if (!isSideNavOpen) return;
+
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -110,7 +114,6 @@ const Header = () => {
     const onTouchEnd = (e) => {
       if (!tracking) return;
       tracking = false;
-
       if (isSideNavOpen) return;
 
       const t = e.changedTouches?.[0];
@@ -138,13 +141,16 @@ const Header = () => {
   }, [isSideNavOpen]);
 
   const goProducts = (url) => {
-    navigate(url);
+    setActiveMega("");
+    setIsSideNavOpen(false);
+    setSideStack(["root"]);
     setIsMobileSearch(false);
+    navigate(url);
   };
 
-  // ✅ standardize: use q only
-  // ✅ preserve gender if already present in URL
-  // ✅ clear category/store on new search
+  // standardize: use q only
+  // preserve gender if already present in URL
+  // clear category/store on new search
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const term = String(search || "").trim();
@@ -183,18 +189,18 @@ const Header = () => {
           <div className="phd-mega-col">
             <div className="phd-mega-title">Selection</div>
             <button
+              type="button"
               className="phd-mega-link"
               onClick={() => goProducts(`/products?gender=${gender}&page=1`)}
-              type="button"
             >
               View All
             </button>
             <button
+              type="button"
               className="phd-mega-link"
               onClick={() =>
                 goProducts(`/products?gender=${gender}&sort=newest&page=1`)
               }
-              type="button"
             >
               New Arrivals
             </button>
@@ -202,19 +208,18 @@ const Header = () => {
 
           <div className="phd-mega-col">
             <div className="phd-mega-title">Categories</div>
+
             {categories.length ? (
               categories.map((cat) => (
                 <button
-                  key={cat}
+                  key={`${gender}-${cat}`}
+                  type="button"
                   className="phd-mega-link"
                   onClick={() =>
                     goProducts(
-                      `/products?gender=${gender}&NavLink=${encodeURIComponent(
-                        cat,
-                      )}&page=1`,
+                      `/products?gender=${gender}&category=${encodeURIComponent(cat)}&page=1`,
                     )
                   }
-                  type="button"
                 >
                   {toLabel(cat)}
                 </button>
@@ -244,28 +249,28 @@ const Header = () => {
     <header className="phd-header">
       <div className="phd-main">
         {isMobileSearch && (
-          <div
-            className="phd-mobile-search-overlay"
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="phd-mobile-search-overlay">
             <form
-              onSubmit={handleSearchSubmit}
               className="phd-mobile-search-form"
+              onSubmit={handleSearchSubmit}
             >
-              <input
-                autoFocus
-                className="phd-input"
-                placeholder="Search items..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <div className="phd-search-field">
+                <span className="phd-search-icon">
+                  <Icon name="search" />
+                </span>
+                <input
+                  className="phd-input"
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </form>
 
             <button
-              onClick={() => setIsMobileSearch(false)}
               className="phd-tab phd-cancel"
               type="button"
+              onClick={() => setIsMobileSearch(false)}
             >
               CANCEL
             </button>
@@ -275,36 +280,36 @@ const Header = () => {
         <div className="phd-left">
           <button
             className="phd-hamburger-btn"
+            aria-label="Open menu"
             type="button"
             onClick={openSideNav}
-            aria-label="Open menu"
           >
             <Icon name="menu" />
           </button>
 
-          <NavLink to="/" className="phd-logo">
+          <NavLink className="phd-logo" to="/">
             BANGINGPRICES
           </NavLink>
 
-          <nav className="phd-tabs" aria-label="Shop categories">
+          <div className="phd-tabs">
             {genders.map((gender) => (
               <button
                 key={gender}
+                type="button"
                 className={`phd-tab ${activeMega === gender ? "is-active" : ""}`}
                 onMouseEnter={() => onMouseEnter(gender)}
                 onMouseLeave={onMouseLeave}
                 onClick={() => goProducts(`/products?gender=${gender}&page=1`)}
-                type="button"
               >
                 {gender.toUpperCase()}
               </button>
             ))}
-          </nav>
+          </div>
         </div>
 
         <div className="phd-center desktop-only">
           <form className="phd-search-field" onSubmit={handleSearchSubmit}>
-            <span className="phd-search-icon" aria-hidden="true">
+            <span className="phd-search-icon">
               <Icon name="search" />
             </span>
             <input
@@ -319,19 +324,19 @@ const Header = () => {
         <div className="phd-right">
           <button
             className="phd-mobile-search-btn"
+            aria-label="Search"
+            type="button"
             onClick={() => {
               setIsSideNavOpen(false);
               setSideStack(["root"]);
               setIsMobileSearch(true);
             }}
-            aria-label="Search"
-            type="button"
           >
             <Icon name="search" />
           </button>
 
           <SignedIn>
-            <nav className="phd-auth-nav" aria-label="Account navigation">
+            <nav className="phd-auth-nav">
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) =>
@@ -340,7 +345,6 @@ const Header = () => {
               >
                 Dashboard
               </NavLink>
-
               <NavLink
                 to="/saved-products"
                 className={({ isActive }) =>
@@ -349,7 +353,6 @@ const Header = () => {
               >
                 Saved
               </NavLink>
-
               <NavLink
                 to="/tracked"
                 className={({ isActive }) =>
@@ -358,8 +361,7 @@ const Header = () => {
               >
                 Tracked
               </NavLink>
-
-              <NavLink to="/dashboard" className="phd-auth-cta">
+              <NavLink to="/generate" className="phd-auth-cta">
                 Generate
               </NavLink>
             </nav>
@@ -371,9 +373,9 @@ const Header = () => {
 
           <SignedOut>
             <button
-              className="phd-tab"
-              onClick={() => navigate("/login")}
+              className="phd-auth-cta"
               type="button"
+              onClick={() => navigate("/login")}
             >
               LOGIN
             </button>
