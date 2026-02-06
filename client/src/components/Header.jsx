@@ -209,7 +209,7 @@ const Header = () => {
                   className="phd-mega-link"
                   onClick={() =>
                     goProducts(
-                      `/products?gender=${gender}&category=${encodeURIComponent(
+                      `/products?gender=${gender}&NavLink=${encodeURIComponent(
                         cat,
                       )}&page=1`,
                     )
@@ -331,6 +331,39 @@ const Header = () => {
           </button>
 
           <SignedIn>
+            <nav className="phd-auth-nav" aria-label="Account navigation">
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `phd-auth-link ${isActive ? "is-active" : ""}`
+                }
+              >
+                Dashboard
+              </NavLink>
+
+              <NavLink
+                to="/saved-products"
+                className={({ isActive }) =>
+                  `phd-auth-link ${isActive ? "is-active" : ""}`
+                }
+              >
+                Saved
+              </NavLink>
+
+              <NavLink
+                to="/tracked"
+                className={({ isActive }) =>
+                  `phd-auth-link ${isActive ? "is-active" : ""}`
+                }
+              >
+                Tracked
+              </NavLink>
+
+              <NavLink to="/dashboard" className="phd-auth-cta">
+                Generate
+              </NavLink>
+            </nav>
+
             <div className="phd-user">
               <UserButton afterSignOutUrl="/" />
             </div>

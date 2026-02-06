@@ -168,6 +168,75 @@
   padding: 8px 10px;
 }
 
+/* ✅ Auth nav (desktop) */
+.phd-auth-nav {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.phd-auth-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.85);
+
+  padding: 6px 10px;
+  border-radius: 10px;
+
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.phd-auth-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.phd-auth-link.is-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.phd-auth-cta {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+
+  padding: 6px 10px;
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.12s ease;
+}
+
+.phd-auth-cta:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.phd-auth-cta:active {
+  transform: scale(0.99);
+}
+
 /* Mega menu */
 .phd-mega {
   position: absolute;
@@ -268,5 +337,9 @@
 
   .phd-logo {
     font-size: 15px;
+  }
+
+  .phd-auth-nav {
+    display: flex;
   }
 }
