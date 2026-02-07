@@ -2,6 +2,7 @@
 import React, { Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import ScrollToTop from "./components/ScrollToTop/ScrollToTop.jsx";
 
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer/Footer.jsx";
@@ -64,6 +65,8 @@ const App = () => {
 
   return (
     <>
+      <ScrollToTop />
+
       {!hideHeader && <Header />}
 
       <Suspense fallback={<RouteFallback />}>
@@ -144,7 +147,10 @@ const App = () => {
           />
 
           <Route path="/insights" element={<StoreInsightsPage />} />
-          <Route path="/collections/:shareId" element={<CollectionSharePage />} />
+          <Route
+            path="/collections/:shareId"
+            element={<CollectionSharePage />}
+          />
 
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/products/:id" element={<ProductDetailsPage />} />

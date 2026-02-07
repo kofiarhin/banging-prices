@@ -73,7 +73,6 @@ const Header = () => {
     fetchNav();
   }, []);
 
-  // sync header input with URL q (deep links / refresh)
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const q = sp.get("q") || "";
@@ -148,9 +147,6 @@ const Header = () => {
     navigate(url);
   };
 
-  // standardize: use q only
-  // preserve gender if already present in URL
-  // clear category/store on new search
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     const term = String(search || "").trim();
@@ -217,13 +213,9 @@ const Header = () => {
                   className="phd-mega-link"
                   onClick={() =>
                     goProducts(
-<<<<<<< HEAD
-                      `/products?gender=${gender}&NavLink=${encodeURIComponent(
+                      `/products?gender=${gender}&category=${encodeURIComponent(
                         cat,
                       )}&page=1`,
-=======
-                      `/products?gender=${gender}&category=${encodeURIComponent(cat)}&page=1`,
->>>>>>> dev
                     )
                   }
                 >
@@ -342,11 +334,7 @@ const Header = () => {
           </button>
 
           <SignedIn>
-<<<<<<< HEAD
             <nav className="phd-auth-nav" aria-label="Account navigation">
-=======
-            <nav className="phd-auth-nav">
->>>>>>> dev
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) =>
@@ -355,10 +343,7 @@ const Header = () => {
               >
                 Dashboard
               </NavLink>
-<<<<<<< HEAD
 
-=======
->>>>>>> dev
               <NavLink
                 to="/saved-products"
                 className={({ isActive }) =>
@@ -367,10 +352,7 @@ const Header = () => {
               >
                 Saved
               </NavLink>
-<<<<<<< HEAD
 
-=======
->>>>>>> dev
               <NavLink
                 to="/tracked"
                 className={({ isActive }) =>
@@ -379,12 +361,8 @@ const Header = () => {
               >
                 Tracked
               </NavLink>
-<<<<<<< HEAD
 
-              <NavLink to="/dashboard" className="phd-auth-cta">
-=======
               <NavLink to="/generate" className="phd-auth-cta">
->>>>>>> dev
                 Generate
               </NavLink>
             </nav>
