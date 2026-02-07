@@ -11,6 +11,7 @@ const Icon = ({ name }) => {
   const paths = {
     search: "M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z",
     menu: "M4 6h16M4 12h16M4 18h16",
+    login: "M15 3H7a2 2 0 00-2 2v14a2 2 0 002 2h8M10 17l5-5-5-5M15 12H3",
   };
 
   const d = paths[name];
@@ -374,11 +375,14 @@ const Header = () => {
 
           <SignedOut>
             <button
-              className="phd-auth-cta"
+              className="phd-auth-cta phd-auth-cta-icon"
               type="button"
               onClick={() => navigate("/login")}
+              aria-label="Login"
+              title="Login"
             >
-              LOGIN
+              <Icon name="login" />
+              <span className="phd-auth-cta-text">LOGIN</span>
             </button>
           </SignedOut>
         </div>

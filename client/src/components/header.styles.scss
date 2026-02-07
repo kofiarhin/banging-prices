@@ -237,6 +237,15 @@
   transform: scale(0.99);
 }
 
+/* ✅ Login icon button */
+.phd-auth-cta-icon {
+  gap: 8px;
+}
+
+.phd-auth-cta-text {
+  line-height: 1;
+}
+
 /* Mega menu */
 .phd-mega {
   position: absolute;
