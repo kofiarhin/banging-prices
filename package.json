@@ -11,7 +11,7 @@
     "start": "node server/server.js",
     "server": "nodemon server/server.js",
     "price-alert": "node boohooAlert.js",
-    "postinstall": "playwright install chromium",
+    "scrapers:setup": "playwright install chromium",
     "scrapers": "node server/crawlers/storeCrawlers.js",
     "scrapers:all": "node server/crawlers/storeCrawlers.js",
     "scrapers:nike": "cross-env ONLY_CRAWLER=nike node server/crawlers/storeCrawlers.js",
