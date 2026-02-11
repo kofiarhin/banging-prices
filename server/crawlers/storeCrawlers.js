@@ -26,6 +26,58 @@ const { runBoohooCrawl } = require("../scrappers/boohoo.scraper");
 // ✅ ASOS crawler
 const { runAsosCrawl } = require("../scrappers/asos.scraper");
 
+// --------------------
+// ✅ SAFETY: hard timeout + graceful shutdown
+// --------------------
+const HARD_TIMEOUT_MINUTES = Number(
+  process.env.CRAWL_HARD_TIMEOUT_MINUTES || 55,
+);
+
+const hardTimeout = setTimeout(
+  () => {
+    console.error(
+      `⏳ Hard timeout hit (${HARD_TIMEOUT_MINUTES}m). Forcing exit.`,
+    );
+    // eslint-disable-next-line no-process-exit
+    process.exit(1);
+  },
+  HARD_TIMEOUT_MINUTES * 60 * 1000,
+);
+
+// don't keep the process alive because of the timeout timer
+hardTimeout.unref();
+
+let shuttingDown = false;
+
+const shutdown = async (code = 0) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  try {
+    if (mongoose.connection?.readyState === 1) {
+      await mongoose.connection.close().catch(() => {});
+    }
+  } finally {
+    console.log("✅ MongoDB connection closed");
+    // eslint-disable-next-line no-process-exit
+    process.exit(code);
+  }
+};
+
+// Heroku sends SIGTERM on dyno stop
+process.on("SIGTERM", () => shutdown(0));
+process.on("SIGINT", () => shutdown(0));
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ UNHANDLED REJECTION:", reason);
+  shutdown(1);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("❌ UNCAUGHT EXCEPTION:", err);
+  shutdown(1);
+});
+
 const connectDB = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) throw new Error("Missing MONGO_URI in .env");
@@ -526,14 +578,13 @@ const run = async () => {
 
   const total = await Product.countDocuments({});
   console.log("🧾 total product docs in DB:", total);
+
+  return true;
 };
 
 run()
+  .then(() => shutdown(0))
   .catch((err) => {
     console.error("❌ RUN FAILED:", err?.message || err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.connection.close().catch(() => {});
-    console.log("✅ MongoDB connection closed");
+    shutdown(1);
   });
