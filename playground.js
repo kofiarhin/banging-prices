@@ -1,26 +1,19 @@
-require("dotenv").config();
-const { runJdSportsCrawl } = require("./server/scrappers/jdsports.scraper");
 
-const run = async () => {
-  const startUrls = [
-    {
-      url: "https://www.jdsports.co.uk/women/womens-footwear/trainers/",
-      userData: { gender: "women", category: "trainers" },
-    },
-  ];
+const mongoose = require('mongoose');
+const Product = require('./server/models/product.model');
 
-  const products = await runJdSportsCrawl({
-    startUrls,
-    maxListPages: 1, // bump this up to crawl more pages
-    maxProducts: 10, // 0 = no cap
-    debug: true,
-  });
+(async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+  const total = await Product.countDocuments();
+  const stores = await Product.distinct('store');
+  const latest = await Product.findOne().sort({ lastSeenAt: -1 }).select('lastSeenAt store title').lean();
 
-  console.log("✅ JD products:", products.length);
-  console.log(products.slice(0, 2));
-};
+  console.log({ total, storesCount: stores.length, stores: stores.slice(0, 25), latest });
 
-run().catch((e) => {
-  console.error("❌ JD crawl failed:", e);
+  await mongoose.connection.close();
+  process.exit(0);
+})().catch(err => {
+  console.error(err);
   process.exit(1);
 });
+"
