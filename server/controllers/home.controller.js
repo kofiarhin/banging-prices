@@ -1,6 +1,9 @@
+// server/controllers/home.controller.js
 const Product = require("../models/product.model");
 
-const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+// ✅ Configurable "active" window (default 24h so UI doesn't look broken on daily crawls)
+const ACTIVE_WINDOW_HOURS = Number(process.env.ACTIVE_WINDOW_HOURS || 24);
+const ACTIVE_WINDOW_MS = ACTIVE_WINDOW_HOURS * 60 * 60 * 1000;
 
 // --- Helper Utilities ---
 const pickCardFields = (p) => ({
@@ -73,7 +76,6 @@ const buildHeroCarousel = async () => {
       return {
         key: s.key,
         label: s.label,
-        // ✅ Standardized to `q` (was `search`)
         to: `/products?q=${encodeURIComponent(s.label)}&sort=discount-desc&page=1`,
         items: items.map(pickCardFields),
       };
@@ -86,7 +88,7 @@ const buildHeroCarousel = async () => {
 /* --- Main Actions --- */
 const getHomeIntelligence = async (req, res) => {
   try {
-    const sixHoursAgo = new Date(Date.now() - SIX_HOURS_MS);
+    const activeSince = new Date(Date.now() - ACTIVE_WINDOW_MS);
 
     const [
       retailersTotal,
@@ -96,7 +98,7 @@ const getHomeIntelligence = async (req, res) => {
       heroCarousel,
     ] = await Promise.all([
       Product.distinct("store"),
-      Product.distinct("store", { lastSeenAt: { $gte: sixHoursAgo } }),
+      Product.distinct("store", { lastSeenAt: { $gte: activeSince } }),
       Product.countDocuments(),
       Product.findOne({ lastSeenAt: { $ne: null } }, { lastSeenAt: 1 })
         .sort({ lastSeenAt: -1 })
@@ -181,8 +183,13 @@ const getHomeIntelligence = async (req, res) => {
 
     return res.json({
       system: {
+        // ✅ monitored = total distinct stores (stable number)
+        retailersMonitored: retailersTotal.length,
+
+        // ✅ "online" = active within window (default 24h)
         retailersOnline: retailersActive.length,
-        retailersTotal: retailersTotal.length,
+        activeWindowHours: ACTIVE_WINDOW_HOURS,
+
         assetsTracked,
         lastScanSecondsAgo,
       },
