@@ -4,8 +4,8 @@
   position: sticky;
   top: 0;
   z-index: 1200;
-  background: #0b0b0b;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .phd-main {
@@ -14,7 +14,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 0 16px;
+  height: 60px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -22,49 +23,51 @@
 .phd-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
 .phd-logo {
   display: inline-flex;
   align-items: center;
-  color: #fff;
+  color: #111111;
   text-decoration: none;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-size: 16px;
   white-space: nowrap;
 }
 
 .phd-tabs {
   display: none;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .phd-tab {
   background: transparent;
   border: 0;
-  color: rgba(255, 255, 255, 0.85);
-  padding: 6px 10px;
-  border-radius: 10px;
+  color: #111111;
+  padding: 8px 12px;
+  border-radius: 0;
   cursor: pointer;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: color 0.15s ease;
+  border-bottom: 2px solid transparent;
+  line-height: 1;
 }
 
 .phd-tab:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  color: #000000;
+  border-bottom-color: #111111;
 }
 
 .phd-tab.is-active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: #000000;
+  font-weight: 700;
+  border-bottom-color: #111111;
 }
 
 .phd-center {
@@ -80,19 +83,26 @@
 
 .phd-search-field {
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: #f5f5f5;
+  border: 1.5px solid #e0e0e0;
+  transition: border-color 0.15s ease;
+}
+
+.phd-search-field:focus-within {
+  border-color: #111111;
+  background: #ffffff;
 }
 
 .phd-search-icon {
   display: inline-flex;
-  color: rgba(255, 255, 255, 0.8);
+  color: #767676;
+  flex-shrink: 0;
 }
 
 .phd-input {
@@ -100,18 +110,19 @@
   border: 0;
   outline: none;
   background: transparent;
-  color: #fff;
+  color: #111111;
   font-size: 13px;
+  font-weight: 500;
 }
 
 .phd-input::placeholder {
-  color: rgba(255, 255, 255, 0.55);
+  color: #999999;
 }
 
 .phd-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .phd-user {
@@ -122,29 +133,29 @@
 .phd-hamburger-btn {
   background: transparent;
   border: 0;
-  color: #fff;
+  color: #111111;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background 0.15s ease;
 }
 
 .phd-hamburger-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: #f5f5f5;
 }
 
 .phd-mobile-search-btn {
   background: transparent;
   border: 0;
-  color: #fff;
+  color: #111111;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background 0.15s ease;
 }
 
 .phd-mobile-search-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: #f5f5f5;
 }
 
 .phd-mobile-search-overlay {
@@ -153,9 +164,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: #0b0b0b;
+  padding: 10px 16px;
+  background: #ffffff;
   z-index: 1300;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .phd-mobile-search-form {
@@ -164,80 +176,71 @@
 }
 
 .phd-cancel {
-  color: rgba(255, 255, 255, 0.9);
+  color: #111111;
   padding: 8px 10px;
+  font-weight: 600;
+  font-size: 13px;
 }
 
-/* ✅ Auth nav (desktop) */
+/* Auth nav */
 .phd-auth-nav {
   display: none;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .phd-auth-link {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-
   background: transparent;
   border: 0;
-  color: rgba(255, 255, 255, 0.85);
-
-  padding: 6px 10px;
-  border-radius: 10px;
-
+  color: #111111;
+  padding: 7px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: background 0.15s ease;
 }
 
 .phd-auth-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #f5f5f5;
+  color: #000000;
 }
 
 .phd-auth-link.is-active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: #f0f0f0;
+  color: #000000;
 }
 
 .phd-auth-cta {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
-
-  padding: 6px 10px;
-  border-radius: 10px;
-
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #fff;
-
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #111111;
+  border: 1.5px solid #111111;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.2px;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.12s ease;
+    background 0.15s ease,
+    transform 0.1s ease;
 }
 
 .phd-auth-cta:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: #333333;
+  border-color: #333333;
 }
 
 .phd-auth-cta:active {
-  transform: scale(0.99);
+  transform: scale(0.98);
 }
 
-/* ✅ Login icon button */
 .phd-auth-cta-icon {
   gap: 8px;
 }
@@ -254,10 +257,10 @@
   top: calc(100% + 1px);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   transition:
-    opacity 0.14s ease,
-    transform 0.14s ease;
+    opacity 0.12s ease,
+    transform 0.12s ease;
   z-index: 1250;
 }
 
@@ -270,29 +273,30 @@
 .phd-mega-cols {
   max-width: 1400px;
   margin: 0 auto;
-  background: #0b0b0b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
   border-top: 0;
-  border-radius: 0 0 16px 16px;
-  padding: 14px 12px;
+  border-radius: 0 0 8px 8px;
+  padding: 20px 16px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .phd-mega-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .phd-mega-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  letter-spacing: 0.3px;
+  color: #767676;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 .phd-mega-link {
@@ -300,27 +304,26 @@
   text-align: left;
   background: transparent;
   border: 0;
-  color: rgba(255, 255, 255, 0.82);
-  padding: 6px 8px;
-  border-radius: 10px;
+  color: #111111;
+  padding: 5px 8px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
+  font-weight: 500;
+  transition: background 0.15s ease;
 }
 
 .phd-mega-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #f5f5f5;
+  color: #000000;
 }
 
 .phd-mega-muted {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: default;
 }
 
-/* Breakpoints (mobile-first, min-width) */
+/* Breakpoints */
 @media (min-width: 768px) {
   .desktop-only {
     display: flex;
@@ -335,7 +338,7 @@
   }
 
   .phd-mega-cols {
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 200px 1fr;
   }
 }
 
@@ -345,7 +348,7 @@
   }
 
   .phd-logo {
-    font-size: 15px;
+    font-size: 17px;
   }
 
   .phd-auth-nav {

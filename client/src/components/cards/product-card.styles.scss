@@ -1,31 +1,35 @@
+/* Product card — ASOS inspired */
+
 .pp-card {
-  width: 240px;
+  width: 220px;
   display: block;
   text-decoration: none;
-  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
   transition:
-    transform 0.08s ease,
-    background 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .pp-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #d0d0d0;
 }
 
 .pp-card:active {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 
+/* Image area */
 .pp-card-media {
   position: relative;
   width: 100%;
-  height: 320px; /* ✅ taller image area */
-  background: rgba(255, 255, 255, 0.03);
+  height: 290px;
+  background: #f5f5f5;
+  overflow: hidden;
 }
 
 .pp-card-img {
@@ -33,69 +37,95 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.4s ease;
 }
 
+.pp-card:hover .pp-card-img {
+  transform: scale(1.04);
+}
+
+/* Sale badge — ASOS red */
 .pp-badge {
   position: absolute;
   top: 10px;
   left: 10px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 900;
-  font-size: 0.85rem;
-  color: #0b0f16;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #ffffff;
+  background: #e8473f;
+  letter-spacing: 0.02em;
+  z-index: 2;
 }
 
+/* Details */
 .pp-card-details {
-  padding: 12px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .pp-card-store {
-  font-weight: 900;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  font-size: 10px;
+  color: #767676;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .pp-card-title {
-  font-weight: 900;
-  font-size: 0.95rem;
-  line-height: 1.25;
-  color: rgba(255, 255, 255, 0.92);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #111111;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* Price row */
 .pp-card-price {
+  margin-top: 6px;
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .pp-card-now {
-  font-weight: 900;
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.95);
+  font-weight: 800;
+  font-size: 15px;
+  color: #e8473f;
+  letter-spacing: -0.01em;
 }
 
 .pp-card-was {
-  font-weight: 900;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  font-size: 13px;
+  color: #999999;
   text-decoration: line-through;
 }
 
+/* Desktop sizing */
 @media (min-width: 768px) {
   .pp-card {
-    width: 260px;
+    width: 240px;
   }
 
   .pp-card-media {
-    height: 360px; /* ✅ even taller on desktop */
+    height: 320px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pp-card {
+    width: 256px;
+  }
+
+  .pp-card-media {
+    height: 340px;
   }
 }
