@@ -1,11 +1,12 @@
+/* Hero carousel — full-bleed editorial style */
+
 .hero-container {
   position: relative;
   width: 100%;
-  height: 640px;
-  border-radius: 2rem;
+  height: 520px;
   overflow: hidden;
-  background: #020202;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #111111;
+  /* No border-radius — full bleed like ASOS */
 }
 
 .hero-scroll-track {
@@ -15,7 +16,7 @@
   overflow-x: hidden;
 }
 
-/* SLIDE */
+/* Slide */
 .hero-slide {
   position: relative;
   min-width: 100%;
@@ -23,95 +24,112 @@
   scroll-snap-align: start;
   text-decoration: none;
   color: inherit;
+  display: block;
 }
 
 .slide-image {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   transform: scale(1);
-  transition: transform 0.4s ease;
+  transition: transform 6s ease;
+  filter: brightness(0.72);
 }
 
 .hero-slide:hover .slide-image {
   transform: scale(1.03);
 }
 
-/* FULL-WIDTH OVERLAY (NO DARK GRADIENT) */
+/* Bottom gradient for text legibility */
 .hero-overlay {
   position: absolute;
   inset: 0;
   z-index: 5;
   display: flex;
   align-items: flex-end;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.28) 42%,
+    rgba(0, 0, 0, 0) 72%
+  );
 }
 
 .hero-overlay-inner {
   width: 100%;
-  padding: 2.5rem;
+  padding: 2.5rem 2.5rem 2.75rem;
   display: flex;
   justify-content: flex-start;
 }
 
-/* TEXT SCRIM */
+/* Content box — no frosted glass, clean text */
 .content-box {
-  max-width: 640px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
-  border-radius: 1.25rem;
-  padding: 2rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  max-width: 600px;
 }
 
 .drop-badge {
   display: inline-block;
-  background: #eab308;
-  color: #000;
-  font-size: 10px;
-  font-weight: 900;
-  padding: 6px 14px;
-  border-radius: 999px;
+  background: #e8473f;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 4px;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .display-title {
-  margin: 1rem 0 1.25rem;
-  font-size: clamp(2.6rem, 4.6vw, 5.2rem);
+  margin: 14px 0 18px;
+  font-size: clamp(2.4rem, 5vw, 5rem);
   font-weight: 900;
-  line-height: 0.9;
+  line-height: 0.95;
   text-transform: uppercase;
+  letter-spacing: -0.03em;
+  color: #ffffff;
 }
 
 .sub-accent {
   display: block;
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.55em;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.52em;
+  font-weight: 700;
+  margin-top: 6px;
 }
 
 .action-row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .buy-btn {
-  background: #fff;
-  color: #000;
+  background: #ffffff;
+  color: #111111;
   border: none;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-weight: 900;
+  padding: 12px 22px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.4px;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.buy-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
 }
 
 .market-price {
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.65);
 }
 
-/* SYSTEM PILL */
+/* Live pill */
 .system-pill {
   position: absolute;
   top: 1.25rem;
@@ -119,60 +137,100 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.7);
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .system-pill p {
-  font-size: 9px;
-  font-weight: 900;
-  color: #eab308;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   margin: 0;
 }
 
 .pulse-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   background: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: hero-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
-/* NAV */
+@keyframes hero-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+}
+
+/* Nav controls */
 .nav-controls {
   position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
+  bottom: 1.75rem;
+  right: 1.75rem;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   z-index: 20;
 }
 
 .ctrl-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
-  font-size: 22px;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
+.ctrl-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Skeleton */
+.hero-skeleton {
+  width: 100%;
+  height: 520px;
+  background: #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #999999;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
   .hero-container {
-    height: 520px;
+    height: 680px;
   }
 
+  .hero-skeleton {
+    height: 680px;
+  }
+}
+
+@media (max-width: 600px) {
   .hero-overlay-inner {
-    padding: 1.25rem;
+    padding: 1.5rem 1.25rem 2rem;
   }
 
-  .content-box {
-    padding: 1.5rem;
+  .display-title {
+    font-size: clamp(2rem, 8vw, 3rem);
   }
 }
