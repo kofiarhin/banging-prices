@@ -51,6 +51,8 @@ const HeroHeadline = ({
         className={`hero-headline-inner ${isIn ? "is-in" : ""}`}
         style={style}
       >
+        <div className="hero-headline-eyebrow">Price Intelligence Platform</div>
+
         <h1 className="hero-headline-title">
           The biggest <span className="accent">price drops</span>, tracked in
           real time

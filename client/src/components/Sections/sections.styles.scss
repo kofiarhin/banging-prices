@@ -5,95 +5,138 @@
 .pp-sections-loading,
 .pp-sections-error,
 .pp-sections-empty {
-  padding: 18px 0;
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 700;
+  padding: 24px 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
+/* ── Section block ────────────────────────────────────── */
 .pp-section {
-  margin-top: 18px;
+  margin-top: 52px;
+
+  &:first-child {
+    margin-top: 40px;
+  }
 }
 
+/* ── Section header ───────────────────────────────────── */
 .pp-section-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .pp-section-titlewrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .pp-section-cover {
   width: 100%;
-  max-width: 220px;
-  height: 76px;
+  max-width: 180px;
+  height: 64px;
   object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  margin-bottom: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
   display: block;
 }
 
 .pp-section-title {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.94);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .pp-section-subtitle {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.65);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: 0.01em;
 }
 
+/* ── See all link ─────────────────────────────────────── */
 .pp-seeall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   text-decoration: none;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.9);
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
 }
 
 .pp-seeall:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transform: translateX(2px);
 }
 
+.pp-seeall-arrow {
+  opacity: 0.6;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.pp-seeall:hover .pp-seeall-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+/* ── Horizontal strip ─────────────────────────────────── */
 .pp-strip {
   display: flex;
-  gap: 12px;
-
+  gap: 14px;
   overflow-x: auto;
   overflow-y: hidden;
+  padding-bottom: 8px;
 
-  padding-bottom: 6px;
-
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
 
 .pp-strip::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+  display: none;
 }
 
 .pp-strip-item {
   flex: 0 0 auto;
 }
 
+/* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 700px) {
   .pp-section-cover {
-    max-width: 170px;
-    height: 64px;
+    max-width: 150px;
+    height: 56px;
+  }
+
+  .pp-section {
+    margin-top: 40px;
   }
 }
