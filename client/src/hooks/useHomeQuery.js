@@ -20,7 +20,8 @@ export const useHomeQuery = () => {
   return useQuery({
     queryKey: ["home"],
     queryFn: fetchHome,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,  // 5 min — home data changes only between crawls
+    gcTime: 10 * 60 * 1000,    // keep in cache for 10 min after unmount
     refetchOnWindowFocus: false,
     retry: 1,
   });
