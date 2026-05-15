@@ -21,7 +21,7 @@ const Sections = ({
   if (isError)
     return errorUI || <div className="pp-sections-error">Failed to load.</div>;
   if (isLoading)
-    return loadingUI || <div className="pp-sections-loading">Loading…</div>;
+    return loadingUI || <div className="pp-sections-loading">Loading...</div>;
   if (safeSections.length === 0)
     return emptyUI || <div className="pp-sections-empty">Nothing to show.</div>;
 
@@ -47,7 +47,7 @@ const Sections = ({
 
             {sec.seeAllUrl ? (
               <Link className="pp-seeall" to={sec.seeAllUrl}>
-                See all <span className="pp-seeall-arrow">→</span>
+                See all <span className="pp-seeall-arrow">-&gt;</span>
               </Link>
             ) : null}
           </div>

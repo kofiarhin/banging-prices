@@ -1,47 +1,77 @@
-/* ── Page wrapper ─────────────────────────────────────── */
 .pp-home {
+  position: relative;
   width: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(246, 241, 228, 0.035) 0%, transparent 36%),
+    linear-gradient(135deg, #0c0e0f 0%, #111416 48%, #0a0b0c 100%);
+}
+
+.pp-home::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  opacity: 0.32;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 74%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 74%);
 }
 
 .pp-container {
+  position: relative;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 16px 80px;
+  padding: 28px 16px 84px;
 }
 
-/* ── Hero two-column layout ───────────────────────────── */
 .pp-home-hero {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  gap: 28px;
+  min-height: calc(100dvh - 108px);
 }
 
-/* ── Error / empty states ─────────────────────────────── */
 .pp-home-error,
 .pp-home-empty {
-  padding: 28px 0;
+  margin-top: 28px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(246, 241, 228, 0.7);
   font-family: var(--font-sans);
   font-size: 0.9rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
 }
 
-/* ── Desktop: side-by-side hero ───────────────────────── */
-@media (min-width: 1024px) {
-  .pp-container {
-    padding: 0 28px 100px;
-  }
-
+@media (max-width: 1100px) {
   .pp-home-hero {
-    grid-template-columns: 1fr 1.05fr;
-    gap: 32px;
-    align-items: start;
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .pp-container {
+    padding: 38px 24px 96px;
   }
 }
 
 @media (min-width: 1280px) {
   .pp-container {
-    padding: 0 40px 100px;
+    padding: 42px 36px 110px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pp-container {
+    padding: 18px 12px 72px;
   }
 }
