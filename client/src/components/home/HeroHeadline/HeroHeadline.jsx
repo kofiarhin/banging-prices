@@ -19,8 +19,8 @@ const HeroHeadline = ({
     to: "/products?sort=discount-desc&page=1",
   },
   secondaryCta = {
-    label: "Search products",
-    to: "#search",
+    label: "Newly scanned",
+    to: "/products?sort=newest&page=1",
   },
 
   children,
@@ -51,22 +51,34 @@ const HeroHeadline = ({
         className={`hero-headline-inner ${isIn ? "is-in" : ""}`}
         style={style}
       >
-        <div className="hero-headline-eyebrow">Price Intelligence Platform</div>
+        <div className="hero-headline-eyebrow">Verified deal intelligence</div>
 
         <h1 className="hero-headline-title">
-          The biggest <span className="accent">price drops</span>, tracked in
-          real time
+          {title.toLowerCase().includes("price drops") ? (
+            <>
+              Real <span className="accent">price drops</span>, tracked before
+              they disappear
+            </>
+          ) : (
+            title
+          )}
         </h1>
 
         <p className="hero-headline-subtitle">{subtitle}</p>
+
+        <div className="hero-proof-row" aria-label="Homepage deal proof points">
+          <span>Live retailer scans</span>
+          <span>Verified price history</span>
+          <span>No fake-sale noise</span>
+        </div>
 
         <div className="hero-headline-cta">
           <Link to={primaryCta.to} className="hero-cta primary">
             {primaryCta.label}
           </Link>
 
-          <Link to={"/login"} className="hero-cta secondary">
-            Join Now
+          <Link to={secondaryCta.to || "/login"} className="hero-cta secondary">
+            {secondaryCta.label || "Join Now"}
           </Link>
         </div>
 

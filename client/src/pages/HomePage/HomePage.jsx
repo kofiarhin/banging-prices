@@ -5,6 +5,7 @@ import { useHomeQuery } from "../../hooks/useHomeQuery";
 import Hero from "../../components/home/Hero/Hero";
 import HeroHeadline from "../../components/home/HeroHeadline/HeroHeadline";
 import Stats from "../../components/home/Stats/Stats";
+import HowItWorks from "../../components/home/HowItWorks/HowItWorks";
 import EditorsPickBanner from "../../components/home/EditorsPickBanner/EditorsPickBanner";
 import Sections from "../../components/Sections/Sections";
 import ProductCard from "../../components/cards/ProductCard";
@@ -126,14 +127,22 @@ const HomePage = () => {
   return (
     <div className="pp-home">
       <div className="pp-container">
-        <section className="pp-home-hero">
+        <section className="pp-home-hero" aria-label="BangingPrices home">
           <HeroHeadline
-            title="The biggest price drops, tracked in real time"
-            subtitle="Live price tracking across thousands of products."
+            title="Real price drops, tracked before they disappear"
+            subtitle="Search live markdowns, compare verified drops, and jump straight into the categories moving fastest today."
             align="left"
-            tickerLabel="TRENDING NOW"
+            tickerLabel="LIVE CATEGORIES"
             tickerItems={tickerItems}
-            tickerSpeed={32}
+            tickerSpeed={36}
+            primaryCta={{
+              label: "Browse biggest drops",
+              to: "/products?sort=discount-desc&page=1",
+            }}
+            secondaryCta={{
+              label: "Newly scanned",
+              to: "/products?sort=newest&page=1",
+            }}
           >
             <Stats system={system} />
           </HeroHeadline>
@@ -144,6 +153,7 @@ const HomePage = () => {
             onSearch={onSearch}
             data={data}
             isLoading={isLoading}
+            isError={isError}
             slides={slides}
             system={system}
           />
@@ -153,7 +163,7 @@ const HomePage = () => {
           sections={sections}
           isLoading={isLoading}
           isError={isError}
-          loadingUI={<Spinner label="Loading live market feed…" size="md" />}
+          loadingUI={<Spinner label="Loading live market feed..." size="md" />}
           errorUI={
             <div className="pp-home-error">Failed to load home feed.</div>
           }
@@ -162,12 +172,13 @@ const HomePage = () => {
           renderItem={(p) => <ProductCard product={p} />}
         />
 
-        {/* ✅ moved to bottom */}
+        <HowItWorks />
+
         <EditorsPickBanner
           kicker="EDITOR'S PICK"
-          title="This week’s steals: Jackets"
-          subtitle="Oversized, winter-ready pieces with verified drops."
-          ctaLabel="View deals →"
+          title="This week's steals: Jackets"
+          subtitle="Oversized, winter-ready pieces with verified price movement."
+          ctaLabel="View deals"
           to="/products?category=jackets&sort=discount-desc&page=1"
           imageUrl={editorsPickImage}
           align="left"

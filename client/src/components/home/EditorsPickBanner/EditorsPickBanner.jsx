@@ -3,9 +3,9 @@ import "./editors-pick-banner.styles.scss";
 
 const EditorsPickBanner = ({
   kicker = "EDITOR'S PICK",
-  title = "This week’s steals: Jackets",
-  subtitle = "Winter-ready layers with verified drops — updated daily.",
-  ctaLabel = "View deals →",
+  title = "This week's steals: Jackets",
+  subtitle = "Winter-ready layers with verified drops, updated daily.",
+  ctaLabel = "View deals",
   to = "/products?category=jackets&sort=discount-desc&page=1",
   imageUrl = "",
   align = "left",
