@@ -1,6 +1,7 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
-    "allow": ["Bash(*)", "Read", "Edit", "Write", "Glob", "Grep"]
+    "allow": [
+      "Bash(npx jest *)"
+    ]
   }
 }
