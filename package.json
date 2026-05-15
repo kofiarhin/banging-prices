@@ -4,7 +4,7 @@
   "private": true,
   "main": "server/server.js",
   "engines": {
-    "node": "20.x",
+    "node": "22.x",
     "npm": "10.x"
   },
   "scripts": {
