@@ -1,0 +1,140 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - button "Open menu" [ref=e6] [cursor=pointer]:
+          - img [ref=e7]
+        - link "BANGINGPRICES" [ref=e9] [cursor=pointer]:
+          - /url: /
+      - button "Search" [ref=e11] [cursor=pointer]:
+        - img [ref=e12]
+      - generic:
+        - generic:
+          - generic:
+            - generic: Selection
+            - button "View All"
+            - button "New Arrivals"
+          - generic:
+            - generic: Categories
+            - generic: No categories yet
+      - generic:
+        - generic:
+          - generic:
+            - generic: Selection
+            - button "View All"
+            - button "New Arrivals"
+          - generic:
+            - generic: Categories
+            - generic: No categories yet
+      - generic:
+        - generic:
+          - generic:
+            - generic: Selection
+            - button "View All"
+            - button "New Arrivals"
+          - generic:
+            - generic: Categories
+            - generic: No categories yet
+    - complementary [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e18]: Menu
+        - button [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+      - generic [ref=e23]:
+        - button [ref=e24] [cursor=pointer]: Home
+        - button [ref=e25] [cursor=pointer]: Products
+        - button [ref=e26] [cursor=pointer]:
+          - text: Men
+          - img [ref=e28]
+        - button [ref=e30] [cursor=pointer]:
+          - text: Women
+          - img [ref=e32]
+        - button [ref=e34] [cursor=pointer]:
+          - text: Kids
+          - img [ref=e36]
+        - button [ref=e38] [cursor=pointer]:
+          - text: Stores
+          - img [ref=e40]
+        - button [ref=e43] [cursor=pointer]: Saved Products
+        - button [ref=e44] [cursor=pointer]: Tracked Alerts
+        - button [ref=e45] [cursor=pointer]: Dashboard
+  - generic [ref=e49]: Loading…
+  - contentinfo [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - link "BangingPrices home" [ref=e54] [cursor=pointer]:
+            - /url: /
+            - text: BangingPrices
+          - paragraph [ref=e55]: Real fashion price drops. Verified from live retailer data.
+          - generic "Product highlights" [ref=e56]:
+            - generic [ref=e57]:
+              - generic [ref=e58]: timeline
+              - text: Price history
+            - generic [ref=e59]:
+              - generic [ref=e60]: notifications
+              - text: Drop alerts
+            - generic [ref=e61]:
+              - generic [ref=e62]: verified
+              - text: Verified deals
+        - navigation "Footer navigation" [ref=e63]:
+          - generic [ref=e64]:
+            - paragraph [ref=e65]: Explore
+            - link "Shop" [ref=e66] [cursor=pointer]:
+              - /url: /products
+            - link "Newest drops" [ref=e67] [cursor=pointer]:
+              - /url: /products?sort=newest
+            - link "Biggest drops" [ref=e68] [cursor=pointer]:
+              - /url: /products?sort=discount
+            - link "Tracked" [ref=e69] [cursor=pointer]:
+              - /url: /tracked
+          - generic [ref=e70]:
+            - paragraph [ref=e71]: Account
+            - link "Dashboard" [ref=e72] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Saved" [ref=e73] [cursor=pointer]:
+              - /url: /saved
+            - link "Alerts" [ref=e74] [cursor=pointer]:
+              - /url: /alerts
+            - link "Settings" [ref=e75] [cursor=pointer]:
+              - /url: /settings
+          - generic [ref=e76]:
+            - paragraph [ref=e77]: Company
+            - link "About" [ref=e78] [cursor=pointer]:
+              - /url: /about
+            - link "How it works" [ref=e79] [cursor=pointer]:
+              - /url: /how-it-works
+            - link "Contact" [ref=e80] [cursor=pointer]:
+              - /url: /contact
+            - link "Status" [ref=e81] [cursor=pointer]:
+              - /url: /status
+        - generic [ref=e82]:
+          - paragraph [ref=e83]: Get drop alerts
+          - paragraph [ref=e84]: Weekly roundups + the biggest verified discounts.
+          - form "Newsletter signup" [ref=e85]:
+            - generic [ref=e86]: Email
+            - generic [ref=e87]:
+              - textbox "Email" [ref=e88]:
+                - /placeholder: you@email.com
+              - button "Subscribe" [ref=e89] [cursor=pointer]
+            - paragraph [ref=e90]: No spam. Unsubscribe anytime.
+          - generic "Social links" [ref=e91]:
+            - link "X" [ref=e92] [cursor=pointer]:
+              - /url: /x
+              - generic [ref=e93]: public
+            - link "Instagram" [ref=e94] [cursor=pointer]:
+              - /url: /instagram
+              - generic [ref=e95]: photo_camera
+            - link "TikTok" [ref=e96] [cursor=pointer]:
+              - /url: /tiktok
+              - generic [ref=e97]: smart_display
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]: © 2026 BangingPrices
+          - generic [ref=e101]: •
+          - link "Privacy" [ref=e102] [cursor=pointer]:
+            - /url: /privacy
+          - generic [ref=e103]: •
+          - link "Terms" [ref=e104] [cursor=pointer]:
+            - /url: /terms
+        - generic [ref=e106]: Built for UK retailers • Live price monitoring
