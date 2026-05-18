@@ -2,9 +2,9 @@
 import { useUser } from "@clerk/clerk-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../lib/api";
 
 const PostRegisterPage = () => {
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const { isLoaded, user } = useUser();
   const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ const PostRegisterPage = () => {
         imageUrl: user.imageUrl || "",
       };
 
-      await fetch(`${baseUrl}/api/auth/post-signup`, {
+      await apiFetch("/api/auth/post-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

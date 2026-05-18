@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../lib/api";
 
 const getSavedProducts = async (token) => {
-  const res = await fetch(`${API_URL}/api/products/saved`, {
+  const res = await apiFetch("/api/products/saved", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

@@ -96,3 +96,78 @@ After appending each task entry, update `_handoff/current.md` with the latest cu
 - Review result: Reviewed against spec and acceptance criteria; no in-scope defects found.
 - Blockers: `none for this task; repo-level lint remains blocked by unrelated existing files`
 - Next step: `final review, release notes, summary, handoff update, health check`
+
+### 2026-05-18 - TASK-001
+
+- Status: `Done`
+- Lifecycle transition reached: `Planned -> Ready -> In Progress -> Verified -> Reviewed -> Done`
+- Files changed: `client/src/components/HeroCarousel/HeroCarousel.jsx`, `client/src/components/Header.jsx`, `client/src/components/SideNav/SideNav.jsx`, `client/src/hooks/usePostSignup.js`, `client/src/pages/Auth/PostRegisterPage.jsx`, `client/src/pages/PostLogin/PostLogin.jsx`, `client/src/pages/ProductsPage/ProductsPage.jsx`, `client/src/pages/tracked-alerts/TrackedAlertsPage.jsx`
+- Dirty worktree protection: Initial status before implementation showed no unrelated dirty implementation files; workflow files were expected dirty after request/spec/task creation.
+- Parallel metadata: `Priority=P0; Parallel safe=no; Depends on=none; Blocks=TASK-002; File locks=lint-reported frontend files; Claim status=done; Claimed by=Codex; Agent role=orchestrator; Merge risk=medium`
+- Parallel claim/lock status: `not applicable for sequential mode`
+- Worker status: `not applicable`
+- Merge review status: `not applicable`
+- Iteration evidence:
+  - Iteration 1 - Build: `Goal: apply minimal lint fixes. Changes made: stable carousel key fallback, removed unused signup success variable/debug log, fixed unused catch binding, added missing dependencies, removed stale suppressions, removed tracked-alerts token state effect. Verification: npm run lint failed on two newly exposed Header.jsx synchronous effect state updates; npm run build passed. Review findings: original lint blockers fixed, Header needed in-scope recovery. Acceptance status: partial. Remaining issues: Header route-change state sync. Next action: refine.`
+  - Iteration 2 - Refine: `Goal: address remaining lint/build regressions. Changes made: moved Header route-change state updates into guarded microtasks. Verification: npm run lint passed; npm run build passed. Review findings: no remaining lint errors or warnings. Acceptance status: met. Remaining issues: none. Next action: polish.`
+  - Iteration 3 - Polish: `Goal: final lint/build confirmation and cleanup. Changes made: reviewed scoped diff, no extra source changes. Verification: scoped git diff reviewed; npm run lint passed; npm run build passed. Review findings: diff stays within lint/runtime fixes and does not redesign UI. Acceptance status: met. Final verdict: Done.`
+- Acceptance result:
+  - [x] `npm run lint` passes.
+  - [x] `npm run build` passes.
+  - [x] No visual redesign or behavior rewrite is introduced.
+- Verification result: `npm run lint` passed after targeted recovery. `npm run build` passed in all task iterations where run.
+- Failure recovery notes: Initial task verification failed on `Header.jsx` because stale suppressions had hidden React hook compiler errors for synchronous route-change state updates. The in-scope fix deferred the updates through guarded microtasks, then the exact failing command was rerun and passed.
+- Review result: Reviewed; no in-scope defects found.
+- Blockers: `none`
+- Next step: `TASK-002: Route frontend API calls through one helper`
+
+### 2026-05-18 - TASK-002
+
+- Status: `Done`
+- Lifecycle transition reached: `Planned -> Ready -> In Progress -> Verified -> Reviewed -> Done`
+- Files changed: `client/src/lib/api.js`, `client/src/constants/contants.js`, `client/src/components/Header.jsx`, `client/src/hooks/useAlertsQuery.js`, `client/src/hooks/useCollectionsQuery.js`, `client/src/hooks/useDeleteProduct.js`, `client/src/hooks/useHomeQuery.js`, `client/src/hooks/usePostSignup.js`, `client/src/hooks/useSaveMutation.js`, `client/src/hooks/useSavedProductsQuery.js`, `client/src/pages/Auth/PostRegisterPage.jsx`, `client/src/pages/CollectionSharePage/CollectionSharePage.jsx`, `client/src/pages/PostLogin/PostLogin.jsx`, `client/src/pages/ProductDetailsPage/ProductDetailsPage.jsx`, `client/src/pages/ProductDetailsPage/useProductDetails.js`, `client/src/pages/ProductsPage/ProductsPage.jsx`, `client/src/pages/SavedProductsPage/SavedProductsPage.jsx`, `client/src/pages/StoreInsightsPage/StoreInsightsPage.jsx`, `client/src/pages/tracked-alerts/TrackedAlertsPage.jsx`
+- Dirty worktree protection: Expected dirty files from workflow and `TASK-001`; `TASK-002` file locks matched the task plan and did not overlap unrelated user changes.
+- Parallel metadata: `Priority=P0; Parallel safe=no; Depends on=TASK-001; Blocks=TASK-003; File locks=client API helper, audited hooks/pages/Header; Claim status=done; Claimed by=Codex; Agent role=orchestrator; Merge risk=high`
+- Parallel claim/lock status: `not applicable for sequential mode`
+- Worker status: `not applicable`
+- Merge review status: `not applicable`
+- Iteration evidence:
+  - Iteration 1 - Build: `Goal: add helper and migrate direct call sites. Changes made: added client/src/lib/api.js and migrated audited hooks, pages, and Header to apiFetch, including product-details VITE_api_URL typo. Verification: npm run lint passed; npm run build passed; initial parallel scans timed out. Review findings: request paths/methods/headers/bodies preserved, but one legacy constant still had localhost fallback. Acceptance status: partial. Remaining issues: client/src/constants/contants.js. Next action: refine.`
+  - Iteration 2 - Refine: `Goal: fix helper/call-site regressions found by scans. Changes made: updated legacy BASE_URL constant to use getApiBaseUrl(). Verification: rg for localhost:5000, VITE_api_URL, and const API_URL returned no matches; rg for import.meta.env.VITE_API_URL returned only client/src/lib/api.js; npm run lint passed; npm run build passed. Review findings: no remaining hard-coded localhost fallback in client/src. Acceptance status: met. Remaining issues: none. Next action: polish.`
+  - Iteration 3 - Polish: `Goal: static scan and final confirmation. Changes made: reviewed scoped diff, no extra source changes. Verification: scoped git diff reviewed; npm run lint passed; npm run build passed. Review findings: API contracts stayed intact; no UI redesign. Acceptance status: met. Final verdict: Done.`
+- Acceptance result:
+  - [x] `client/src/lib/api.js` exists and composes API paths from `VITE_API_URL`.
+  - [x] Audited frontend call sites use the helper instead of local `API_URL` constants.
+  - [x] No `VITE_api_URL` typo remains.
+  - [x] `npm run lint` and `npm run build` pass.
+- Verification result: `npm run lint` passed; `npm run build` passed; static scans passed with only the shared helper reading `VITE_API_URL`.
+- Failure recovery notes: Static scan identified `client/src/constants/contants.js` as a leftover hard-coded localhost value. It was updated to use the shared helper and the scan was rerun successfully.
+- Review result: Reviewed; no in-scope defects found.
+- Blockers: `none`
+- Next step: `TASK-003: Add env examples and backend DB fail-fast`
+
+### 2026-05-18 - TASK-003
+
+- Status: `Done`
+- Lifecycle transition reached: `Planned -> Ready -> In Progress -> Verified -> Reviewed -> Done`
+- Files changed: `.env.example`, `client/.env.example`, `server/config/db.js`
+- Dirty worktree protection: Expected dirty files from prior workflow tasks; `TASK-003` file locks matched the plan and did not overlap unrelated user changes.
+- Parallel metadata: `Priority=P1; Parallel safe=no; Depends on=TASK-002; Blocks=final review/release/summary; File locks=.env.example, client/.env.example, server/config/db.js; Claim status=done; Claimed by=Codex; Agent role=orchestrator; Merge risk=low`
+- Parallel claim/lock status: `not applicable for sequential mode`
+- Worker status: `not applicable`
+- Merge review status: `not applicable`
+- Iteration evidence:
+  - Iteration 1 - Build: `Goal: add examples and validation. Changes made: added root/client env examples and MONGO_URI validation before mongoose.connect. Verification: node --check server/config/db.js passed; placeholder safety scan flagged the first MongoDB example as credential-shaped; npm run lint passed; npm run build passed. Review findings: functional code correct, env placeholder needed cleanup. Acceptance status: partial. Remaining issues: root Mongo URI placeholder. Next action: refine.`
+  - Iteration 2 - Refine: `Goal: verify server syntax and env example safety. Changes made: replaced root Mongo URI example with local placeholder. Verification: node --check server/config/db.js passed; placeholder safety scan returned no matches; npm run lint passed; npm run build passed. Review findings: examples contain placeholders only. Acceptance status: met. Remaining issues: none. Next action: polish.`
+  - Iteration 3 - Polish: `Goal: final backend fail-fast proof and diff review. Changes made: reviewed scoped diff, no extra source changes. Verification: node --check server/config/db.js passed; missing-MONGO_URI smoke command exited 1 with "Missing required environment variable MONGO_URI" as expected; scoped diff reviewed. Review findings: backend fails fast clearly; no secret values added. Acceptance status: met. Final verdict: Done.`
+- Acceptance result:
+  - [x] Root `.env.example` exists without secrets.
+  - [x] `client/.env.example` exists without secrets.
+  - [x] `server/config/db.js` validates `MONGO_URI` before connection.
+  - [x] Changed server file passes `node --check`.
+  - [x] Final client lint/build pass.
+- Verification result: `node --check server/config/db.js` passed; missing-`MONGO_URI` smoke produced the expected clear failure; `npm run lint` passed; `npm run build` passed; env placeholder safety scan passed.
+- Failure recovery notes: Initial env placeholder scan flagged a credential-shaped MongoDB URI example. It was replaced with a local placeholder and the scan was rerun successfully.
+- Review result: Reviewed; no in-scope defects found.
+- Blockers: `none`
+- Next step: `final review, release notes, summary, handoff update, health check`

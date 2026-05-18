@@ -6,8 +6,7 @@ import "./product-details.styles.scss";
 import useSaveMutation from "../../hooks/useSaveMutation";
 import useSavedProductsQuery from "../../hooks/useSavedProductsQuery";
 import useCollectionsQuery from "../../hooks/useCollectionsQuery";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../../lib/api";
 
 const formatMoney = (currency, value) => {
   const n = Number(value);
@@ -29,13 +28,13 @@ const formatTimeAgo = (iso) => {
 };
 
 const fetchProductById = async (id) => {
-  const res = await fetch(`${API_URL}/api/products/${id}`);
+  const res = await apiFetch(`/api/products/${id}`);
   if (!res.ok) throw new Error("Failed to fetch product");
   return res.json();
 };
 
 const fetchHistory = async (id) => {
-  const res = await fetch(`${API_URL}/api/products/${id}/history?days=30`);
+  const res = await apiFetch(`/api/products/${id}/history?days=30`);
   if (!res.ok) throw new Error("Failed to fetch price history");
   return res.json();
 };
@@ -58,14 +57,14 @@ const fetchSimilar = async (p) => {
     }
   }
 
-  const res = await fetch(`${API_URL}/api/products?${params.toString()}`);
+  const res = await apiFetch(`/api/products?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch similar items");
   const data = await res.json();
   return data?.items || [];
 };
 
 const createAlert = async ({ token, payload }) => {
-  const res = await fetch(`${API_URL}/api/alerts`, {
+  const res = await apiFetch("/api/alerts", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

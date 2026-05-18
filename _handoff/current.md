@@ -4,11 +4,11 @@ This file is the live resume state for the active workflow. Keep it current afte
 
 ## Current Request
 
-`redesign home page`
+`audit codebase for potential bugs and fix them`
 
 ## Request ID
 
-`redesign-home-page`
+`audit-codebase-bugs`
 
 ## Current Phase
 
@@ -20,27 +20,27 @@ This file is the live resume state for the active workflow. Keep it current afte
 
 ## Current Spec File
 
-`_spec/2026-05-16-redesign-home-page.md`
+`_spec/2026-05-18-audit-codebase-bugs.md`
 
 ## Current Task Plan File
 
-`_task/2026-05-16-redesign-home-page.md`
+`_task/2026-05-18-audit-codebase-bugs.md`
 
 ## Current Review File
 
-`_review/2026-05-16-redesign-home-page.md`
+`_review/2026-05-18-audit-codebase-bugs.md`
 
 ## Current Release Notes File
 
-`_release/redesign-home-page.md`
+`_release/audit-codebase-bugs.md`
 
 ## Current Summary File
 
-`_summary/2026-05-16-redesign-home-page.md`
+`_summary/2026-05-18-audit-codebase-bugs.md`
 
 ## Last Completed Task
 
-`TASK-001: Redesign the public homepage as a deal-discovery flow`
+`TASK-003: Add env examples and backend DB fail-fast`
 
 ## Current Task
 
@@ -56,7 +56,7 @@ This file is the live resume state for the active workflow. Keep it current afte
 
 ## Dirty Worktree Status
 
-`Existing homepage dirty files were approved for this workflow and modified. Unrelated pre-existing .claude changes remain untouched. Untracked workflow/tooling directories and validation artifacts remain present. Final git status should be checked before commit.`
+`Expected dirty files include source fixes, env examples, docs, and workflow artifacts for this completed workflow. No unrelated dirty implementation files were present before edits. Final git status was checked.`
 
 ## Parallel Queue Status
 
@@ -84,32 +84,32 @@ This file is the live resume state for the active workflow. Keep it current afte
 
 ## Acceptance Status
 
-`all required task criteria met`
+`all required criteria met`
 
 ## Iteration Evidence Status
 
-`TASK-001 Build, Refine, and Polish evidence recorded in _task/2026-05-16-redesign-home-page.md and _progress/progress.md`
+`TASK-001, TASK-002, and TASK-003 Build, Refine, and Polish evidence recorded in _task/2026-05-18-audit-codebase-bugs.md and _progress/progress.md`
 
 ## Blockers
 
-`Full client lint remains blocked by unrelated existing errors outside touched homepage files. Backend was not running during browser smoke check, so populated API data was not visually verified.`
+`none`
 
 ## Verification Status
 
-`Partial: npm run build passed; targeted ESLint on touched JS files passed; Playwright desktop/mobile smoke check rendered; npm run lint failed due to unrelated existing repo errors.`
+`Passed: client npm run lint; client npm run build; node --check server/config/db.js; missing-MONGO_URI fail-fast smoke; API URL static scans; env placeholder safety scan.`
 
 ## Workflow Health Status
 
-`Partial`
+`Passed`
 
 ## Suggested Next Prompt
 
-`fix existing client lint errors`
+`add automated tests for api helper and critical backend routes`
 
 ## Notes For Continuation
 
-- Homepage redesign workflow is complete.
-- Dev server was started at `http://127.0.0.1:5173`.
-- Browser validation artifacts are in `output/playwright/home-desktop.png` and `output/playwright/home-mobile.png`.
-- Existing lint blockers are documented in `_review/2026-05-16-redesign-home-page.md` and `_summary/2026-05-16-redesign-home-page.md`.
-- No backend, env var, deployment, database, or dependency changes were made.
+- Workflow completed successfully.
+- Review: `_review/2026-05-18-audit-codebase-bugs.md`
+- Release notes: `_release/audit-codebase-bugs.md`
+- Summary: `_summary/2026-05-18-audit-codebase-bugs.md`
+- Decisions: none.

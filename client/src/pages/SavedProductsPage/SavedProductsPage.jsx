@@ -4,8 +4,7 @@ import { useAuth } from "@clerk/clerk-react";
 import "./saved-products.styles.scss";
 import useDeleteProduct from "../../hooks/useDeleteProduct";
 import useCollectionsQuery from "../../hooks/useCollectionsQuery";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../../lib/api";
 
 const formatMoney = (currency, value) => {
   const n = Number(value);
@@ -64,7 +63,7 @@ const SavedProductsPage = () => {
 
     const getSavedProducts = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/products/saved`, {
+        const res = await apiFetch("/api/products/saved", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });

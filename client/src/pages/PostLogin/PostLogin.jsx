@@ -2,9 +2,9 @@
 import { useUser } from "@clerk/clerk-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../lib/api";
 
 const PostLogin = () => {
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const { isLoaded, user } = useUser();
   const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ const PostLogin = () => {
         imageUrl: user.imageUrl || "",
       };
 
-      await fetch(`${baseUrl}/api/auth/post-login`, {
+      await apiFetch("/api/auth/post-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

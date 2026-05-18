@@ -1,10 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/clerk-react";
 import "./tracked-alerts.styles.scss";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../../lib/api";
 
 const formatMoney = (currency, value) => {
   const n = Number(value);
@@ -29,7 +28,7 @@ const formatTarget = (a) => {
 };
 
 const fetchAlerts = async (token) => {
-  const res = await fetch(`${API_URL}/api/alerts`, {
+  const res = await apiFetch("/api/alerts", {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
@@ -39,7 +38,7 @@ const fetchAlerts = async (token) => {
 };
 
 const deleteAlert = async ({ token, alertId }) => {
-  const res = await fetch(`${API_URL}/api/alerts/${alertId}`, {
+  const res = await apiFetch(`/api/alerts/${alertId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -52,19 +51,6 @@ const TrackedAlertsPage = () => {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const qc = useQueryClient();
 
-  const [token, setToken] = useState("");
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
-      setToken("");
-      return;
-    }
-    (async () => {
-      const t = await getToken();
-      setToken(t || "");
-    })();
-  }, [isLoaded, isSignedIn, getToken]);
-
   const {
     data: alerts = [],
     isLoading,
@@ -72,12 +58,13 @@ const TrackedAlertsPage = () => {
     error,
   } = useQuery({
     queryKey: ["alerts"],
-    queryFn: () => fetchAlerts(token),
-    enabled: !!token && isLoaded && isSignedIn,
+    queryFn: async () => fetchAlerts((await getToken()) || ""),
+    enabled: isLoaded && isSignedIn,
   });
 
   const { mutate: stopTracking, isPending: isStopping } = useMutation({
-    mutationFn: ({ alertId }) => deleteAlert({ token, alertId }),
+    mutationFn: async ({ alertId }) =>
+      deleteAlert({ token: (await getToken()) || "", alertId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["alerts"] });
     },

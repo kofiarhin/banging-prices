@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
 import "./sidenav.styles.scss";
@@ -60,7 +60,7 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
 
   const push = (key) => setStack((s) => [...s, key]);
   const pop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : ["root"]));
-  const reset = () => setStack(["root"]);
+  const reset = useCallback(() => setStack(["root"]), [setStack]);
 
   const go = (url) => {
     onNavigate(url);
@@ -87,7 +87,7 @@ const SideNav = ({ isOpen, onClose, navData, onNavigate, stack, setStack }) => {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, reset]);
 
   useEffect(() => {
     if (!isOpen) return;

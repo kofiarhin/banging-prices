@@ -51,7 +51,7 @@ No separate typecheck script currently detected.
 
 - Folder conventions: `Frontend pages live under client/src/pages; reusable components live under client/src/components. Existing home components live under client/src/components/home.`
 - Naming conventions: `<Notes>`
-- API conventions: `Existing homepage data is fetched by client/src/hooks/useHomeQuery.js from /api/home.`
+- API conventions: `Frontend API requests should use the shared helper in client/src/lib/api.js, which composes paths from VITE_API_URL. Existing homepage data is fetched by client/src/hooks/useHomeQuery.js from /api/home.`
 - State management conventions: `TanStack Query is used for home server state; local React state is used for homepage search/carousel UI.`
 - Error handling conventions: `<Notes>`
 

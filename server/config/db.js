@@ -1,8 +1,18 @@
 const mongoose = require("mongoose");
 
+const getMongoUri = () => {
+  const uri = process.env.MONGO_URI?.trim();
+
+  if (!uri) {
+    throw new Error("Missing required environment variable MONGO_URI");
+  }
+
+  return uri;
+};
+
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
+    const conn = await mongoose.connect(getMongoUri(), {
       maxPoolSize: 20,
       minPoolSize: 5,
       serverSelectionTimeoutMS: 5000,

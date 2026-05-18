@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import "./store-insights.styles.scss";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../../lib/api";
 
 const fetchInsights = async () => {
-  const res = await fetch(`${API_URL}/api/products/stores/insights`);
+  const res = await apiFetch("/api/products/stores/insights");
   const payload = await res.json();
   if (!res.ok) throw new Error(payload?.message || "Failed to load insights");
   return payload;

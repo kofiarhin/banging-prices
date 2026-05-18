@@ -8,7 +8,7 @@ The workflow will ask clarifying questions, run dirty worktree protection, gener
 
 ## Request
 
-`redesign home page`
+`audit codebase for potential bugs and fix them`
 
 ## Question Preference
 
