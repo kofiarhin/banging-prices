@@ -1,11 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../lib/api";
 
 const saveItem = async ({ id, token, collectionId }) => {
   if (!token) throw new Error("Unauthorized (missing token)");
 
-  const res = await fetch(`${API_URL}/api/products/save`, {
+  const res = await apiFetch("/api/products/save", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

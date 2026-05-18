@@ -4,8 +4,7 @@ import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
 import "./header.styles.scss";
 import SideNav from "./SideNav/SideNav";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../lib/api";
 
 const Icon = ({ name }) => {
   const paths = {
@@ -59,7 +58,7 @@ const Header = () => {
   useEffect(() => {
     const fetchNav = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/home/nav`);
+        const res = await apiFetch("/api/home/nav");
         const data = await res.json();
         setNavData(data);
       } catch (err) {
@@ -77,14 +76,29 @@ const Header = () => {
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const q = sp.get("q") || "";
-    setSearch(q);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) setSearch(q);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    setIsSideNavOpen(false);
-    setSideStack(["root"]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setIsSideNavOpen(false);
+      setSideStack(["root"]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, location.search]);
 
   useEffect(() => {

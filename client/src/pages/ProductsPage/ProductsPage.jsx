@@ -2,28 +2,27 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./products.styles.scss";
+import { apiFetch } from "../../lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const fetchJson = async (url) => {
-  const res = await fetch(url);
+const fetchJson = async (path) => {
+  const res = await apiFetch(path);
   if (!res.ok) throw new Error("Network error");
   return res.json();
 };
 
 const fetchProducts = async (params) => {
   const qs = new URLSearchParams(params).toString();
-  return fetchJson(`${API_URL}/api/products?${qs}`);
+  return fetchJson(`/api/products?${qs}`);
 };
 
 const fetchStores = async (params) => {
   const qs = new URLSearchParams(params).toString();
-  return fetchJson(`${API_URL}/api/products/stores?${qs}`);
+  return fetchJson(`/api/products/stores?${qs}`);
 };
 
 const fetchCategories = async (params) => {
   const qs = new URLSearchParams(params).toString();
-  return fetchJson(`${API_URL}/api/products/categories?${qs}`);
+  return fetchJson(`/api/products/categories?${qs}`);
 };
 
 const titleFromCategory = (raw) => {
@@ -265,9 +264,7 @@ const ProductsPage = () => {
         qs.set("q", term);
         if (gender) qs.set("gender", gender);
 
-        const data = await fetchJson(
-          `${API_URL}/api/products/categories?${qs}`,
-        );
+        const data = await fetchJson(`/api/products/categories?${qs}`);
         const list = data?.categories || [];
 
         const wanted = toCategorySlugFromQuery(term);
@@ -283,7 +280,7 @@ const ProductsPage = () => {
         } else {
           lastResolvedQ.current = term;
         }
-      } catch (e) {
+      } catch {
         lastResolvedQ.current = term;
       }
     };

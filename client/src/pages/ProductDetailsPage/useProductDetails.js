@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../../lib/api";
 
 export const useProductDetails = () => {
   const { id } = useParams();
@@ -16,9 +17,7 @@ export const useProductDetails = () => {
   } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/products/${id}`,
-      );
+      const res = await apiFetch(`/api/products/${id}`);
       if (!res.ok) throw new Error("Product sync failed");
       return res.json();
     },
@@ -30,9 +29,7 @@ export const useProductDetails = () => {
     queryKey: ["similar", p?.category, p?._id],
     queryFn: async () => {
       const params = new URLSearchParams({ category: p.category, limit: 5 });
-      const res = await fetch(
-        `${import.meta.env.VITE_api_URL}/api/products?${params}`,
-      );
+      const res = await apiFetch(`/api/products?${params}`);
       const data = await res.json();
       return data.items?.filter((item) => item._id !== p._id) || [];
     },

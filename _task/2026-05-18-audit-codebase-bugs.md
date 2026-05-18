@@ -1,0 +1,191 @@
+# Task Plan: Codebase Bug Audit And Fix
+
+- Spec file used: `_spec/2026-05-18-audit-codebase-bugs.md`
+- Planning date: 2026-05-18
+- Progress and summary files read: `_progress/progress.md`, `_summary/2026-05-16-redesign-home-page.md`
+- Handoff read: `_handoff/current.md`
+- Detailed spec sections used: Sections 5, 7, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, and 22.
+
+## TASK-001: Make client lint pass
+
+- Task ID: `TASK-001`
+- Status: `Done`
+- Priority: `P0`
+- Parallel safe: `no`
+- Depends on: `none`
+- Blocks: `TASK-002`
+- File locks: `client/src/components/HeroCarousel/HeroCarousel.jsx`, `client/src/components/Header.jsx`, `client/src/components/SideNav/SideNav.jsx`, `client/src/hooks/usePostSignup.js`, `client/src/pages/Auth/PostRegisterPage.jsx`, `client/src/pages/PostLogin/PostLogin.jsx`, `client/src/pages/ProductsPage/ProductsPage.jsx`, `client/src/pages/tracked-alerts/TrackedAlertsPage.jsx`
+- Claim status: `done`
+- Claimed by: `Codex`
+- Agent role: `orchestrator`
+- Merge risk: `medium`
+- Objective: Fix current ESLint errors and warnings without changing intended UI behavior.
+- Files likely affected: Same as file locks.
+- Checklist:
+  - Replace impure `Math.random()` render key.
+  - Remove unused mutation success variable/debug log.
+  - Use caught errors or avoid unused catch variables.
+  - Remove stale eslint-disable comments.
+  - Fix effect dependency warnings without creating loops.
+- Iteration 1 - Build:
+  - Goal: Apply minimal lint fixes.
+  - Changes made: Replaced the impure carousel fallback key, removed the unused signup success variable/debug log, fixed unused catch binding, added missing hook dependencies, removed stale suppressions, and removed synchronous token state from tracked alerts.
+  - Verification command/result: `npm run lint` failed only on newly exposed synchronous `Header.jsx` route-change state updates; `npm run build` passed.
+  - Review findings: First pass fixed original reported lint blockers but removing suppressions surfaced two in-scope React hook compiler errors.
+  - Acceptance status: Partial.
+  - Remaining issues: `Header.jsx` needed route-change state updates moved out of the synchronous effect body.
+  - Next action: Refine `Header.jsx`.
+- Iteration 2 - Refine:
+  - Goal: Address any remaining lint/build regressions.
+  - Changes made: Deferred `Header.jsx` route-change state synchronization through guarded microtasks while preserving route search/sidebar reset behavior.
+  - Verification command/result: `npm run lint` passed; `npm run build` passed.
+  - Review findings: No remaining client lint errors or warnings.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Polish with final diff review and rerun.
+- Iteration 3 - Polish:
+  - Goal: Final lint/build confirmation and cleanup.
+  - Changes made: Reviewed the scoped diff and made no further source changes.
+  - Verification command/result: `git diff -- <task files>` reviewed; `npm run lint` passed; `npm run build` passed.
+  - Review findings: Diff is scoped to lint/runtime fixes and does not redesign UI.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Continue to `TASK-002`.
+- Acceptance criteria:
+  - [ ] `npm run lint` passes or any remaining failure is documented as unrelated.
+  - [ ] `npm run build` passes.
+  - [ ] No visual redesign or behavior rewrite is introduced.
+- Acceptance result:
+  - [x] `npm run lint` passes.
+  - [x] `npm run build` passes.
+  - [x] No visual redesign or behavior rewrite is introduced.
+- Verification commands:
+  - `npm run lint` from `client/`
+  - `npm run build` from `client/`
+- Stop condition: Stop if lint/build remains failed after targeted in-scope recovery.
+- Out-of-scope items: API helper migration and env example work.
+
+## TASK-002: Route frontend API calls through one helper
+
+- Task ID: `TASK-002`
+- Status: `Done`
+- Priority: `P0`
+- Parallel safe: `no`
+- Depends on: `TASK-001`
+- Blocks: `TASK-003`
+- File locks: `client/src/lib/api.js`, `client/src/hooks/*.js`, `client/src/pages/**/*.jsx`, `client/src/components/Header.jsx`
+- Claim status: `done`
+- Claimed by: `Codex`
+- Agent role: `orchestrator`
+- Merge risk: `high`
+- Objective: Create and use a shared frontend API helper for audited direct API call sites, including the product-details env casing bug.
+- Files likely affected: API call sites found by `rg "localhost:5000|fetch\\(|VITE_API_URL|VITE_api_URL" client/src`.
+- Checklist:
+  - Add `client/src/lib/api.js`.
+  - Preserve existing methods, request bodies, headers, and auth headers.
+  - Replace hard-coded localhost fallbacks in audited call sites.
+  - Fix `VITE_api_URL` casing by removing direct env usage.
+  - Keep query keys and UI rendering unchanged.
+- Iteration 1 - Build:
+  - Goal: Add helper and migrate direct call sites.
+  - Changes made: Added `client/src/lib/api.js` and migrated audited hooks, pages, and header API fetches to `apiFetch`, including the product-details `VITE_api_URL` typo.
+  - Verification command/result: `npm run lint` passed; `npm run build` passed; initial parallel static scans timed out.
+  - Review findings: Helper preserved request paths, methods, bodies, and auth headers; one unused hard-coded constant remained.
+  - Acceptance status: Partial.
+  - Remaining issues: `client/src/constants/contants.js` still contained `http://localhost:5000`.
+  - Next action: Refine leftover constant.
+- Iteration 2 - Refine:
+  - Goal: Fix helper/call-site regressions found by lint/build.
+  - Changes made: Updated the legacy `BASE_URL` constant to use `getApiBaseUrl()` from the shared helper.
+  - Verification command/result: `rg "localhost:5000|VITE_api_URL|const API_URL" client/src` returned no matches; `rg "import.meta.env.VITE_API_URL" client/src` returned only `client/src/lib/api.js`; `npm run lint` passed; `npm run build` passed.
+  - Review findings: No remaining hard-coded localhost fallback or mis-cased env variable in `client/src`.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Polish diff review.
+- Iteration 3 - Polish:
+  - Goal: Static scan confirms no audited direct localhost/API env use remains.
+  - Changes made: Reviewed API migration diff and made no further source changes.
+  - Verification command/result: Scoped `git diff` reviewed; `npm run lint` passed; `npm run build` passed.
+  - Review findings: API contracts stayed intact; query keys and UI rendering were not intentionally changed.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Continue to `TASK-003`.
+- Acceptance criteria:
+  - [ ] `client/src/lib/api.js` exists and composes API paths from `VITE_API_URL`.
+  - [ ] Audited frontend call sites use the helper instead of local `API_URL` constants.
+  - [ ] No `VITE_api_URL` typo remains.
+  - [ ] `npm run lint` and `npm run build` pass.
+- Acceptance result:
+  - [x] `client/src/lib/api.js` exists and composes API paths from `VITE_API_URL`.
+  - [x] Audited frontend call sites use the helper instead of local `API_URL` constants.
+  - [x] No `VITE_api_URL` typo remains.
+  - [x] `npm run lint` and `npm run build` pass.
+- Verification commands:
+  - `rg "localhost:5000|VITE_api_URL|const API_URL|import.meta.env.VITE_API_URL" client/src`
+  - `npm run lint` from `client/`
+  - `npm run build` from `client/`
+- Stop condition: Stop if helper migration changes API contracts or cannot be verified.
+- Out-of-scope items: Moving all domain logic into new `services/` folders.
+
+## TASK-003: Add env examples and backend DB fail-fast
+
+- Task ID: `TASK-003`
+- Status: `Done`
+- Priority: `P1`
+- Parallel safe: `no`
+- Depends on: `TASK-002`
+- Blocks: `final review/release/summary`
+- File locks: `.env.example`, `client/.env.example`, `server/config/db.js`
+- Claim status: `done`
+- Claimed by: `Codex`
+- Agent role: `orchestrator`
+- Merge risk: `low`
+- Objective: Document required env vars and make backend DB startup fail clearly when `MONGO_URI` is missing.
+- Files likely affected: `.env.example`, `client/.env.example`, `server/config/db.js`
+- Checklist:
+  - Add root env example with backend placeholders only.
+  - Add client env example with `VITE_` placeholders only.
+  - Check `MONGO_URI` before calling `mongoose.connect`.
+  - Do not include real secret values.
+- Iteration 1 - Build:
+  - Goal: Add examples and validation.
+  - Changes made: Added root and client `.env.example` files and added `MONGO_URI` validation before `mongoose.connect`.
+  - Verification command/result: `node --check server/config/db.js` passed; placeholder safety scan flagged the first MongoDB example because it looked credential-shaped; `npm run lint` passed; `npm run build` passed.
+  - Review findings: Functional code was correct, but the example Mongo URI needed a safer placeholder.
+  - Acceptance status: Partial.
+  - Remaining issues: Replace credential-shaped Mongo URI example.
+  - Next action: Refine env example.
+- Iteration 2 - Refine:
+  - Goal: Verify server syntax and env example safety.
+  - Changes made: Replaced the root Mongo URI example with a local placeholder that contains no username/password shape.
+  - Verification command/result: `node --check server/config/db.js` passed; placeholder safety scan returned no matches; `npm run lint` passed; `npm run build` passed.
+  - Review findings: Env examples contain placeholders only and no obvious secret-shaped values.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Polish fail-fast proof and diff review.
+- Iteration 3 - Polish:
+  - Goal: Final full client build/lint and server syntax check.
+  - Changes made: Reviewed scoped backend/env diff and made no additional source changes.
+  - Verification command/result: `node --check server/config/db.js` passed; missing-`MONGO_URI` smoke command exited with `Missing required environment variable MONGO_URI` as expected; scoped diff reviewed.
+  - Review findings: Backend fail-fast is explicit and examples are safe placeholders.
+  - Acceptance status: Met.
+  - Remaining issues: None.
+  - Next action: Final review/release/summary.
+- Acceptance criteria:
+  - [ ] Root `.env.example` exists without secrets.
+  - [ ] `client/.env.example` exists without secrets.
+  - [ ] `server/config/db.js` validates `MONGO_URI` before connection.
+  - [ ] Changed server file passes `node --check`.
+  - [ ] Final client lint/build pass.
+- Acceptance result:
+  - [x] Root `.env.example` exists without secrets.
+  - [x] `client/.env.example` exists without secrets.
+  - [x] `server/config/db.js` validates `MONGO_URI` before connection.
+  - [x] Changed server file passes `node --check`.
+  - [x] Final client lint/build pass.
+- Verification commands:
+  - `node --check server/config/db.js`
+  - `npm run lint` from `client/`
+  - `npm run build` from `client/`
+- Stop condition: Stop if env validation would require real credentials or change deployment behavior.
+- Out-of-scope items: Heroku/Namecheap deployment config changes.

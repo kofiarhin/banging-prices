@@ -137,13 +137,18 @@ const HeroCarousel = ({ slides = [], autoMs = 4500 }) => {
       <div className="pp-hero-carousel-body">
         <div className="pp-hero-slide is-active">
           <div className="pp-hero-slide-grid">
-            {items.map((p) => {
+            {items.map((p, index) => {
               const id = p?._id;
               const productTo = id ? `/products/${id}` : "/products?page=1";
+              const itemKey =
+                id ||
+                p?.canonicalKey ||
+                p?.productUrl ||
+                `${current?.key || title}-${index}`;
 
               return (
                 <Link
-                  key={id || p?.canonicalKey || p?.productUrl || Math.random()}
+                  key={itemKey}
                   to={productTo}
                   className="pp-hero-mini-card"
                 >

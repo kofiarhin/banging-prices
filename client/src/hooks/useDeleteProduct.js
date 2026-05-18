@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../lib/api";
 
 const deleteSavedProduct = async ({ productId, token }) => {
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-  const res = await fetch(`${API_URL}/api/products/saved-item/${productId}`, {
+  const res = await apiFetch(`/api/products/saved-item/${productId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,

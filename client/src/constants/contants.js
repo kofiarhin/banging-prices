@@ -1,1 +1,3 @@
-export const BASE_URL = "http://localhost:5000";
+import { getApiBaseUrl } from "../lib/api";
+
+export const BASE_URL = getApiBaseUrl();

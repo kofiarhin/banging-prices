@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import "./collection-share.styles.scss";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { apiFetch } from "../../lib/api";
 
 const fetchSharedCollection = async (shareId) => {
-  const res = await fetch(`${API_URL}/api/collections/${shareId}`);
+  const res = await apiFetch(`/api/collections/${shareId}`);
   const payload = await res.json();
   if (!res.ok) throw new Error(payload?.message || "Collection not found");
   return payload;
