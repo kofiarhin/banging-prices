@@ -26,26 +26,7 @@ const { runBoohooCrawl } = require("../scrappers/boohoo.scraper");
 // ✅ ASOS crawler
 const { runAsosCrawl } = require("../scrappers/asos.scraper");
 
-// --------------------
-// ✅ SAFETY: hard timeout + graceful shutdown
-// --------------------
-const HARD_TIMEOUT_MINUTES = Number(
-  process.env.CRAWL_HARD_TIMEOUT_MINUTES || 55,
-);
-
-const hardTimeout = setTimeout(
-  () => {
-    console.error(
-      `⏳ Hard timeout hit (${HARD_TIMEOUT_MINUTES}m). Forcing exit.`,
-    );
-    // eslint-disable-next-line no-process-exit
-    process.exit(1);
-  },
-  HARD_TIMEOUT_MINUTES * 60 * 1000,
-);
-
-// don't keep the process alive because of the timeout timer
-hardTimeout.unref();
+// Each store crawler owns its timeout so one slow store does not kill the full run.
 
 let shuttingDown = false;
 
