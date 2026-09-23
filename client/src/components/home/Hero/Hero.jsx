@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./hero.styles.scss";
 
 const AUTOPLAY_MS = 4200;
 
@@ -122,13 +121,13 @@ const Hero = ({
 
   if (isLoading) {
     return (
-      <section className="hero-container hero-container--loading">
-        <div className="hero-skeleton-media" />
-        <div className="hero-skeleton-copy">
-          <span />
-          <strong />
-          <p />
-          <p />
+      <section className="relative w-full max-w-7xl mx-auto rounded-2xl bg-gray-900 border border-gray-800 p-6 md:p-8 min-h-[420px] flex flex-col md:flex-row gap-8 animate-pulse overflow-hidden">
+        <div className="w-full md:w-1/2 min-h-[260px] bg-gray-800 rounded-xl" />
+        <div className="w-full md:w-1/2 flex flex-col justify-center space-y-4">
+          <span className="h-4 w-28 bg-gray-800 rounded-full" />
+          <strong className="h-8 w-3/4 bg-gray-800 rounded-lg" />
+          <p className="h-4 w-full bg-gray-800 rounded" />
+          <p className="h-4 w-2/3 bg-gray-800 rounded" />
         </div>
       </section>
     );
@@ -136,10 +135,18 @@ const Hero = ({
 
   if (isError) {
     return (
-      <section className="hero-container hero-state">
-        <p className="hero-state-kicker">Market feed unavailable</p>
-        <h2>We could not load the current price-drop feed.</h2>
-        <button type="button" onClick={() => window.location.reload()}>
+      <section className="relative w-full max-w-7xl mx-auto rounded-2xl bg-gray-900 border border-red-900/50 p-8 text-center flex flex-col items-center justify-center min-h-[360px]">
+        <p className="text-xs uppercase tracking-widest text-red-400 font-semibold mb-2">
+          Market feed unavailable
+        </p>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
+          We could not load the current price-drop feed.
+        </h2>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-6 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+        >
           Retry feed
         </button>
       </section>
@@ -148,33 +155,47 @@ const Hero = ({
 
   if (!slidesCount) {
     return (
-      <section className="hero-container hero-state">
-        <p className="hero-state-kicker">No featured drops</p>
-        <h2>Fresh drops will appear here after the next scan.</h2>
-        <Link to="/products?sort=discount-desc&page=1">Browse products</Link>
+      <section className="relative w-full max-w-7xl mx-auto rounded-2xl bg-gray-900 border border-gray-800 p-8 text-center flex flex-col items-center justify-center min-h-[360px]">
+        <p className="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-2">
+          No featured drops
+        </p>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
+          Fresh drops will appear here after the next scan.
+        </h2>
+        <Link
+          to="/products?sort=discount-desc&page=1"
+          className="px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-semibold transition-colors"
+        >
+          Browse products
+        </Link>
       </section>
     );
   }
 
   return (
     <section
-      className="hero-container"
+      className="relative w-full max-w-7xl mx-auto rounded-2xl bg-gray-900 border border-gray-800 p-4 md:p-8 flex flex-col gap-6 shadow-2xl overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="hero-topline">
+      <div className="flex items-center justify-between gap-4">
         <div
-          className="system-pill"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/80 border border-gray-700/60 text-xs text-gray-300"
           aria-label={`${assetsTracked} products tracked`}
         >
-          <span className="pulse-dot" />
-          <p>{Number(assetsTracked).toLocaleString()} products tracked</p>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <p className="font-medium">
+            {Number(assetsTracked).toLocaleString()} products tracked
+          </p>
         </div>
 
-        <div className="nav-controls" aria-label="Featured deal controls">
+        <div className="flex items-center gap-2" aria-label="Featured deal controls">
           <button
             type="button"
-            className="ctrl-btn"
+            className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
             onClick={() => scrollToIndex(currentIndex - 1)}
             aria-label="Previous featured deal"
           >
@@ -182,7 +203,7 @@ const Hero = ({
           </button>
           <button
             type="button"
-            className="ctrl-btn"
+            className="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
             onClick={() => scrollToIndex(currentIndex + 1)}
             aria-label="Next featured deal"
           >
@@ -191,7 +212,10 @@ const Hero = ({
         </div>
       </div>
 
-      <div className="hero-scroll-track" ref={scrollRef}>
+      <div
+        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none scroll-smooth rounded-xl"
+        ref={scrollRef}
+      >
         {slides.map((slide, index) => {
           const featured = slide.featured;
           const href = getCategoryHref(slide);
@@ -203,44 +227,54 @@ const Hero = ({
             <Link
               key={slide.key || `${title}-${index}`}
               to={href}
-              className="hero-slide"
+              className="w-full flex-shrink-0 snap-start grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6 bg-gray-950/50 rounded-xl border border-gray-800 hover:border-gray-700 transition-all group"
               onClick={stopAutoplay}
             >
-              <div className="hero-media-panel">
+              <div className="w-full min-h-[240px] md:min-h-[320px] rounded-lg overflow-hidden bg-gray-800 relative">
                 <div
-                  className="slide-image"
+                  className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
                   style={{ backgroundImage: `url(${featured.image})` }}
                   role="img"
                   aria-label={title}
                 />
               </div>
 
-              <div className="hero-copy-panel">
-                <span className="drop-badge">
+              <div className="flex flex-col justify-center items-start gap-3">
+                <span className="inline-block px-3 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   {discount > 0 ? `${discount}% off` : "Verified drop"} at{" "}
                   {store}
                 </span>
 
-                <h2 className="display-title">
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
                   {slide.label || "Featured drop"}
                 </h2>
 
-                <p className="featured-name">{title}</p>
+                <p className="text-sm md:text-base text-gray-400 line-clamp-2">
+                  {title}
+                </p>
 
-                <div className="hero-price-row">
-                  <span>
-                    <small>Now</small>
-                    {formatMoney(featured?.currentPrice || featured?.price)}
+                <div className="flex items-center gap-6 my-2">
+                  <span className="flex flex-col">
+                    <small className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                      Now
+                    </small>
+                    <strong className="text-xl md:text-2xl font-bold text-white">
+                      {formatMoney(featured?.currentPrice || featured?.price)}
+                    </strong>
                   </span>
-                  <span>
-                    <small>Was</small>
-                    {formatMoney(featured?.originalPrice)}
+                  <span className="flex flex-col">
+                    <small className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                      Was
+                    </small>
+                    <span className="text-sm md:text-base text-gray-500 line-through">
+                      {formatMoney(featured?.originalPrice)}
+                    </span>
                   </span>
                 </div>
 
                 <button
                   type="button"
-                  className="buy-btn"
+                  className="mt-2 px-6 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold transition-all transform active:scale-95"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -255,27 +289,43 @@ const Hero = ({
         })}
       </div>
 
-      <div className="hero-footer">
-        <form className="hero-search" id="home-deal-search" onSubmit={onSearch}>
-          <label htmlFor="hero-product-search">Find a price drop</label>
-          <div className="hero-search-control">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
+        <form
+          className="w-full md:w-auto flex-1 max-w-md"
+          id="home-deal-search"
+          onSubmit={onSearch}
+        >
+          <label htmlFor="hero-product-search" className="sr-only">
+            Find a price drop
+          </label>
+          <div className="relative flex items-center">
             <input
               id="hero-product-search"
               type="search"
               value={q}
               onChange={(e) => setQ?.(e.target.value)}
               placeholder="Search trainers, coats, denim..."
+              className="w-full pl-4 pr-24 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
             />
-            <button type="submit">Search</button>
+            <button
+              type="submit"
+              className="absolute right-1 px-4 py-1.5 rounded-md bg-emerald-500 hover:bg-emerald-400 text-gray-950 text-xs font-bold transition-colors"
+            >
+              Search
+            </button>
           </div>
         </form>
 
-        <div className="hero-progress" aria-label="Featured deal position">
+        <div className="flex items-center gap-2" aria-label="Featured deal position">
           {slides.map((slide, index) => (
             <button
               key={slide.key || `dot-${index}`}
               type="button"
-              className={index === currentIndex ? "is-active" : ""}
+              className={`h-2 rounded-full transition-all ${
+                index === currentIndex
+                  ? "w-8 bg-emerald-500"
+                  : "w-2 bg-gray-700 hover:bg-gray-600"
+              }`}
               onClick={() => scrollToIndex(index)}
               aria-label={`Show featured deal ${index + 1}`}
             />

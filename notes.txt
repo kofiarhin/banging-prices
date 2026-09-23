@@ -344,4 +344,6 @@ ssh -i "C:\Users\laura.bolas\Downloads\_kofiarhin-key.pem" ubuntu@ec2-18-175-130
 
 
 PS C:\Windows\system32> ssh -i "C:\Users\laura.bolas\Downloads\_kofiarhin-key.pem" ubuntu@ec2-18-175-130-165.eu-west-2.compute.amazonaws.com
+
+this is a test message of how the vps works
 >
