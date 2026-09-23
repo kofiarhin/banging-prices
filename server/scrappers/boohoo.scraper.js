@@ -448,6 +448,7 @@ const extractPrices = async ({ page }) => {
 const runBoohooCrawl = async ({
   startUrls = [],
   maxListPages = 1,
+  timeoutMinutes = Number(process.env.CRAWLER_TIMEOUT_MINUTES || 15),
   debug = false,
 } = {}) => {
   const results = [];
@@ -666,7 +667,18 @@ const runBoohooCrawl = async ({
 
   if (debug) console.log("🌱 SEEDS", seeds);
 
-  await crawler.run(seeds);
+  const timeoutMs = Math.max(1, timeoutMinutes) * 60 * 1000;
+  const storeTimeout = setTimeout(() => {
+    console.error(`⏳ Store timeout hit (${timeoutMinutes}m). Stopping this crawler and continuing.`);
+    crawler.stop(`Store timeout hit after ${timeoutMinutes} minutes`);
+  }, timeoutMs);
+  storeTimeout.unref();
+
+  try {
+    await crawler.run(seeds);
+  } finally {
+    clearTimeout(storeTimeout);
+  }
 
   const map = new Map();
   for (const p of results) map.set(p.canonicalKey, p);
