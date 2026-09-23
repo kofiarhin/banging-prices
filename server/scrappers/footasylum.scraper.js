@@ -231,6 +231,7 @@ const runFootasylumCrawl = async ({
   startUrls = [],
   maxListPages = 1,
   maxProducts = 0,
+  timeoutMinutes = Number(process.env.CRAWLER_TIMEOUT_MINUTES || 15),
   debug = false,
 } = {}) => {
   const results = [];
@@ -327,7 +328,18 @@ const runFootasylumCrawl = async ({
     }),
   );
 
-  await crawler.run(seeds);
+  const timeoutMs = Math.max(1, timeoutMinutes) * 60 * 1000;
+  const storeTimeout = setTimeout(() => {
+    console.error(`⏳ Store timeout hit (${timeoutMinutes}m). Stopping this crawler and continuing.`);
+    crawler.stop(`Store timeout hit after ${timeoutMinutes} minutes`);
+  }, timeoutMs);
+  storeTimeout.unref();
+
+  try {
+    await crawler.run(seeds);
+  } finally {
+    clearTimeout(storeTimeout);
+  }
   return results;
 };
 
