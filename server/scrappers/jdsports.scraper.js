@@ -1,4 +1,4 @@
-const { PlaywrightCrawler } = require("crawlee");
+const { PlaywrightCrawler, RequestQueue } = require("crawlee");
 const { makeCanonicalKey } = require("../utils/canonical");
 
 const DEFAULT_START_URLS = [
@@ -320,8 +320,11 @@ const runJdSportsCrawl = async ({
   debug = false,
 } = {}) => {
   const results = [];
+  const requestQueueName = `jdsports-${process.pid}-${Date.now()}`;
+  const requestQueue = await RequestQueue.open(requestQueueName);
 
   const crawler = new PlaywrightCrawler({
+    requestQueue,
     maxConcurrency: 1,
     requestHandlerTimeoutSecs: 180,
     navigationTimeoutSecs: 60,
@@ -523,6 +526,7 @@ const runJdSportsCrawl = async ({
     await crawler.run(seeds);
   } finally {
     clearTimeout(storeTimeout);
+    await requestQueue.drop().catch(() => null);
   }
 
   const map = new Map();
