@@ -245,13 +245,21 @@ const runFootasylumCrawl = async ({
     launchContext: {
       launchOptions: {
         headless: true,
+        userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
         args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"],
       },
     },
     preNavigationHooks: [
       async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
-        await page.setExtraHTTPHeaders({ "accept-language": "en-GB,en;q=0.9" });
+        await page.setExtraHTTPHeaders({
+          "accept-language": "en-GB,en;q=0.9",
+          "upgrade-insecure-requests": "1",
+          "sec-fetch-site": "none",
+          "sec-fetch-mode": "navigate",
+          "sec-fetch-user": "?1",
+          "sec-fetch-dest": "document",
+        });
       },
     ],
     requestHandler: async ({ page, request, crawler }) => {
