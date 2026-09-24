@@ -9,7 +9,7 @@ const DEFAULT_START_URLS = [
 ];
 
 const LIST_READY_SEL = "#productListMain";
-const LIST_LINKS_SEL = 'a.itemImage[href^="/product/"]';
+const LIST_LINKS_SEL = 'a[href*="/product/"]';
 const PAGINATION_NEXT_SEL = "#productListPagination a[rel='next']";
 
 const PDP_TITLE_SEL = '#productItemTitle h1[data-e2e="product-name"]';
