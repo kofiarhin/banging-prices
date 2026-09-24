@@ -1,5 +1,5 @@
 // server/scrappers/asos.scraper.js
-const { PlaywrightCrawler } = require("crawlee");
+const { PlaywrightCrawler, RequestQueue } = require("crawlee");
 const crypto = require("crypto");
 
 const DEFAULT_START_URLS = [
@@ -788,8 +788,11 @@ const runAsosCrawl = async ({
   debug = false,
 } = {}) => {
   const results = [];
+  const requestQueueName = `asos-${process.pid}-${Date.now()}`;
+  const requestQueue = await RequestQueue.open(requestQueueName);
 
   const crawler = new PlaywrightCrawler({
+    requestQueue,
     maxConcurrency: 1,
     requestHandlerTimeoutSecs: 90,
 
@@ -1096,6 +1099,7 @@ const runAsosCrawl = async ({
     await crawler.run(seeds);
   } finally {
     clearTimeout(storeTimeout);
+    await requestQueue.drop().catch(() => null);
   }
 
   const map = new Map();
