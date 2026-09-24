@@ -1,5 +1,5 @@
 // server/scrappers/footasylum.scraper.js
-const { PlaywrightCrawler } = require("crawlee");
+const { PlaywrightCrawler, RequestQueue } = require("crawlee");
 const { makeCanonicalKey } = require("../utils/canonical");
 
 const DEFAULT_START_URLS = [
@@ -235,8 +235,11 @@ const runFootasylumCrawl = async ({
   debug = false,
 } = {}) => {
   const results = [];
+  const requestQueueName = `footasylum-${process.pid}-${Date.now()}`;
+  const requestQueue = await RequestQueue.open(requestQueueName);
 
   const crawler = new PlaywrightCrawler({
+    requestQueue,
     maxConcurrency: 1,
     requestHandlerTimeoutSecs: 180,
     launchContext: {
@@ -339,6 +342,7 @@ const runFootasylumCrawl = async ({
     await crawler.run(seeds);
   } finally {
     clearTimeout(storeTimeout);
+    await requestQueue.drop().catch(() => null);
   }
   return results;
 };
