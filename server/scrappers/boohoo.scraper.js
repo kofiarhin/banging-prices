@@ -1,5 +1,5 @@
 // server/scrappers/boohoo.scraper.js
-const { PlaywrightCrawler } = require("crawlee");
+const { PlaywrightCrawler, RequestQueue } = require("crawlee");
 const crypto = require("crypto");
 
 const DEFAULT_START_URLS = [
@@ -452,8 +452,11 @@ const runBoohooCrawl = async ({
   debug = false,
 } = {}) => {
   const results = [];
+  const requestQueueName = `boohoo-${process.pid}-${Date.now()}`;
+  const requestQueue = await RequestQueue.open(requestQueueName);
 
   const crawler = new PlaywrightCrawler({
+    requestQueue,
     maxConcurrency: 1,
     requestHandlerTimeoutSecs: 120,
 
@@ -678,6 +681,7 @@ const runBoohooCrawl = async ({
     await crawler.run(seeds);
   } finally {
     clearTimeout(storeTimeout);
+    await requestQueue.drop().catch(() => null);
   }
 
   const map = new Map();
