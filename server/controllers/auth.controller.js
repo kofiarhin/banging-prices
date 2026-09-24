@@ -40,6 +40,7 @@ const postLogin = async (req, res, next) => {
     const foundUser = await User.findOne({ clerkId });
     if (!foundUser) {
       const user = await User.create({
+        clerkId,
         firstName,
         lastName,
         email,
@@ -51,6 +52,12 @@ const postLogin = async (req, res, next) => {
     console.log("user has been successfully logged in");
     return res.json(foundUser);
   } catch (error) {
+    console.error("post-login failed:", {
+      clerkId: req.body?.clerkId,
+      name: error.name,
+      code: error.code,
+      message: error.message,
+    });
     return res.status(500).json({ message: error.message });
   }
 };
